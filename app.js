@@ -13,10 +13,19 @@ const BATCH_SIZE = 50;
 let dateSlider = document.getElementById('date-slider');
 
 document.addEventListener('DOMContentLoaded', () => {
-    fetchData();
     // S'assure que le mode par défaut (Collecte) est activé au chargement
     document.body.classList.add('view-collecte');
 });
+
+// Le chargement des données est déclenché après confirmation de l'auth Firebase.
+// global.js gère les redirections et la whitelist ; app.js se contente d'écouter.
+if (typeof firebase !== 'undefined') {
+    firebase.auth().onAuthStateChanged(user => {
+        if (user) {
+            fetchData();
+        }
+    });
+}
 
 // ============================================================
 // 1. CHARGEMENT DES DONNÉES (COMPLET UNIQUE)
@@ -31,8 +40,23 @@ function fetchData() {
         counter.style.color = "#5D3A7E";
     }
 
-    fetch(scriptUrl)
-        .then(res => res.json())
+    const user = firebase.auth().currentUser;
+    if (!user) {
+        console.warn("fetchData() appelé sans utilisateur connecté. Annulation.");
+        if (counter) counter.innerText = "Non connecté";
+        return;
+    }
+
+    user.getIdToken()
+        .then(token => {
+            return fetch(scriptUrl, {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+        })
+        .then(res => {
+            if (!res.ok) throw new Error("Accès refusé (" + res.status + ")");
+            return res.json();
+        })
         .then(data => {
             console.log("Données reçues :", data.length);
             allData = data;
@@ -49,7 +73,6 @@ function fetchData() {
             if (counter) {
                 counter.style.backgroundColor = "#B19CD9";
                 counter.style.color = "white";
-                // Le texte sera mis à jour par applyFilters ou ici directement
                 counter.innerText = allData.length + " billets";
             }
         })
