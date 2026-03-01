@@ -159,3 +159,13 @@ function toggleMenu() {
     const nav = document.getElementById('nav-links');
     if(nav) nav.classList.toggle('active');
 }
+
+// ============================================================
+// 5. SERVICE WORKER (Cache des assets statiques)
+// ============================================================
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+            .catch(err => console.warn('Service Worker non enregistré :', err));
+    });
+}

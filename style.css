@@ -1,10 +1,23 @@
 /* =========================================
+   0. VARIABLES CSS (Palette de couleurs)
+   ========================================= */
+:root {
+    --color-primary:   #5D3A7E; /* Violet principal */
+    --color-secondary: #7F58A0; /* Violet moyen */
+    --color-accent:    #B19CD9; /* Lilas clair */
+    --color-surface:   #EFE9F7; /* Fond mauve clair */
+    --color-bg:        #F7F7F9; /* Fond gris clair */
+    --color-danger:    #CC4444; /* Rouge */
+    --color-facebook:  #1877F2; /* Bleu Facebook */
+}
+
+/* =========================================
    1. SECURITE & GLOBAL
    ========================================= */
 body {
     font-family: 'Roboto', sans-serif;
-    background-color: #F7F7F9;
-    /* NOUVEAU: Gris très clair et propre */
+    background-color: var(--color-bg);
+    
     margin: 0;
     padding: 20px;
     color: #333;
@@ -27,8 +40,8 @@ body {
    2. MENU DE NAVIGATION
    ========================================= */
 .navbar {
-    background-color: #5D3A7E;
-    /* NOUVEAU: Violet/Mauve Principal */
+    background-color: var(--color-primary);
+    
     color: white;
     padding: 0 20px;
     display: flex;
@@ -69,16 +82,16 @@ body {
 
 .nav-links a:hover,
 .dropdown:hover {
-    background-color: #7F58A0;
-    /* NOUVEAU: Nuance Violet plus claire pour le survol */
+    background-color: var(--color-secondary);
+    
     color: white;
 }
 
 .nav-links a.active {
-    background-color: #7F58A0;
+    background-color: var(--color-secondary);
     /* Fond violet au survol/actif */
-    color: #B19CD9;
-    /* NOUVEAU: Mauve/Lilas clair pour le lien actif */
+    color: var(--color-accent);
+    
     font-weight: 500;
 }
 
@@ -133,11 +146,11 @@ body {
 
 .dropdown-content a:hover {
     background-color: #f1f1f1;
-    color: #7F58A0;
-    /* NOUVEAU: Violet au survol du sous-menu */
+    color: var(--color-secondary);
+    
 }
 
-/* --- NOUVEAU : PROFIL & BOUTON DÉCONNEXION --- */
+/* --- PROFIL & BOUTON DÉCONNEXION --- */
 .user-info {
     display: flex;
     align-items: center;
@@ -161,9 +174,9 @@ body {
 .btn-logout {
     /* Style Ghost Button moderne */
     background-color: transparent;
-    border: 1px solid #CC4444;
-    /* NOUVEAU: Rouge bordeaux/tomate pour contraste */
-    color: #CC4444;
+    border: 1px solid var(--color-danger);
+    
+    color: var(--color-danger);
     padding: 6px 15px;
     border-radius: 50px;
     /* Forme pilule */
@@ -179,7 +192,7 @@ body {
 }
 
 .btn-logout:hover {
-    background-color: #CC4444;
+    background-color: var(--color-danger);
     color: white;
     box-shadow: 0 0 10px rgba(204, 68, 68, 0.4);
     /* Effet néon au survol */
@@ -209,8 +222,8 @@ body {
         position: absolute;
         top: 60px;
         left: 0;
-        background-color: #5D3A7E;
-        /* NOUVEAU: Violet/Mauve Principal */
+        background-color: var(--color-primary);
+        
         padding: 10px 0;
         z-index: 999;
         border-radius: 0 0 8px 8px;
@@ -233,8 +246,8 @@ body {
     .dropdown-content {
         position: static;
         display: block;
-        background: #7F58A0;
-        /* NOUVEAU: Nuance Violet plus claire */
+        background: var(--color-secondary);
+        
         box-shadow: none;
         width: 100%;
     }
@@ -296,38 +309,38 @@ body {
 /* Icônes spécifiques aux pages */
 .collector-icon {
     font-size: 4em;
-    color: #5D3A7E;
-    /* NOUVEAU: Violet Principal pour Infos Collecteurs */
+    color: var(--color-primary);
+    
     margin-bottom: 20px;
 }
 
 .contact-icon {
     font-size: 4em;
-    color: #5D3A7E;
-    /* NOUVEAU: Violet Principal pour Contact */
+    color: var(--color-primary);
+    
     margin-bottom: 20px;
 }
 
 .link-icon {
     font-size: 4em;
-    color: #5D3A7E;
-    /* NOUVEAU: Violet Principal pour Liens Utiles */
+    color: var(--color-primary);
+    
     margin-bottom: 20px;
 }
 
 
 .text-page h1 {
-    color: #5D3A7E;
-    /* NOUVEAU: Violet Principal pour le titre */
-    border-bottom: 2px solid #B19CD9;
-    /* NOUVEAU: Mauve/Lilas clair pour le soulignement */
+    color: var(--color-primary);
+    
+    border-bottom: 2px solid var(--color-accent);
+    
     padding-bottom: 10px;
     margin-top: 0;
 }
 
 .text-page h2 {
-    color: #B19CD9;
-    /* NOUVEAU: Mauve/Lilas clair pour les sous-titres */
+    color: var(--color-accent);
+    
     margin-top: 30px;
     font-size: 1.4em;
 }
@@ -342,10 +355,10 @@ body {
 }
 
 .alert-box {
-    background-color: #EFE9F7;
-    /* NOUVEAU: Mauve très clair */
-    border-left: 5px solid #7F58A0;
-    /* NOUVEAU: Violet moyen pour la barre d'accentuation */
+    background-color: var(--color-surface);
+    
+    border-left: 5px solid var(--color-secondary);
+    
     padding: 15px;
     margin: 20px 0;
     border-radius: 4px;
@@ -375,9 +388,9 @@ body {
 }
 
 .rates-content-wrapper h2 {
-    color: #5D3A7E;
+    color: var(--color-primary);
     font-size: 1.6em;
-    border-bottom: 2px solid #B19CD9;
+    border-bottom: 2px solid var(--color-accent);
     padding-bottom: 5px;
     margin-top: 40px;
 }
@@ -403,7 +416,7 @@ body {
 }
 
 .rates-table thead th {
-    background-color: #5D3A7E;
+    background-color: var(--color-primary);
     color: white;
     font-weight: bold;
     text-transform: uppercase;
@@ -414,24 +427,24 @@ body {
 }
 
 .rates-table tbody tr:nth-child(even) {
-    background-color: #F7F7F9;
+    background-color: var(--color-bg);
 }
 
 .rates-table tbody tr:hover {
-    background-color: #EFE9F7;
+    background-color: var(--color-surface);
 }
 
 .rates-info-box {
     margin: 25px 0;
     padding: 20px;
-    background-color: #EFE9F7;
-    border-left: 5px solid #7F58A0;
+    background-color: var(--color-surface);
+    border-left: 5px solid var(--color-secondary);
     border-radius: 4px;
     font-size: 0.9em;
 }
 
 .rates-info-box h3 {
-    color: #5D3A7E;
+    color: var(--color-primary);
     margin-top: 0;
     font-size: 1.1em;
 }
@@ -447,7 +460,7 @@ body {
 }
 
 .rates-info-box strong {
-    color: #7F58A0;
+    color: var(--color-secondary);
 }
 
 .rates-disclaimer {
@@ -458,7 +471,7 @@ body {
 }
 
 .rates-return-link {
-    color: #7F58A0;
+    color: var(--color-secondary);
     text-decoration: none;
     margin-top: 20px;
     display: inline-block;
@@ -477,9 +490,9 @@ body {
 }
 
 .hours-box {
-    background-color: #EFE9F7;
+    background-color: var(--color-surface);
     /* Mauve très clair */
-    border: 1px solid #B19CD9;
+    border: 1px solid var(--color-accent);
     /* Mauve clair */
     padding: 20px;
     border-radius: 8px;
@@ -488,7 +501,7 @@ body {
 }
 
 .hours-box strong {
-    color: #5D3A7E;
+    color: var(--color-primary);
     font-weight: 700;
 }
 
@@ -497,7 +510,7 @@ body {
 }
 
 .closed-warning {
-    color: #CC4444;
+    color: var(--color-danger);
     font-weight: 500;
     margin-top: 15px;
 }
@@ -513,13 +526,13 @@ body {
     background: #fff;
     padding: 20px;
     border-radius: 8px;
-    border-top: 5px solid #7F58A0;
+    border-top: 5px solid var(--color-secondary);
     /* Violet Moyen */
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .team-member h3 {
-    color: #5D3A7E;
+    color: var(--color-primary);
     margin-top: 0;
     font-size: 1.2em;
     border-bottom: 1px dashed #eee;
@@ -544,9 +557,9 @@ body {
     max-width: 600px;
     margin: 40px auto 20px auto;
     padding: 30px 20px;
-    background: #EFE9F7;
+    background: var(--color-surface);
     /* Mauve très clair */
-    border: 2px solid #B19CD9;
+    border: 2px solid var(--color-accent);
     /* Mauve clair */
     border-radius: 10px;
     transition: transform 0.3s ease;
@@ -558,7 +571,7 @@ body {
 }
 
 .facebook-link-box h2 {
-    color: #5D3A7E;
+    color: var(--color-primary);
     font-size: 1.8em;
     margin-top: 0;
     margin-bottom: 15px;
@@ -567,7 +580,7 @@ body {
 
 .facebook-link-box a {
     display: inline-block;
-    background-color: #1877F2;
+    background-color: var(--color-facebook);
     /* Bleu Facebook */
     color: white;
     padding: 10px 25px;
@@ -761,19 +774,19 @@ input {
 }
 
 .icon-btn {
-    color: #5D3A7E;
+    color: var(--color-primary);
     font-size: 1.5em;
     text-decoration: none;
     transition: color 0.2s, transform 0.2s;
 }
 
 .icon-btn:hover {
-    color: #7F58A0;
+    color: var(--color-secondary);
     transform: scale(1.1);
 }
 
 .ico-form {
-    color: #5D3A7E;
+    color: var(--color-primary);
 }
 
 .ico-sheet {
@@ -781,7 +794,7 @@ input {
 }
 
 .ico-fb {
-    color: #1877F2;
+    color: var(--color-facebook);
 }
 
 .ico-dl {
@@ -807,7 +820,7 @@ a:hover .fa-paypal {
 }
 
 .noUi-connect {
-    background: #B19CD9;
+    background: var(--color-accent);
 }
 
 .noUi-handle {
@@ -816,7 +829,7 @@ a:hover .fa-paypal {
     top: -5px !important;
     right: -9px !important;
     border-radius: 50%;
-    background: #5D3A7E;
+    background: var(--color-primary);
     box-shadow: none;
     border: 2px solid white;
     cursor: grab;
@@ -829,7 +842,7 @@ a:hover .fa-paypal {
 
 /* Bouton Load More */
 #btn-load-more {
-    background-color: #5D3A7E;
+    background-color: var(--color-primary);
     color: white;
     border: none;
     padding: 12px 30px;
@@ -842,7 +855,7 @@ a:hover .fa-paypal {
 }
 
 #btn-load-more:hover {
-    background-color: #7F58A0;
+    background-color: var(--color-secondary);
 }
 
 /* -------------------------------------- */
@@ -905,7 +918,7 @@ body.view-galerie #cards-grid .galerie-item {
 }
 
 #billets-table thead th {
-    background-color: #5D3A7E;
+    background-color: var(--color-primary);
     /* Violet Principal */
     color: white;
     font-weight: bold;
@@ -917,16 +930,16 @@ body.view-galerie #cards-grid .galerie-item {
 }
 
 #billets-table tbody tr:nth-child(even) {
-    background-color: #F7F7F9;
+    background-color: var(--color-bg);
 }
 
 #billets-table tbody tr:hover {
-    background-color: #EFE9F7;
+    background-color: var(--color-surface);
 }
 
 #billets-table .col-ref {
     font-weight: 500;
-    color: #5D3A7E;
+    color: var(--color-primary);
 }
 
 #billets-table .col-comment {
@@ -1030,7 +1043,7 @@ body.login-page {
     align-items: center;
     height: 100vh;
     margin: 0;
-    background: linear-gradient(135deg, #5D3A7E 0%, #7F58A0 100%);
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
     color: #333;
     padding: 0;
 }
@@ -1047,14 +1060,14 @@ body.login-page {
 
 .logo-icon {
     font-size: 4em;
-    color: #5D3A7E;
+    color: var(--color-primary);
     margin-bottom: 20px;
 }
 
 .login-card h1 {
     margin: 0 0 10px 0;
     font-size: 1.5em;
-    color: #5D3A7E;
+    color: var(--color-primary);
 }
 
 .login-card p {
@@ -1065,7 +1078,7 @@ body.login-page {
 }
 
 .btn-google {
-    background-color: #5D3A7E;
+    background-color: var(--color-primary);
     color: white;
     border: none;
     padding: 12px 20px;
@@ -1082,13 +1095,13 @@ body.login-page {
 }
 
 .btn-google:hover {
-    background-color: #7F58A0;
+    background-color: var(--color-secondary);
     transform: translateY(-2px);
 }
 
 /* Petit message d'erreur caché par défaut */
 #error-msg {
-    color: #CC4444;
+    color: var(--color-danger);
     font-size: 0.85em;
     margin-top: 15px;
     display: none;
