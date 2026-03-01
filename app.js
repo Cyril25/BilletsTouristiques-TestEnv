@@ -78,7 +78,20 @@ function fetchData() {
         })
         .catch(err => {
             console.error("Erreur chargement :", err);
-            if (counter) counter.innerText = "Erreur !";
+            if (counter) {
+                counter.innerText = "Erreur !";
+                counter.style.backgroundColor = "#CC4444";
+                counter.style.color = "white";
+            }
+            const grid = document.getElementById('cards-grid');
+            if (grid) {
+                grid.innerHTML = `
+                    <div style="grid-column:1/-1; text-align:center; padding:40px; color:#CC4444;">
+                        <i class="fa-solid fa-circle-exclamation" style="font-size:2em; margin-bottom:12px; display:block;"></i>
+                        <strong>Impossible de charger les billets.</strong><br>
+                        <span style="color:#666; font-size:0.9em;">${err.message || 'Erreur réseau'} — Réessaye dans quelques instants.</span>
+                    </div>`;
+            }
         });
 }
 
