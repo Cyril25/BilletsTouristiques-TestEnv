@@ -15,7 +15,7 @@
 
         <div class="admin-page-header">
             <h1><i class="fa-solid fa-ticket"></i> Gestion des billets</h1>
-            <button class="btn-admin-primary" id="btn-add-billet" onclick="handleAddBillet()">
+            <button class="btn-admin-primary" id="btn-add-billet">
                 <i class="fa-solid fa-plus"></i> Ajouter un billet
             </button>
         </div>
@@ -26,6 +26,232 @@
             </p>
         </div>
 
+    </div>
+
+    <!-- Story 2.2 — Overlay du panel lateral -->
+    <div id="admin-panel-overlay" class="admin-panel-overlay"></div>
+
+    <!-- Story 2.2 — Panel lateral (ajout / modification) -->
+    <div id="admin-panel" class="admin-panel" role="dialog" aria-label="Ajouter un billet" aria-modal="true">
+
+        <!-- Header -->
+        <div class="admin-panel-header">
+            <h2 id="panel-title">Ajouter un billet</h2>
+            <button id="panel-close-btn" class="panel-close-btn" aria-label="Fermer le panel">&times;</button>
+        </div>
+
+        <!-- Body (scrollable) -->
+        <div class="admin-panel-body">
+            <form id="admin-billet-form" novalidate>
+
+                <!-- Section : Informations principales -->
+                <fieldset class="admin-form-section">
+                    <legend>Informations principales</legend>
+
+                    <div class="admin-form-group">
+                        <label for="field-nom-billet">Nom du billet *</label>
+                        <input type="text" id="field-nom-billet" name="NomBillet" required autocomplete="off">
+                        <span class="admin-form-error" id="error-nom-billet"></span>
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label for="field-ville">Ville *</label>
+                        <input type="text" id="field-ville" name="Ville" required autocomplete="off">
+                        <span class="admin-form-error" id="error-ville"></span>
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label for="field-reference">Reference</label>
+                        <input type="text" id="field-reference" name="Reference" autocomplete="off">
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label for="field-millesime">Millesime</label>
+                        <input type="text" id="field-millesime" name="Millesime" autocomplete="off">
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label for="field-version">Version</label>
+                        <input type="text" id="field-version" name="Version" autocomplete="off">
+                    </div>
+                </fieldset>
+
+                <!-- Section : Localisation & Classification -->
+                <fieldset class="admin-form-section">
+                    <legend>Localisation & Classification</legend>
+
+                    <div class="admin-form-group">
+                        <label for="field-dep">Departement</label>
+                        <input type="text" id="field-dep" name="Dep" autocomplete="off">
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label for="field-cp">Code postal</label>
+                        <input type="text" id="field-cp" name="Cp" autocomplete="off">
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label for="field-pays">Pays</label>
+                        <input type="text" id="field-pays" name="Pays" autocomplete="off">
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label for="field-categorie">Categorie</label>
+                        <input type="text" id="field-categorie" name="Categorie" autocomplete="off">
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label for="field-theme">Theme</label>
+                        <input type="text" id="field-theme" name="Theme" autocomplete="off">
+                    </div>
+                </fieldset>
+
+                <!-- Section : Statut (chips/radio) -->
+                <fieldset class="admin-form-section">
+                    <legend>Statut</legend>
+                    <div id="status-chips-container" class="admin-status-chips" role="radiogroup" aria-label="Statut du billet">
+                    </div>
+                    <input type="hidden" id="field-statut" name="Statut" value="Projet">
+                </fieldset>
+
+                <!-- Section : Dates -->
+                <fieldset class="admin-form-section">
+                    <legend>Dates</legend>
+
+                    <div class="admin-form-group">
+                        <label for="field-date">Date</label>
+                        <input type="date" id="field-date" name="Date">
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label for="field-date-pre">Date pre-collecte</label>
+                        <input type="date" id="field-date-pre" name="DatePre">
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label for="field-date-coll">Date collecte</label>
+                        <input type="date" id="field-date-coll" name="DateColl">
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label for="field-date-fin">Date fin</label>
+                        <input type="date" id="field-date-fin" name="DateFin">
+                    </div>
+                </fieldset>
+
+                <!-- Section : Collecte & Prix -->
+                <fieldset class="admin-form-section">
+                    <legend>Collecte & Prix</legend>
+
+                    <div class="admin-form-group">
+                        <label for="field-collecteur">Collecteur</label>
+                        <input type="text" id="field-collecteur" name="Collecteur" autocomplete="off">
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label for="field-prix">Prix</label>
+                        <input type="number" id="field-prix" name="Prix" step="0.01" min="0">
+                        <span class="admin-form-error" id="error-prix"></span>
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label for="field-fdp">Frais de port</label>
+                        <input type="text" id="field-fdp" name="FDP" autocomplete="off">
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label for="field-fdp-com">FDP commentaire</label>
+                        <input type="text" id="field-fdp-com" name="FDP_Com" autocomplete="off">
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label for="field-info-paiement">Info paiement</label>
+                        <input type="text" id="field-info-paiement" name="InfoPaiement" autocomplete="off">
+                    </div>
+                </fieldset>
+
+                <!-- Section : Image & Liens -->
+                <fieldset class="admin-form-section">
+                    <legend>Image & Liens</legend>
+
+                    <div class="admin-form-group">
+                        <label for="field-image-id">Image ID</label>
+                        <input type="text" id="field-image-id" name="ImageId" autocomplete="off">
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label for="field-link-sheet">Lien Google Sheet</label>
+                        <input type="text" id="field-link-sheet" name="LinkSheet" autocomplete="off">
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label for="field-link-fb">Lien Facebook</label>
+                        <input type="text" id="field-link-fb" name="LinkFB" autocomplete="off">
+                    </div>
+                </fieldset>
+
+                <!-- Section : Autres -->
+                <fieldset class="admin-form-section">
+                    <legend>Autres informations</legend>
+
+                    <div class="admin-form-group">
+                        <label for="field-couleur">Couleur</label>
+                        <input type="text" id="field-couleur" name="Couleur" autocomplete="off">
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label for="field-commentaire">Commentaire</label>
+                        <textarea id="field-commentaire" name="Commentaire" rows="3"></textarea>
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label for="field-sondage">Sondage</label>
+                        <input type="text" id="field-sondage" name="Sondage" autocomplete="off">
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label for="field-compteur-bt">Compteur BT</label>
+                        <input type="text" id="field-compteur-bt" name="CompteurBT" autocomplete="off">
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label for="field-collecte-cache">Collecte cache</label>
+                        <input type="text" id="field-collecte-cache" name="CollecteCache" autocomplete="off">
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label for="field-com-cache">Commentaire cache</label>
+                        <input type="text" id="field-com-cache" name="ComCache" autocomplete="off">
+                    </div>
+                </fieldset>
+
+            </form>
+        </div>
+
+        <!-- Footer -->
+        <div class="admin-panel-footer">
+            <button type="submit" id="panel-save-btn" class="btn-primary" form="admin-billet-form">Sauvegarder</button>
+        </div>
+
+    </div>
+
+    <!-- Story 2.4 — Modale de confirmation de suppression -->
+    <div id="delete-modal-overlay" class="admin-modal-overlay" style="display: none;">
+        <div id="delete-modal" class="admin-modal" role="alertdialog" aria-modal="true" aria-labelledby="delete-modal-title" aria-describedby="delete-modal-desc">
+            <h2 id="delete-modal-title" class="admin-modal-title">Supprimer ce billet ?</h2>
+            <p id="delete-modal-desc" class="admin-modal-desc">
+                Cette action est irreversible. Pour confirmer, tapez le nom exact du billet :
+            </p>
+            <p id="delete-modal-billet-name" class="admin-modal-billet-name"></p>
+            <div class="admin-modal-input-group">
+                <label for="delete-confirm-input" class="admin-modal-label">Nom du billet</label>
+                <input type="text" id="delete-confirm-input" class="admin-modal-input" autocomplete="off" spellcheck="false" placeholder="Tapez le nom ici...">
+            </div>
+            <div class="admin-modal-actions">
+                <button type="button" id="delete-cancel-btn" class="admin-modal-btn admin-modal-btn-secondary" onclick="closeDeleteModal()">Annuler</button>
+                <button type="button" id="delete-confirm-btn" class="admin-modal-btn admin-modal-btn-danger" disabled onclick="confirmDelete()">Confirmer la suppression</button>
+            </div>
+        </div>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js" integrity="sha384-v3Z/Xdw1sCeo6M/geW7sn1Lt9obIm7MhAk8laVV+rvYFmzuWDELOiygx7dVte2dX" crossorigin="anonymous"></script>

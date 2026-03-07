@@ -1337,3 +1337,524 @@ body.login-page {
         text-align: center;
     }
 }
+
+/* =========================================
+   8. STORY 2.2 -- Panel lateral
+   ========================================= */
+
+/* Overlay */
+.admin-panel-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 999;
+    display: none;
+}
+
+.admin-panel-overlay.open {
+    display: block;
+}
+
+/* Panel */
+.admin-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 420px;
+    height: 100vh;
+    transform: translateX(100%);
+    transition: transform 300ms ease;
+    z-index: 1000;
+    background: #fff;
+    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+}
+
+.admin-panel.open {
+    transform: translateX(0);
+}
+
+/* Panel header */
+.admin-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md);
+    border-bottom: 1px solid #eee;
+    flex-shrink: 0;
+}
+
+.admin-panel-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #333;
+}
+
+.panel-close-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #666;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+}
+
+.panel-close-btn:hover {
+    background: var(--color-surface);
+    color: #333;
+}
+
+.panel-close-btn:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+/* Panel body (scrollable) */
+.admin-panel-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--spacing-md);
+}
+
+/* Panel footer */
+.admin-panel-footer {
+    padding: var(--spacing-md);
+    border-top: 1px solid #eee;
+    flex-shrink: 0;
+}
+
+#panel-save-btn {
+    width: 100%;
+    padding: var(--spacing-sm) var(--spacing-md);
+    min-height: 44px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+}
+
+#panel-save-btn:hover {
+    opacity: 0.9;
+}
+
+#panel-save-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+#panel-save-btn:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+/* Formulaire sections */
+.admin-form-section {
+    border: none;
+    padding: 0;
+    margin: 0 0 var(--spacing-md) 0;
+}
+
+.admin-form-section legend {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--color-primary);
+    margin-bottom: var(--spacing-sm);
+    padding: 0;
+}
+
+.admin-form-group {
+    margin-bottom: var(--spacing-sm);
+}
+
+.admin-form-group label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #555;
+    margin-bottom: 4px;
+}
+
+.admin-form-group input,
+.admin-form-group textarea,
+.admin-form-group select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: var(--radius-sm);
+    font-size: 1rem;
+    font-family: inherit;
+    box-sizing: border-box;
+    transition: border-color var(--transition-fast);
+}
+
+.admin-form-group input:focus,
+.admin-form-group textarea:focus,
+.admin-form-group select:focus {
+    border-color: var(--color-primary);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(93, 58, 126, 0.2);
+}
+
+/* Validation errors */
+.admin-form-group.has-error input,
+.admin-form-group.has-error textarea {
+    border-color: var(--color-danger);
+}
+
+.admin-form-error {
+    display: none;
+    color: var(--color-danger);
+    font-size: 0.8rem;
+    margin-top: 4px;
+}
+
+.admin-form-group.has-error .admin-form-error {
+    display: block;
+}
+
+/* Status chips */
+.admin-status-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-xs);
+}
+
+.admin-status-chip {
+    padding: 6px 14px;
+    border: 2px solid #ccc;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 500;
+    background: #fff;
+    color: #333;
+    transition: all var(--transition-fast);
+    user-select: none;
+}
+
+.admin-status-chip:hover {
+    border-color: var(--color-primary);
+}
+
+.admin-status-chip:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+.admin-status-chip.selected {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: #fff;
+}
+
+.admin-status-chip.next-status {
+    border-color: var(--color-secondary);
+    border-style: dashed;
+}
+
+/* Panel responsive mobile */
+@media (max-width: 768px) {
+    .admin-panel {
+        width: 100%;
+    }
+
+    .admin-panel-footer {
+        position: sticky;
+        bottom: 0;
+        background: #fff;
+        z-index: 1;
+    }
+
+    #panel-save-btn {
+        width: 100%;
+        min-height: 48px;
+        font-size: 1.1rem;
+    }
+}
+
+/* =========================================
+   9. STORY 2.4 -- Modale de suppression
+   ========================================= */
+
+.admin-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-md);
+}
+
+.admin-modal {
+    background: #fff;
+    border-radius: var(--radius-md);
+    padding: var(--spacing-xl);
+    max-width: 480px;
+    width: 100%;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    animation: modalFadeIn var(--transition-normal) ease-out;
+}
+
+@keyframes modalFadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .admin-modal {
+        animation: none;
+    }
+}
+
+.admin-modal-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--color-danger);
+    margin: 0 0 var(--spacing-sm) 0;
+}
+
+.admin-modal-desc {
+    font-size: 0.9375rem;
+    color: #555;
+    margin: 0 0 var(--spacing-md) 0;
+    line-height: 1.5;
+}
+
+.admin-modal-billet-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-primary);
+    background: var(--color-surface);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-sm);
+    margin: 0 0 var(--spacing-md) 0;
+    text-align: center;
+    word-break: break-word;
+}
+
+.admin-modal-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #333;
+    margin-bottom: var(--spacing-xs);
+}
+
+.admin-modal-input {
+    width: 100%;
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: 1rem;
+    border: 2px solid #ddd;
+    border-radius: var(--radius-sm);
+    outline: none;
+    transition: border-color var(--transition-fast);
+    box-sizing: border-box;
+}
+
+.admin-modal-input:focus {
+    border-color: var(--color-primary);
+}
+
+.admin-modal-input-group {
+    margin-bottom: var(--spacing-lg);
+}
+
+.admin-modal-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+    justify-content: flex-end;
+}
+
+.admin-modal-btn {
+    padding: var(--spacing-sm) var(--spacing-lg);
+    font-size: 0.9375rem;
+    font-weight: 500;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    min-height: 44px;
+    transition: opacity var(--transition-fast), background-color var(--transition-fast);
+}
+
+.admin-modal-btn-secondary {
+    background: #e0e0e0;
+    color: #333;
+}
+
+.admin-modal-btn-secondary:hover {
+    background: #d0d0d0;
+}
+
+.admin-modal-btn-danger {
+    background: var(--color-danger);
+    color: #fff;
+}
+
+.admin-modal-btn-danger:hover:not(:disabled) {
+    opacity: 0.9;
+}
+
+.admin-modal-btn-danger:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+    .admin-modal {
+        padding: var(--spacing-lg) var(--spacing-md);
+        max-width: 100%;
+    }
+
+    .admin-modal-actions {
+        flex-direction: column-reverse;
+    }
+
+    .admin-modal-btn {
+        width: 100%;
+        text-align: center;
+    }
+}
+
+/* =========================================
+   10. STORY 2.5 -- Popup de statut rapide
+   ========================================= */
+
+.quick-status-popup {
+    position: absolute;
+    z-index: 100;
+    background: #fff;
+    border: 1px solid var(--color-accent);
+    border-radius: var(--radius-md);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    padding: var(--spacing-sm);
+    min-width: 200px;
+    top: 100%;
+    left: 0;
+    margin-top: var(--spacing-xs);
+}
+
+.quick-status-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-xs);
+}
+
+.status-chip {
+    border: 2px solid transparent;
+    border-radius: var(--radius-sm);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all var(--transition-fast) ease;
+    background: var(--color-bg);
+    color: #333;
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.status-chip:hover {
+    opacity: 0.85;
+    transform: scale(1.05);
+}
+
+.status-chip--active {
+    border-color: currentColor;
+    font-weight: 700;
+    cursor: default;
+    opacity: 0.6;
+}
+
+.status-chip--next {
+    box-shadow: 0 0 0 2px var(--color-primary);
+    transform: scale(1.08);
+}
+
+.card-badge-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.admin-badge-status.clickable {
+    cursor: pointer;
+}
+
+.admin-badge-status.clickable:hover {
+    opacity: 0.85;
+}
+
+/* Story 2.3/2.4 — Boutons action sur carte */
+.admin-card-actions {
+    display: flex;
+    gap: var(--spacing-xs);
+    margin-top: var(--spacing-xs);
+}
+
+.admin-card-edit-btn,
+.admin-card-delete-btn {
+    background: none;
+    border: 1px solid #ddd;
+    border-radius: var(--radius-sm);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    cursor: pointer;
+    font-size: 0.8rem;
+    min-height: 36px;
+    min-width: 36px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all var(--transition-fast);
+}
+
+.admin-card-edit-btn {
+    color: var(--color-primary);
+}
+
+.admin-card-edit-btn:hover {
+    background: var(--color-surface);
+    border-color: var(--color-primary);
+}
+
+.admin-card-delete-btn {
+    color: var(--color-danger);
+}
+
+.admin-card-delete-btn:hover {
+    background: #fce4e4;
+    border-color: var(--color-danger);
+}
+
+@media (max-width: 768px) {
+    .quick-status-popup {
+        left: 50%;
+        transform: translateX(-50%);
+        min-width: 250px;
+    }
+
+    .admin-card-edit-btn,
+    .admin-card-delete-btn {
+        min-height: 44px;
+        min-width: 44px;
+    }
+}
