@@ -1,5 +1,12 @@
-# BMAD agent framework (installed locally, not project-specific)
+# BMAD agent framework and outputs (local tooling)
 _bmad/
+_bmad-output/
 
 # Claude Code local config and memory
 .claude/
+
+# Migration scripts (outils locaux, credentials sensibles)
+scripts/
+
+# Documentation vide
+docs/

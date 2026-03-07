@@ -49,21 +49,29 @@ document.addEventListener("DOMContentLoaded", function() {
                     // --- C'EST GAGNÉ : IL EST DANS LA LISTE ---
                     console.log("Accès autorisé pour : " + user.email);
 
+                    // STORY 1.2 — Lecture du rôle
+                    window.userRole = doc.data().role || 'member';
+
                     if (isLoginPage) {
                         window.location.href = "index.html";
                     } else {
-                        loadMenu(); 
+                        // STORY 1.2 — Guard admin : vérifier si la page requiert le rôle admin
+                        if (document.body.getAttribute('data-require-admin') === 'true' && window.userRole !== 'admin') {
+                            window.location.href = 'index.html';
+                            return;
+                        }
+
+                        loadMenu();
                         const appContent = document.getElementById('app-content');
                         if (appContent) appContent.style.display = 'block';
                     }
                 } else {
                     // --- PERDU : IL N'EST PAS DANS LA LISTE ---
                     console.warn("Accès REFUSÉ. Email inconnu dans la whitelist.");
-                    alert("Désolé, votre email (" + user.email + ") n'est pas autorisé.");
 
-                    // On le déconnecte
-                    auth.signOut().then(() => {
-                        window.location.href = "login.html";
+                    // STORY 1.2 — Déconnexion + redirection avec paramètre d'erreur
+                    auth.signOut().then(function() {
+                        window.location.href = 'login.html?error=unauthorized';
                     });
                 }
             })
@@ -134,10 +142,12 @@ function loadMenu() {
             // On vérifie si l'utilisateur est là et si le span existe
             if (user && emailSpan) {
                 emailSpan.textContent = user.email;
+            }
 
-
-
-
+            // STORY 1.2 — Menu conditionnel : afficher les liens admin uniquement pour les admins
+            if (window.userRole === 'admin') {
+                var adminLinks = document.querySelectorAll('.admin-only');
+                adminLinks.forEach(function(el) { el.style.display = ''; });
             }
         })
         .catch(err => console.error("Menu introuvable :", err));

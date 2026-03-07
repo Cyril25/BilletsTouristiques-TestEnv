@@ -32,5 +32,17 @@
 
 <script src="global.js"></script>
 
+<script>
+// STORY 1.2 — Afficher le message d'erreur si paramètre ?error=unauthorized
+var urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('error') === 'unauthorized') {
+    var errorMsg = document.getElementById('error-msg');
+    if (errorMsg) {
+        errorMsg.textContent = "Accès refusé. Votre email n'est pas dans la liste des membres autorisés.";
+        errorMsg.style.display = 'block';
+    }
+}
+</script>
+
 </body>
 </html>

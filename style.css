@@ -1099,10 +1099,16 @@ body.login-page {
     transform: translateY(-2px);
 }
 
+/* STORY 1.2 — Liens admin masqués par défaut */
+.admin-only {
+    display: none;
+}
+
 /* Petit message d'erreur caché par défaut */
 #error-msg {
     color: var(--color-danger);
-    font-size: 0.85em;
-    margin-top: 15px;
+    text-align: center;
+    margin-top: 16px;
+    font-weight: 500;
     display: none;
 }
