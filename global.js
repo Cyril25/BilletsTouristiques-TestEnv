@@ -56,10 +56,12 @@ function supabaseFetch(path, options) {
             return fetch(SUPABASE_URL + path, fetchOptions);
         })
         .then(function(response) {
-            if (response.status === 204) return null;
+            if (response.status === 204 || response.status === 201) return null;
             if (!response.ok) {
-                return response.json().then(function(err) {
-                    throw new Error(err.message || ('Erreur Supabase ' + response.status));
+                return response.text().then(function(text) {
+                    var msg = 'Erreur Supabase ' + response.status;
+                    try { msg = JSON.parse(text).message || msg; } catch(e) {}
+                    throw new Error(msg);
                 });
             }
             return response.json();
