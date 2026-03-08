@@ -32,24 +32,30 @@ function showToast(message, type) {
 // ============================================================
 var adminBillets = [];
 
-// Story 2.2 — Statuts et flux
-var STATUTS = ['Projet', 'Pre-collecte', 'Collecte', 'Pas de collecte', 'Termine'];
-var STATUT_FLOW = {
-    'Projet': 'Pre-collecte',
-    'Pre-collecte': 'Collecte',
-    'Collecte': 'Termine',
+// Categories (= statuts) — valeurs reelles du Google Sheet
+var CATEGORIES = [
+    'Jamais édité, projet',
+    'Pré collecte',
+    'Collecte',
+    'Pas de collecte',
+    'Terminé'
+];
+var CATEGORIE_FLOW = {
+    'Jamais édité, projet': 'Pré collecte',
+    'Pré collecte': 'Collecte',
+    'Collecte': 'Terminé',
     'Pas de collecte': null,
-    'Termine': null
+    'Terminé': null
 };
-var STATUT_DEFAULT = 'Projet';
+var CATEGORIE_DEFAULT = 'Jamais édité, projet';
 
-// Story 2.5 — Couleurs des statuts
-var STATUS_COLORS = {
-    'Projet': '#999',
-    'Pre-collecte': '#F57C00',
+// Couleurs des categories
+var CATEGORIE_COLORS = {
+    'Jamais édité, projet': '#999',
+    'Pré collecte': '#F57C00',
     'Collecte': '#1565C0',
     'Pas de collecte': '#CC4444',
-    'Termine': '#2E7D32'
+    'Terminé': '#2E7D32'
 };
 
 // Story 2.2 — Focus trap
@@ -117,8 +123,8 @@ function loadAdminBillets() {
 // ============================================================
 // 5. RENDU DES CARTES BILLETS (Stories 2.1, 2.3, 2.4, 2.5)
 // ============================================================
-function getStatusColor(statut) {
-    return STATUS_COLORS[statut] || '#666';
+function getStatusColor(categorie) {
+    return CATEGORIE_COLORS[categorie] || '#666';
 }
 
 function renderAdminCards() {
@@ -160,7 +166,7 @@ function renderAdminCards() {
         var billet = source[i];
         var docId = billet._id;
         var nom = billet.NomBillet || 'Sans nom';
-        var statut = billet.Statut || billet.Categorie || '';
+        var statut = billet.Categorie || '';
         var statusColor = getStatusColor(statut) || billet.Couleur || '#666';
 
         html += '<div class="admin-card-billet" data-doc-id="' + docId + '">' +
@@ -207,9 +213,9 @@ function renderAdminCards() {
 // Story 2.5 — Generer le HTML des chips de statut pour le popup rapide
 function buildStatusChipsHtml(docId, currentStatus) {
     var html = '';
-    var currentIndex = STATUTS.indexOf(currentStatus);
+    var currentIndex = CATEGORIES.indexOf(currentStatus);
 
-    STATUTS.forEach(function(statut, index) {
+    CATEGORIES.forEach(function(statut, index) {
         var classes = 'status-chip';
         if (statut === currentStatus) classes += ' status-chip--active';
         if (currentIndex >= 0 && index === currentIndex + 1) classes += ' status-chip--next';
@@ -510,9 +516,8 @@ function openBilletPanel(billetData, docId) {
         panel.setAttribute('aria-label', 'Ajouter un billet');
 
         // Statut par defaut
-        var statutField = document.getElementById('field-statut');
-        if (statutField) statutField.value = STATUT_DEFAULT;
-        renderStatusChips(STATUT_DEFAULT);
+        var categorieField = document.getElementById('field-categorie');
+        if (categorieField) categorieField.value = CATEGORIE_DEFAULT;
     }
 
     // Ouvrir le panel
@@ -572,10 +577,9 @@ function prefillForm(data) {
     if (commentaireEl) commentaireEl.value = data.Commentaire || '';
 
     // Statut
-    var statut = data.Statut || data.Categorie || STATUT_DEFAULT;
-    var statutField = document.getElementById('field-statut');
-    if (statutField) statutField.value = statut;
-    renderStatusChips(statut);
+    var categorie = data.Categorie || CATEGORIE_DEFAULT;
+    var categorieField = document.getElementById('field-categorie');
+    if (categorieField) categorieField.value = categorie;
 }
 
 // --- Fermeture du panel ---
@@ -656,42 +660,8 @@ function destroyFocusTrap() {
 }
 
 // ============================================================
-// 8. STORY 2.2 — CHIPS DE STATUT
+// 8. (Section supprimee — les chips statut sont remplaces par un select)
 // ============================================================
-
-function renderStatusChips(selectedStatus) {
-    var container = document.getElementById('status-chips-container');
-    if (!container) return;
-
-    container.innerHTML = '';
-
-    STATUTS.forEach(function(statut) {
-        var chip = document.createElement('button');
-        chip.type = 'button';
-        chip.className = 'admin-status-chip';
-        chip.textContent = statut;
-        chip.setAttribute('role', 'radio');
-        chip.setAttribute('aria-checked', statut === selectedStatus ? 'true' : 'false');
-        chip.setAttribute('tabindex', statut === selectedStatus ? '0' : '-1');
-
-        if (statut === selectedStatus) {
-            chip.classList.add('selected');
-        }
-
-        var nextStatus = STATUT_FLOW[selectedStatus];
-        if (nextStatus && statut === nextStatus) {
-            chip.classList.add('next-status');
-        }
-
-        chip.addEventListener('click', function() {
-            var statutField = document.getElementById('field-statut');
-            if (statutField) statutField.value = statut;
-            renderStatusChips(statut);
-        });
-
-        container.appendChild(chip);
-    });
-}
 
 // ============================================================
 // 9. STORY 2.2 — VALIDATION DU FORMULAIRE
@@ -769,7 +739,6 @@ function collectFormData() {
         Dep: getValue('field-dep'),
         Cp: getValue('field-cp'),
         Pays: getValue('field-pays'),
-        Categorie: getValue('field-categorie'),
         Theme: getValue('field-theme'),
         Collecteur: getValue('field-collecteur'),
         Prix: getValue('field-prix'),
@@ -789,7 +758,7 @@ function collectFormData() {
         CompteurBT: getValue('field-compteur-bt'),
         CollecteCache: getValue('field-collecte-cache'),
         ComCache: getValue('field-com-cache'),
-        Statut: getValue('field-statut') || STATUT_DEFAULT
+        Categorie: getValue('field-categorie') || CATEGORIE_DEFAULT
     };
 
     // Champ Recherche (concatenation des champs cles en minuscules)
@@ -891,7 +860,7 @@ function updateCardInList(docId, billetData) {
     // Mise a jour du badge de statut
     var badge = card.querySelector('.admin-badge-status');
     if (badge) {
-        var statut = billetData.Statut || billetData.Categorie || '';
+        var statut = billetData.Categorie || '';
         badge.textContent = statut;
         badge.setAttribute('data-current-status', statut);
         badge.style.backgroundColor = getStatusColor(statut) || billetData.Couleur || '#666';
@@ -908,7 +877,7 @@ function updateCardInList(docId, billetData) {
     if (popup) {
         var chipsContainer = popup.querySelector('.quick-status-chips');
         if (chipsContainer) {
-            chipsContainer.innerHTML = buildStatusChipsHtml(docId, billetData.Statut || billetData.Categorie || '');
+            chipsContainer.innerHTML = buildStatusChipsHtml(docId, billetData.Categorie || '');
         }
     }
 
@@ -1077,7 +1046,7 @@ function closeAllStatusPopups() {
 function highlightActiveAndNextChip(popup, currentStatus) {
     if (!popup) return;
     var chips = popup.querySelectorAll('.status-chip');
-    var currentIndex = STATUTS.indexOf(currentStatus);
+    var currentIndex = CATEGORIES.indexOf(currentStatus);
 
     chips.forEach(function(chip, index) {
         chip.classList.remove('status-chip--active', 'status-chip--next');
@@ -1109,7 +1078,7 @@ function handleQuickStatusChange(chip) {
 
     // --- Mise a jour Firestore ---
     var db = firebase.firestore();
-    db.collection('billets').doc(docId).update({ Statut: newStatus })
+    db.collection('billets').doc(docId).update({ Categorie: newStatus })
         .then(function() {
             // Succes : mettre a jour les donnees en memoire
             updateInMemoryStatus(docId, newStatus);
@@ -1147,7 +1116,7 @@ function updateBadgeUI(badge, status) {
 function updateInMemoryStatus(docId, newStatus) {
     for (var i = 0; i < adminBillets.length; i++) {
         if (adminBillets[i]._id === docId) {
-            adminBillets[i].Statut = newStatus;
+            adminBillets[i].Categorie = newStatus;
             break;
         }
     }
@@ -1165,12 +1134,12 @@ function renderStatusCounters() {
     var counts = {};
     var total = adminBillets.length;
     adminBillets.forEach(function(billet) {
-        var statut = billet.Statut || 'Non defini';
+        var statut = billet.Categorie || 'Non defini';
         counts[statut] = (counts[statut] || 0) + 1;
     });
 
     // Ordre des statuts
-    var statutOrder = ['Projet', 'Pre-collecte', 'Collecte', 'Pas de collecte', 'Termine'];
+    var statutOrder = CATEGORIES.slice();
     // Ajouter les statuts non prevus
     Object.keys(counts).forEach(function(s) {
         if (statutOrder.indexOf(s) === -1) statutOrder.push(s);
@@ -1233,12 +1202,12 @@ function adminApplyFilters() {
 
     adminFilteredBillets = adminBillets.filter(function(billet) {
         // Filtre statut
-        if (adminActiveStatusFilter !== 'tous' && billet.Statut !== adminActiveStatusFilter) {
+        if (adminActiveStatusFilter !== 'tous' && billet.Categorie !== adminActiveStatusFilter) {
             return false;
         }
 
         // Filtre "En cours" (masquer les termines)
-        if (adminFilterEnCours && billet.Statut === 'Termine') {
+        if (adminFilterEnCours && billet.Categorie === 'Terminé') {
             return false;
         }
 

@@ -130,12 +130,19 @@
                     </div>
                 </fieldset>
 
-                <!-- Section : Statut (chips/radio) -->
+                <!-- Section : Categorie -->
                 <fieldset class="admin-form-section">
-                    <legend>Statut</legend>
-                    <div id="status-chips-container" class="admin-status-chips" role="radiogroup" aria-label="Statut du billet">
+                    <legend>Categorie</legend>
+                    <div class="admin-form-group">
+                        <label for="field-categorie">Categorie du billet</label>
+                        <select id="field-categorie" name="Categorie" class="admin-form-select">
+                            <option value="Jamais édité, projet">Jamais édité, projet</option>
+                            <option value="Pré collecte">Pré collecte</option>
+                            <option value="Collecte">Collecte</option>
+                            <option value="Pas de collecte">Pas de collecte</option>
+                            <option value="Terminé">Terminé</option>
+                        </select>
                     </div>
-                    <input type="hidden" id="field-statut" name="Statut" value="Projet">
                 </fieldset>
 
                 <!-- Section : Dates -->
