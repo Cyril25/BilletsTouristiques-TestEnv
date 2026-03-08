@@ -51,11 +51,12 @@ var CATEGORIE_DEFAULT = 'Jamais édité, projet';
 
 // Couleurs des categories
 var CATEGORIE_COLORS = {
-    'Jamais édité, projet': '#999',
-    'Pré collecte': '#F57C00',
-    'Collecte': '#1565C0',
-    'Pas de collecte': '#CC4444',
-    'Terminé': '#2E7D32'
+    'Collecte': '#A4C2F4',
+    'Pré collecte': '#FFFF00',
+    'Terminé': '#C27BA0',
+    'Pas de collecte': '#CECECE',
+    'Jamais édité, projet': '#CECECE',
+    'Non defini': '#F57C00'
 };
 
 // Story 2.2 — Focus trap
@@ -121,7 +122,17 @@ function loadAdminBillets() {
 // 5. RENDU DES CARTES BILLETS (Stories 2.1, 2.3, 2.4, 2.5)
 // ============================================================
 function getStatusColor(categorie) {
-    return CATEGORIE_COLORS[categorie] || '#666';
+    var key = categorie || 'Non defini';
+    return CATEGORIE_COLORS[key] || CATEGORIE_COLORS['Non defini'];
+}
+
+function getTextColorForBg(hex) {
+    hex = hex.replace('#', '');
+    var r = parseInt(hex.substring(0, 2), 16);
+    var g = parseInt(hex.substring(2, 4), 16);
+    var b = parseInt(hex.substring(4, 6), 16);
+    var luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance > 0.55 ? '#333' : '#fff';
 }
 
 function renderAdminCards() {
@@ -164,7 +175,8 @@ function renderAdminCards() {
         var docId = billet._id;
         var nom = billet.NomBillet || 'Sans nom';
         var statut = billet.Categorie || '';
-        var statusColor = getStatusColor(statut) || billet.Couleur || '#666';
+        var statusLabel = statut || 'Non defini';
+        var statusColor = getStatusColor(statut);
 
         html += '<div class="admin-card-billet" data-doc-id="' + docId + '">' +
             '<div class="admin-card-header">' +
@@ -173,8 +185,8 @@ function renderAdminCards() {
                     '<span class="admin-badge-status clickable" ' +
                         'data-doc-id="' + docId + '" ' +
                         'data-current-status="' + escapeAttr(statut) + '" ' +
-                        'style="background-color: ' + statusColor + ';">' +
-                        escapeHtml(statut) +
+                        'style="background-color: ' + statusColor + '; color: ' + getTextColorForBg(statusColor) + ';">' +
+                        escapeHtml(statusLabel) +
                     '</span>' +
                     // Story 2.5 — popup de statut rapide (cache par defaut)
                     '<div class="quick-status-popup" id="quick-status-popup-' + docId + '" style="display: none;">' +
@@ -221,7 +233,7 @@ function buildStatusChipsHtml(docId, currentStatus) {
         html += '<button class="' + classes + '" ' +
             'data-status="' + escapeAttr(statut) + '" ' +
             'data-doc-id="' + docId + '" ' +
-            'style="background-color: ' + color + '; color: #fff;" ' +
+            'style="background-color: ' + color + '; color: ' + getTextColorForBg(color) + ';" ' +
             'aria-pressed="' + (statut === currentStatus ? 'true' : 'false') + '">' +
             escapeHtml(statut) +
             '</button>';
@@ -859,9 +871,12 @@ function updateCardInList(docId, billetData) {
     var badge = card.querySelector('.admin-badge-status');
     if (badge) {
         var statut = billetData.Categorie || '';
-        badge.textContent = statut;
+        var statusLabel = statut || 'Non defini';
+        var color = getStatusColor(statut);
+        badge.textContent = statusLabel;
         badge.setAttribute('data-current-status', statut);
-        badge.style.backgroundColor = getStatusColor(statut) || billetData.Couleur || '#666';
+        badge.style.backgroundColor = color;
+        badge.style.color = getTextColorForBg(color);
     }
 
     // Mise a jour du bouton supprimer (nom du billet)
