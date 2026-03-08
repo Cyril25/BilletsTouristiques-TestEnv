@@ -1260,6 +1260,58 @@ body.login-page {
     transform: translateY(-1px);
 }
 
+/* --- Pagination admin --- */
+.admin-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 20px 0;
+    margin-top: 10px;
+}
+
+.admin-pagination-btn {
+    padding: 8px 14px;
+    border: 1px solid #ddd;
+    background: #fff;
+    color: #333;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-family: 'Roboto', sans-serif;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.admin-pagination-btn:hover:not(:disabled):not(.active) {
+    background-color: #f5f5f5;
+    border-color: #bbb;
+}
+
+.admin-pagination-btn.active {
+    background-color: var(--color-primary, #5D3A7E);
+    color: #fff;
+    border-color: var(--color-primary, #5D3A7E);
+    cursor: default;
+}
+
+.admin-pagination-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.admin-pagination-ellipsis {
+    padding: 8px 4px;
+    color: #999;
+    font-size: 14px;
+}
+
+.admin-pagination-info {
+    font-size: 13px;
+    color: #666;
+    margin-left: 12px;
+}
+
 /* --- Admin responsive mobile --- */
 @media (max-width: 768px) {
     .admin-cards-grid {
@@ -1279,6 +1331,25 @@ body.login-page {
     .btn-admin-primary {
         width: 100%;
         padding: 14px 24px;
+    }
+
+    .admin-pagination {
+        gap: 4px;
+        padding: 16px 0;
+    }
+    .admin-pagination-btn {
+        padding: 6px 10px;
+        font-size: 13px;
+    }
+    .admin-pagination-prev,
+    .admin-pagination-next {
+        padding: 6px 8px;
+    }
+    .admin-pagination-info {
+        width: 100%;
+        text-align: center;
+        margin-left: 0;
+        margin-top: 8px;
     }
 }
 

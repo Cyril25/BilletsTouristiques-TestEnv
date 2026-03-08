@@ -60,6 +60,10 @@ var escapeHandler = null;
 var deleteTargetDocId = null;
 var deleteTargetName = '';
 
+// Pagination
+var PAGE_SIZE = 50;
+var currentPage = 1;
+
 // ============================================================
 // 3. INITIALISATION
 // ============================================================
@@ -79,6 +83,7 @@ function loadAdminBillets() {
     var db = firebase.firestore();
     var grid = document.getElementById('admin-cards-grid');
     if (!grid) return;
+    currentPage = 1;
 
     db.collection('billets').orderBy('Timestamp', 'desc').get()
         .then(function(snapshot) {
@@ -113,18 +118,28 @@ function renderAdminCards() {
     var grid = document.getElementById('admin-cards-grid');
     if (!grid) return;
 
-    if (adminBillets.length === 0) {
+    var source = getDisplayedBillets();
+
+    if (source.length === 0) {
         grid.innerHTML = '<div class="admin-empty-state">' +
             '<i class="fa-solid fa-box-open"></i>' +
             '<p>Aucun billet dans le catalogue</p>' +
             '<button class="btn-admin-primary" onclick="openBilletPanel()">' +
             '<i class="fa-solid fa-plus"></i> Ajouter un premier billet</button>' +
             '</div>';
+        var paginationContainer = document.getElementById('admin-pagination');
+        if (paginationContainer) paginationContainer.style.display = 'none';
         return;
     }
 
+    var totalPages = Math.ceil(source.length / PAGE_SIZE);
+    if (currentPage > totalPages && totalPages > 0) currentPage = totalPages;
+    var start = (currentPage - 1) * PAGE_SIZE;
+    var end = Math.min(start + PAGE_SIZE, source.length);
+
     var html = '';
-    adminBillets.forEach(function(billet) {
+    for (var i = start; i < end; i++) {
+        var billet = source[i];
         var docId = billet._id;
         var nom = billet.NomBillet || 'Sans nom';
         var statut = billet.Statut || billet.Categorie || '';
@@ -165,9 +180,10 @@ function renderAdminCards() {
                 '</button>' +
             '</div>' +
             '</div>';
-    });
+    }
 
     grid.innerHTML = html;
+    renderPaginationControls(source.length, totalPages);
 }
 
 // Story 2.5 — Generer le HTML des chips de statut pour le popup rapide
@@ -202,6 +218,92 @@ function escapeHtml(text) {
 
 function escapeAttr(text) {
     return String(text).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// ============================================================
+// 5b. PAGINATION — SOURCE DE DONNEES
+// ============================================================
+function getDisplayedBillets() {
+    return adminBillets;
+}
+
+// ============================================================
+// 5c. PAGINATION — CONTROLES DE NAVIGATION
+// ============================================================
+function renderPaginationControls(totalItems, totalPages) {
+    var container = document.getElementById('admin-pagination');
+    if (!container) return;
+
+    if (totalPages <= 1) {
+        container.style.display = 'none';
+        return;
+    }
+
+    container.style.display = 'flex';
+    container.setAttribute('role', 'navigation');
+    container.setAttribute('aria-label', 'Pagination');
+    var html = '';
+
+    // Bouton precedent
+    html += '<button class="admin-pagination-btn admin-pagination-prev"' +
+        ' aria-label="Page précédente"' +
+        (currentPage === 1 ? ' disabled' : '') +
+        ' data-page="' + (currentPage - 1) + '">' +
+        '<i class="fa-solid fa-chevron-left"></i> Précédent</button>';
+
+    // Numeros de page (avec ellipses si > 7 pages)
+    var pages = getPaginationRange(currentPage, totalPages);
+    for (var i = 0; i < pages.length; i++) {
+        if (pages[i] === '...') {
+            html += '<span class="admin-pagination-ellipsis">...</span>';
+        } else {
+            html += '<button class="admin-pagination-btn admin-pagination-num' +
+                (pages[i] === currentPage ? ' active' : '') + '"' +
+                (pages[i] === currentPage ? ' aria-current="page"' : '') +
+                ' aria-label="Page ' + pages[i] + '"' +
+                ' data-page="' + pages[i] + '">' + pages[i] + '</button>';
+        }
+    }
+
+    // Bouton suivant
+    html += '<button class="admin-pagination-btn admin-pagination-next"' +
+        ' aria-label="Page suivante"' +
+        (currentPage === totalPages ? ' disabled' : '') +
+        ' data-page="' + (currentPage + 1) + '">' +
+        'Suivant <i class="fa-solid fa-chevron-right"></i></button>';
+
+    // Compteur
+    html += '<span class="admin-pagination-info">' +
+        totalItems + ' billets — Page ' + currentPage + ' sur ' + totalPages +
+        '</span>';
+
+    container.innerHTML = html;
+}
+
+function getPaginationRange(current, total) {
+    if (total <= 7) {
+        var range = [];
+        for (var i = 1; i <= total; i++) range.push(i);
+        return range;
+    }
+    var pages = [];
+    pages.push(1);
+    var rangeStart = Math.max(2, current - 1);
+    var rangeEnd = Math.min(total - 1, current + 1);
+    // Etendre la fenetre si proche des bords
+    if (rangeStart <= 3) {
+        rangeEnd = Math.max(rangeEnd, 4);
+        rangeStart = 2;
+    }
+    if (rangeEnd >= total - 2) {
+        rangeStart = Math.min(rangeStart, total - 3);
+        rangeEnd = total - 1;
+    }
+    if (rangeStart > 2) pages.push('...');
+    for (var i = rangeStart; i <= rangeEnd; i++) pages.push(i);
+    if (rangeEnd < total - 1) pages.push('...');
+    pages.push(total);
+    return pages;
 }
 
 // ============================================================
@@ -313,6 +415,25 @@ function initPanel() {
             closeAllStatusPopups();
         }
     });
+
+    // Pagination — event delegation
+    var paginationContainer = document.getElementById('admin-pagination');
+    if (paginationContainer) {
+        paginationContainer.addEventListener('click', function(event) {
+            var btn = event.target.closest('.admin-pagination-btn');
+            if (!btn || btn.disabled) return;
+            var page = parseInt(btn.getAttribute('data-page'), 10);
+            if (isNaN(page) || page < 1 || page === currentPage) return;
+            var source = getDisplayedBillets();
+            var maxPage = Math.ceil(source.length / PAGE_SIZE);
+            if (page > maxPage) return;
+            currentPage = page;
+            renderAdminCards();
+            // Scroll vers le haut de la grille
+            var grid = document.getElementById('admin-cards-grid');
+            if (grid) grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    }
 }
 
 // Trouver un billet par son ID dans le tableau en memoire
@@ -879,17 +1000,18 @@ function confirmDelete() {
         .then(function() {
             showToast('Billet supprime avec succes', 'success');
             closeDeleteModal();
-            // Retirer la carte du DOM
-            var card = document.querySelector('.admin-card-billet[data-doc-id="' + docId + '"]');
-            if (card) card.remove();
             // Retirer du tableau en memoire
             adminBillets = adminBillets.filter(function(b) {
                 return b._id !== docId;
             });
-            // Afficher l'etat vide si plus de billets
-            if (adminBillets.length === 0) {
-                renderAdminCards();
+            // Garde de page : si la page courante depasse le total, reculer
+            var source = getDisplayedBillets();
+            var totalPages = Math.ceil(source.length / PAGE_SIZE);
+            if (currentPage > totalPages && totalPages > 0) {
+                currentPage = totalPages;
             }
+            // Re-render complet (re-pagine les cartes)
+            renderAdminCards();
         })
         .catch(function(error) {
             console.error('Erreur suppression billet:', error);
