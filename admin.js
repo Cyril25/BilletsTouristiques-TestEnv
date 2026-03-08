@@ -998,7 +998,7 @@ function confirmDelete() {
             closeDeleteModal();
             // Retirer du tableau en memoire
             adminBillets = adminBillets.filter(function(b) {
-                return b._id !== docId;
+                return String(b._id) !== String(docId);
             });
             // Story 2.1b — Recalculer compteurs et filtres
             renderStatusCounters();
