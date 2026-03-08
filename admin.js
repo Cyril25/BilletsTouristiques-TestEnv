@@ -467,7 +467,7 @@ function initPanel() {
 // Trouver un billet par son ID dans le tableau en memoire
 function findBilletById(docId) {
     for (var i = 0; i < adminBillets.length; i++) {
-        if (adminBillets[i]._id === docId) {
+        if (String(adminBillets[i]._id) === String(docId)) {
             return adminBillets[i];
         }
     }
@@ -881,7 +881,7 @@ function updateCardInList(docId, billetData) {
 
     // Mise a jour des donnees en memoire
     for (var i = 0; i < adminBillets.length; i++) {
-        if (adminBillets[i]._id === docId) {
+        if (String(adminBillets[i]._id) === String(docId)) {
             for (var key in billetData) {
                 adminBillets[i][key] = billetData[key];
             }
@@ -1116,7 +1116,7 @@ function updateBadgeUI(badge, status) {
 
 function updateInMemoryStatus(docId, newStatus) {
     for (var i = 0; i < adminBillets.length; i++) {
-        if (adminBillets[i]._id === docId) {
+        if (String(adminBillets[i]._id) === String(docId)) {
             adminBillets[i].Categorie = newStatus;
             break;
         }
