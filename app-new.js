@@ -59,7 +59,7 @@ function fetchData() {
         return;
     }
 
-    supabaseFetch('/rest/v1/billets?select=*&order=id.desc')
+    supabaseFetch('/rest/v1/billets?select=*&order=Date.desc.nullslast,Categorie.asc')
         .then(function(data) {
             console.log("Données Supabase reçues :", data.length);
             allData = data || [];
