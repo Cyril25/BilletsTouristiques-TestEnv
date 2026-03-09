@@ -54,7 +54,7 @@ var CATEGORIE_COLORS = {
     'Collecte': '#A4C2F4',
     'Pré collecte': '#FFFF00',
     'Terminé': '#C27BA0',
-    'Pas de collecte': '#CECECE',
+    'Pas de collecte': '#FF0000',
     'Jamais édité, projet': '#CECECE',
     'Non defini': '#F57C00'
 };
@@ -1124,9 +1124,10 @@ function handleQuickStatusChange(chip) {
 function updateBadgeUI(badge, status) {
     if (!badge) return;
     badge.setAttribute('data-current-status', status);
-    badge.textContent = status;
+    badge.textContent = status || 'Non defini';
     var color = getStatusColor(status);
     badge.style.backgroundColor = color;
+    badge.style.color = getTextColorForBg(color);
 }
 
 function updateInMemoryStatus(docId, newStatus) {
