@@ -1,6 +1,6 @@
 // ============================================================
 // users.js — BilletsTouristiques Gestion des membres
-// Stories 3.1, 3.2
+// Stories 3.1, 3.2, 4.1
 // ============================================================
 
 // ============================================================
@@ -64,7 +64,7 @@ function loadUsers() {
     var grid = document.getElementById('user-cards-grid');
     if (!grid) return;
 
-    supabaseFetch('/rest/v1/whitelist?select=*&order=email.asc', { method: 'GET' })
+    supabaseFetch('/rest/v1/membres?select=email,role,pseudo,nom&order=email.asc', { method: 'GET' })
         .then(function(rows) {
             usersList = rows.map(function(row) {
                 row._id = row.email;
@@ -83,7 +83,7 @@ function loadUsers() {
         })
         .catch(function(error) {
             showToast('Erreur chargement membres : ' + error.message, 'error');
-            console.error('Erreur chargement whitelist:', error);
+            console.error('Erreur chargement membres:', error);
             if (grid) {
                 grid.innerHTML = '<div class="user-empty-state">' +
                     '<i class="fa-solid fa-circle-exclamation" style="color: var(--color-danger);"></i>' +
@@ -103,7 +103,10 @@ function renderUserCards() {
     var html = '';
     usersList.forEach(function(user) {
         var email = user._id || '';
+        var pseudo = user.pseudo || '';
+        var nom = user.nom || '';
         var role = user.role || '';
+        var displayName = pseudo || nom || email;
         var isAdmin = role === 'admin';
         var badgeClass = isAdmin ? 'user-badge-role user-badge-admin' : 'user-badge-role user-badge-member';
         var badgeLabel = isAdmin ? 'Admin' : 'Membre';
@@ -113,10 +116,33 @@ function renderUserCards() {
 
         html += '<div class="user-card" data-doc-id="' + escapeAttr(email) + '">' +
             '<div class="user-card-header">' +
-                '<span class="user-card-email">' + escapeHtml(email) + '</span>' +
+                '<span class="user-card-name">' + escapeHtml(displayName) + '</span>' +
                 '<span class="' + badgeClass + '">' + badgeLabel + '</span>' +
             '</div>' +
+            '<div class="user-card-details">' +
+                '<span class="user-card-email"><i class="fa-solid fa-envelope"></i> ' + escapeHtml(email) + '</span>' +
+                (pseudo ? '<span class="user-card-pseudo"><i class="fa-solid fa-at"></i> ' + escapeHtml(pseudo) + '</span>' : '') +
+            '</div>' +
+            '<div class="user-card-edit" data-doc-id="' + escapeAttr(email) + '" style="display:none">' +
+                '<div class="user-edit-field">' +
+                    '<label>Pseudo</label>' +
+                    '<input type="text" class="user-edit-pseudo" value="' + escapeAttr(pseudo) + '" placeholder="Pseudo">' +
+                '</div>' +
+                '<div class="user-edit-field">' +
+                    '<label>Nom</label>' +
+                    '<input type="text" class="user-edit-nom" value="' + escapeAttr(nom) + '" placeholder="Nom">' +
+                '</div>' +
+                '<div class="user-edit-actions">' +
+                    '<button class="user-edit-save-btn user-modal-btn user-modal-btn-primary" data-doc-id="' + escapeAttr(email) + '"><i class="fa-solid fa-check"></i> Sauvegarder</button>' +
+                    '<button class="user-edit-cancel-btn user-modal-btn"><i class="fa-solid fa-xmark"></i> Annuler</button>' +
+                '</div>' +
+            '</div>' +
             '<div class="user-card-actions">' +
+                '<button class="user-edit-toggle-btn" ' +
+                    'data-doc-id="' + escapeAttr(email) + '" ' +
+                    'title="Modifier profil">' +
+                    '<i class="fa-solid fa-pen"></i> Modifier profil' +
+                '</button>' +
                 '<button class="' + btnClass + '" ' +
                     'data-doc-id="' + escapeAttr(email) + '" ' +
                     'data-current-role="' + escapeAttr(role) + '" ' +
@@ -155,6 +181,42 @@ function initUserEvents() {
                     return;
                 }
                 changeUserRole(email, newRole);
+                return;
+            }
+
+            var editToggle = event.target.closest('.user-edit-toggle-btn');
+            if (editToggle) {
+                event.stopPropagation();
+                var card = editToggle.closest('.user-card');
+                if (!card) return;
+                var editPanel = card.querySelector('.user-card-edit');
+                if (editPanel) {
+                    editPanel.style.display = editPanel.style.display === 'none' ? 'block' : 'none';
+                }
+                return;
+            }
+
+            var editSave = event.target.closest('.user-edit-save-btn');
+            if (editSave) {
+                event.stopPropagation();
+                var emailToEdit = editSave.getAttribute('data-doc-id');
+                var card = editSave.closest('.user-card');
+                if (!card) return;
+                var pseudoInput = card.querySelector('.user-edit-pseudo');
+                var nomInput = card.querySelector('.user-edit-nom');
+                var newPseudo = pseudoInput ? pseudoInput.value.trim() : '';
+                var newNom = nomInput ? nomInput.value.trim() : '';
+                saveUserProfile(emailToEdit, newPseudo, newNom);
+                return;
+            }
+
+            var editCancel = event.target.closest('.user-edit-cancel-btn');
+            if (editCancel) {
+                event.stopPropagation();
+                var card = editCancel.closest('.user-card');
+                if (!card) return;
+                var editPanel = card.querySelector('.user-card-edit');
+                if (editPanel) editPanel.style.display = 'none';
                 return;
             }
 
@@ -229,19 +291,52 @@ function addUser() {
         }
     }
 
-    supabaseFetch('/rest/v1/whitelist', {
+    var pseudoInput = document.getElementById('new-user-pseudo');
+    var nomInput = document.getElementById('new-user-nom');
+    var pseudo = pseudoInput ? pseudoInput.value.trim() : '';
+    var nom = nomInput ? nomInput.value.trim() : '';
+
+    supabaseFetch('/rest/v1/membres', {
         method: 'POST',
-        body: JSON.stringify({ email: email, role: 'member' })
+        body: JSON.stringify({ email: email, role: 'member', pseudo: pseudo, nom: nom })
     })
         .then(function() {
             showToast('Membre ajouté avec succès', 'success');
             emailInput.value = '';
+            if (pseudoInput) pseudoInput.value = '';
+            if (nomInput) nomInput.value = '';
             if (addForm) addForm.style.display = 'none';
             loadUsers();
         })
         .catch(function(error) {
             showToast('Erreur lors de l\'ajout : ' + error.message, 'error');
             console.error('Erreur ajout membre:', error);
+        });
+}
+
+// ============================================================
+// 7b2. SAUVEGARDE PROFIL (PSEUDO / NOM)
+// ============================================================
+function saveUserProfile(email, pseudo, nom) {
+    supabaseFetch('/rest/v1/membres?email=eq.' + encodeURIComponent(email), {
+        method: 'PATCH',
+        body: JSON.stringify({ pseudo: pseudo, nom: nom })
+    })
+        .then(function() {
+            // Mettre a jour la liste en memoire
+            for (var i = 0; i < usersList.length; i++) {
+                if (usersList[i]._id === email) {
+                    usersList[i].pseudo = pseudo;
+                    usersList[i].nom = nom;
+                    break;
+                }
+            }
+            showToast('Profil mis à jour', 'success');
+            renderUserCards();
+        })
+        .catch(function(error) {
+            showToast('Erreur lors de la mise à jour : ' + error.message, 'error');
+            console.error('Erreur mise à jour profil:', error);
         });
 }
 
@@ -278,7 +373,7 @@ function confirmDeleteUser() {
     var email = deleteUserTargetEmail;
     closeDeleteUserModal();
 
-    supabaseFetch('/rest/v1/whitelist?email=eq.' + encodeURIComponent(email), {
+    supabaseFetch('/rest/v1/membres?email=eq.' + encodeURIComponent(email), {
         method: 'DELETE'
     })
         .then(function() {
@@ -313,7 +408,7 @@ function changeUserRole(email, newRole, isSelfDemotion) {
     // Mise a jour optimiste du DOM
     updateRoleInDOM(email, newRole);
 
-    supabaseFetch('/rest/v1/whitelist?email=eq.' + encodeURIComponent(email), {
+    supabaseFetch('/rest/v1/membres?email=eq.' + encodeURIComponent(email), {
         method: 'PATCH',
         body: JSON.stringify({ role: newRole })
     })

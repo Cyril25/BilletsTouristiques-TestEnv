@@ -86,11 +86,11 @@ document.addEventListener("DOMContentLoaded", function() {
         if (user) {
             console.log("Utilisateur détecté : " + user.email);
 
-            // --- VÉRIFICATION WHITELIST VIA SUPABASE ---
+            // --- VÉRIFICATION MEMBRES VIA SUPABASE ---
             firebase.auth().currentUser.getIdToken(false)
             .then(function(token) {
                 return fetch(
-                    SUPABASE_URL + '/rest/v1/whitelist?email=eq.' + encodeURIComponent(user.email) + '&select=role',
+                    SUPABASE_URL + '/rest/v1/membres?email=eq.' + encodeURIComponent(user.email) + '&select=role',
                     {
                         headers: {
                             'apikey': SUPABASE_ANON_KEY,
@@ -105,7 +105,7 @@ document.addEventListener("DOMContentLoaded", function() {
             })
             .then(function(rows) {
                 if (rows && rows.length > 0) {
-                    // --- AUTORISÉ : l'email est dans la whitelist ---
+                    // --- AUTORISÉ : l'email est dans la table membres ---
                     console.log("Accès autorisé pour : " + user.email);
                     window.userRole = rows[0].role || 'member';
 
@@ -124,14 +124,14 @@ document.addEventListener("DOMContentLoaded", function() {
                     }
                 } else {
                     // --- REFUSÉ : email inconnu ---
-                    console.warn("Accès REFUSÉ. Email inconnu dans la whitelist.");
+                    console.warn("Accès REFUSÉ. Email inconnu dans la table membres.");
                     auth.signOut().then(function() {
                         window.location.href = 'login.html?error=unauthorized';
                     });
                 }
             })
             .catch(function(error) {
-                console.error("Erreur lors de la vérification whitelist :", error);
+                console.error("Erreur lors de la vérification membres :", error);
             });
 
         } else {

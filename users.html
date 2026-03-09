@@ -22,7 +22,9 @@
 
         <!-- Formulaire d'ajout de membre -->
         <div id="add-user-form" class="user-add-form" style="display:none">
-            <input type="email" id="new-user-email" placeholder="email@exemple.com" autocomplete="off">
+            <input type="email" id="new-user-email" placeholder="email@exemple.com" autocomplete="off" required>
+            <input type="text" id="new-user-pseudo" placeholder="Pseudo (optionnel)" autocomplete="off">
+            <input type="text" id="new-user-nom" placeholder="Nom (optionnel)" autocomplete="off">
             <button type="button" id="confirm-add-user-btn" class="user-modal-btn user-modal-btn-primary">Ajouter</button>
             <button type="button" id="cancel-add-user-btn" class="user-modal-btn">Annuler</button>
         </div>
@@ -41,7 +43,7 @@
         <div class="user-modal" role="alertdialog" aria-modal="true">
             <h2 class="user-modal-title">Supprimer ce membre ?</h2>
             <p class="user-modal-desc">
-                Vous êtes sur le point de retirer <strong id="delete-user-email-display"></strong> de la whitelist. Cette personne ne pourra plus accéder au site.
+                Vous êtes sur le point de retirer <strong id="delete-user-email-display"></strong> de la liste des membres. Cette personne ne pourra plus accéder au site.
             </p>
             <div class="user-modal-actions">
                 <button type="button" id="delete-user-cancel-btn" class="user-modal-btn user-modal-btn-primary" onclick="closeDeleteUserModal()">Annuler</button>

@@ -1620,6 +1620,109 @@ body.login-page {
     color: #616161;
 }
 
+/* --- Story 4.1 : Affichage pseudo/nom --- */
+.user-card-name {
+    font-size: 1rem;
+    font-weight: 500;
+    color: #333;
+    word-break: break-all;
+}
+
+.user-card-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 0.8125rem;
+    color: #666;
+}
+
+.user-card-details i {
+    width: 16px;
+    text-align: center;
+    margin-right: var(--spacing-xs);
+    color: var(--color-accent);
+}
+
+.user-card-pseudo {
+    color: var(--color-secondary);
+}
+
+/* --- Story 4.1 : Edition inline profil --- */
+.user-card-edit {
+    padding: var(--spacing-sm) 0;
+    border-top: 1px solid #eee;
+}
+
+.user-edit-field {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: var(--spacing-sm);
+}
+
+.user-edit-field label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #666;
+}
+
+.user-edit-field input[type="text"] {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border: 1px solid #ccc;
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+    font-family: 'Roboto', sans-serif;
+    min-height: 36px;
+}
+
+.user-edit-field input[type="text"]:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(93, 58, 126, 0.2);
+}
+
+.user-edit-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-xs);
+}
+
+.user-edit-toggle-btn {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    border: 1px solid var(--color-accent);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    min-height: 44px;
+    background: transparent;
+    color: var(--color-secondary);
+    transition: background-color var(--transition-fast), color var(--transition-fast);
+    font-family: 'Roboto', sans-serif;
+}
+
+.user-edit-toggle-btn:hover {
+    background: var(--color-surface);
+    color: var(--color-primary);
+}
+
+/* --- Story 4.1 : Champs pseudo/nom dans formulaire ajout --- */
+.user-add-form input[type="text"] {
+    flex: 1;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: 1px solid #ccc;
+    border-radius: var(--radius-sm);
+    font-size: 0.9375rem;
+    font-family: 'Roboto', sans-serif;
+    min-height: 40px;
+}
+
+.user-add-form input[type="text"]:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(93, 58, 126, 0.2);
+}
+
 /* --- User empty state --- */
 .user-empty-state {
     text-align: center;
@@ -1662,9 +1765,18 @@ body.login-page {
     }
 
     .user-role-toggle-btn,
-    .user-delete-btn {
+    .user-delete-btn,
+    .user-edit-toggle-btn {
         width: 100%;
         min-height: 44px;
+    }
+
+    .user-add-form input[type="text"] {
+        width: 100%;
+    }
+
+    .user-edit-actions {
+        flex-direction: column;
     }
 
     .user-card-actions {
