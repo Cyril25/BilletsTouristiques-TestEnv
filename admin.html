@@ -100,6 +100,16 @@
                         <label for="field-version">Version</label>
                         <input type="text" id="field-version" name="Version" autocomplete="off" placeholder="1">
                     </div>
+
+                    <div class="admin-form-group">
+                        <label for="field-has-variante">Variante</label>
+                        <select id="field-has-variante" name="HasVariante" class="admin-form-select">
+                            <option value="">— Non renseigné —</option>
+                            <option value="N">Pas de variante</option>
+                            <option value="anniversary">Anniversaire</option>
+                            <option value="doré">Doré</option>
+                        </select>
+                    </div>
                 </fieldset>
 
                 <!-- Section : Localisation & Classification -->
@@ -175,7 +185,9 @@
 
                     <div class="admin-form-group">
                         <label for="field-collecteur">Collecteur</label>
-                        <input type="text" id="field-collecteur" name="Collecteur" autocomplete="off" placeholder="Nom du collecteur">
+                        <select id="field-collecteur" name="Collecteur" class="admin-form-select">
+                            <option value="">— Sélectionner un collecteur —</option>
+                        </select>
                     </div>
 
                     <div class="admin-form-group">

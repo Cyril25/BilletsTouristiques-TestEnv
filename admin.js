@@ -79,6 +79,9 @@ var adminFilteredBillets = [];
 // Story 4.3 — Cache liste des pays
 var paysListe = [];
 
+// Story 4.6 — Cache liste des collecteurs
+var collecteursList = [];
+
 // ============================================================
 // 3. INITIALISATION
 // ============================================================
@@ -87,6 +90,7 @@ if (typeof firebase !== 'undefined') {
         if (user) {
             loadAdminBillets();
             loadPays();
+            loadCollecteurs();
             initPanel();
         }
     });
@@ -187,6 +191,33 @@ function populateMillesimeSelect(mode) {
 }
 
 // ============================================================
+// 4d. CHARGEMENT DES COLLECTEURS (Story 4.6)
+// ============================================================
+function loadCollecteurs() {
+    supabaseFetch('/rest/v1/collecteurs?select=id,alias&order=alias.asc')
+        .then(function(data) {
+            collecteursList = data || [];
+            populateCollecteurSelect();
+        })
+        .catch(function(error) {
+            console.warn('Erreur chargement collecteurs:', error);
+        });
+}
+
+function populateCollecteurSelect() {
+    var select = document.getElementById('field-collecteur');
+    if (!select) return;
+    // Garder la premiere option (placeholder)
+    select.length = 1;
+    collecteursList.forEach(function(coll) {
+        var option = document.createElement('option');
+        option.value = coll.alias;
+        option.textContent = coll.alias;
+        select.appendChild(option);
+    });
+}
+
+// ============================================================
 // 5. RENDU DES CARTES BILLETS (Stories 2.1, 2.3, 2.4, 2.5)
 // ============================================================
 function getStatusColor(categorie) {
@@ -271,6 +302,19 @@ function renderAdminCards() {
                     (billet.Millesime ? ' - ' + escapeHtml(billet.Millesime) : '') +
                 '</span>' +
             '</div>' +
+            // Story 4.5 — Badge variante
+            (function() {
+                var v = billet.HasVariante || '';
+                var label = '';
+                if (v === 'anniversary') label = 'Anniversaire';
+                else if (v === 'doré') label = 'Doré';
+                if (label) {
+                    return '<span class="admin-card-variante-badge">' +
+                        '<i class="fa-solid fa-star"></i> ' + escapeHtml(label) +
+                        '</span>';
+                }
+                return '';
+            })() +
             // Story 2.3/2.4 — Boutons d'action
             '<div class="admin-card-actions">' +
                 '<button class="admin-card-edit-btn" data-doc-id="' + docId + '" title="Modifier">' +
@@ -626,6 +670,7 @@ function prefillForm(data) {
         'field-reference': 'Reference',
         'field-millesime': 'Millesime',
         'field-version': 'Version',
+        'field-has-variante': 'HasVariante',
         'field-dep': 'Dep',
         'field-cp': 'Cp',
         'field-pays': 'Pays',
@@ -686,6 +731,22 @@ function prefillForm(data) {
             millesimeSelect.appendChild(newMillesimeOption);
         }
         millesimeSelect.value = millesimeValue;
+    }
+
+    // Story 4.6 — Collecteur select : ajouter l'option si elle n'existe pas
+    var collecteurSelect = document.getElementById('field-collecteur');
+    var collecteurValue = data.Collecteur || '';
+    if (collecteurSelect && collecteurValue) {
+        var collecteurOptionExists = Array.prototype.some.call(collecteurSelect.options, function(opt) {
+            return opt.value === collecteurValue;
+        });
+        if (!collecteurOptionExists) {
+            var newCollOption = document.createElement('option');
+            newCollOption.value = collecteurValue;
+            newCollOption.textContent = collecteurValue + ' (ancien)';
+            collecteurSelect.appendChild(newCollOption);
+        }
+        collecteurSelect.value = collecteurValue;
     }
 
     // Checkbox PayerFDP
@@ -853,6 +914,7 @@ function collectFormData() {
         Reference: getValue('field-reference'),
         Millesime: getValue('field-millesime'),
         Version: getValue('field-version'),
+        HasVariante: getValue('field-has-variante'),
         Dep: getValue('field-dep'),
         Cp: getValue('field-cp'),
         Pays: getValue('field-pays'),

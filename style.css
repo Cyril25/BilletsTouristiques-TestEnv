@@ -2223,6 +2223,19 @@ body.login-page {
     cursor: pointer;
 }
 
+/* Story 4.5 — Badge variante sur les cartes admin */
+.admin-card-variante-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    background-color: var(--color-surface);
+    color: var(--color-secondary);
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
 /* Status chips */
 .admin-status-chips {
     display: flex;
