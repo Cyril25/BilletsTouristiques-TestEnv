@@ -76,6 +76,9 @@ var adminActiveStatusFilter = 'tous';
 var adminFilterEnCours = false;
 var adminFilteredBillets = [];
 
+// Story 4.3 — Cache liste des pays
+var paysListe = [];
+
 // ============================================================
 // 3. INITIALISATION
 // ============================================================
@@ -83,6 +86,7 @@ if (typeof firebase !== 'undefined') {
     firebase.auth().onAuthStateChanged(function(user) {
         if (user) {
             loadAdminBillets();
+            loadPays();
             initPanel();
         }
     });
@@ -116,6 +120,70 @@ function loadAdminBillets() {
                     '</div>';
             }
         });
+}
+
+// ============================================================
+// 4b. CHARGEMENT DES PAYS (Story 4.3)
+// ============================================================
+function loadPays() {
+    supabaseFetch('/rest/v1/pays?select=id,nom&order=nom.asc')
+        .then(function(data) {
+            paysListe = data || [];
+            populatePaysSelect();
+        })
+        .catch(function(error) {
+            console.warn('Erreur chargement pays:', error);
+        });
+}
+
+function populatePaysSelect() {
+    var select = document.getElementById('field-pays');
+    if (!select) return;
+    // Garder la premiere option (placeholder)
+    select.length = 1;
+    paysListe.forEach(function(pays) {
+        var option = document.createElement('option');
+        option.value = pays.nom;
+        option.textContent = pays.nom;
+        select.appendChild(option);
+    });
+}
+
+// ============================================================
+// 4c. MILLESIME SELECT (Story 4.4)
+// ============================================================
+function populateMillesimeSelect(mode) {
+    var select = document.getElementById('field-millesime');
+    if (!select) return;
+
+    var currentYear = new Date().getFullYear();
+    var options = [];
+
+    if (mode === 'create') {
+        // N+1, N, N-1, N-2, N-3
+        for (var y = currentYear + 1; y >= currentYear - 3; y--) {
+            options.push(String(y));
+        }
+    } else {
+        // 2015 a N+1
+        for (var y = currentYear + 1; y >= 2015; y--) {
+            options.push(String(y));
+        }
+    }
+
+    // Reinitialiser le select
+    select.length = 1; // Garder l'option placeholder
+    options.forEach(function(year) {
+        var opt = document.createElement('option');
+        opt.value = year;
+        opt.textContent = year;
+        select.appendChild(opt);
+    });
+
+    // En mode creation, pre-selectionner l'annee en cours
+    if (mode === 'create') {
+        select.value = String(currentYear);
+    }
 }
 
 // ============================================================
@@ -515,6 +583,9 @@ function openBilletPanel(billetData, docId) {
         if (saveBtn) saveBtn.textContent = 'Enregistrer les modifications';
         panel.setAttribute('aria-label', 'Modifier le billet');
 
+        // Story 4.4 — Millesime en mode edition (2015 a N+1)
+        populateMillesimeSelect('edit');
+
         // Pre-remplir tous les champs
         prefillForm(billetData);
     } else {
@@ -523,6 +594,9 @@ function openBilletPanel(billetData, docId) {
         if (title) title.textContent = 'Ajouter un billet';
         if (saveBtn) saveBtn.textContent = 'Sauvegarder';
         panel.setAttribute('aria-label', 'Ajouter un billet');
+
+        // Story 4.4 — Millesime en mode creation (N-3 a N+1, defaut N)
+        populateMillesimeSelect('create');
 
         // Statut par defaut
         var categorieField = document.getElementById('field-categorie');
@@ -581,6 +655,38 @@ function prefillForm(data) {
     // Commentaire (textarea)
     var commentaireEl = document.getElementById('field-commentaire');
     if (commentaireEl) commentaireEl.value = data.Commentaire || '';
+
+    // Story 4.3 — Pays select : ajouter l'option si elle n'existe pas
+    var paysSelect = document.getElementById('field-pays');
+    var paysValue = data.Pays || '';
+    if (paysSelect && paysValue) {
+        var paysOptionExists = Array.prototype.some.call(paysSelect.options, function(opt) {
+            return opt.value === paysValue;
+        });
+        if (!paysOptionExists) {
+            var newPaysOption = document.createElement('option');
+            newPaysOption.value = paysValue;
+            newPaysOption.textContent = paysValue + ' (ancien)';
+            paysSelect.appendChild(newPaysOption);
+        }
+        paysSelect.value = paysValue;
+    }
+
+    // Story 4.4 — Millesime select : ajouter l'option si elle n'existe pas
+    var millesimeSelect = document.getElementById('field-millesime');
+    var millesimeValue = String(data.Millesime || '');
+    if (millesimeSelect && millesimeValue) {
+        var millesimeOptionExists = Array.prototype.some.call(millesimeSelect.options, function(opt) {
+            return opt.value === millesimeValue;
+        });
+        if (!millesimeOptionExists) {
+            var newMillesimeOption = document.createElement('option');
+            newMillesimeOption.value = millesimeValue;
+            newMillesimeOption.textContent = millesimeValue;
+            millesimeSelect.appendChild(newMillesimeOption);
+        }
+        millesimeSelect.value = millesimeValue;
+    }
 
     // Checkbox PayerFDP
     var payerFdpEl = document.getElementById('field-payer-fdp');
