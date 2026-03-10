@@ -177,7 +177,31 @@ function openCollecteDetail(billetId) {
     supabaseFetch('/rest/v1/inscriptions?billet_id=eq.' + billetId + '&pas_interesse=eq.false&select=*&order=date_inscription.asc')
         .then(function(inscriptions) {
             currentInscriptions = inscriptions || [];
-            renderCollecteDetail(billetId, currentInscriptions);
+            // Enrichir les snapshots avec les noms actuels des membres
+            var emails = [];
+            currentInscriptions.forEach(function(ins) {
+                if (ins.membre_email && emails.indexOf(ins.membre_email) === -1) emails.push(ins.membre_email);
+            });
+            if (emails.length === 0) {
+                renderCollecteDetail(billetId, currentInscriptions);
+                return;
+            }
+            var emailFilter = emails.map(function(e) { return encodeURIComponent(e); }).join(',');
+            return supabaseFetch('/rest/v1/membres?email=in.(' + emailFilter + ')&select=email,nom,prenom')
+                .then(function(membres) {
+                    var membresMap = {};
+                    if (membres) {
+                        membres.forEach(function(m) { membresMap[m.email] = m; });
+                    }
+                    currentInscriptions.forEach(function(ins) {
+                        var membre = membresMap[ins.membre_email];
+                        if (membre && ins.adresse_snapshot) {
+                            if (!ins.adresse_snapshot.nom && membre.nom) ins.adresse_snapshot.nom = membre.nom;
+                            if (!ins.adresse_snapshot.prenom && membre.prenom) ins.adresse_snapshot.prenom = membre.prenom;
+                        }
+                    });
+                    renderCollecteDetail(billetId, currentInscriptions);
+                });
         })
         .catch(function(error) {
             console.error('Erreur chargement inscrits:', error);
@@ -443,9 +467,29 @@ function loadPreparationEnvois() {
                 renderEnvoisVide();
                 return;
             }
-            var billetsMap = {};
-            mesBillets.forEach(function(b) { billetsMap[b.id] = b; });
-            renderPreparationEnvois(inscriptions, billetsMap);
+            // Enrichir les snapshots avec les noms actuels des membres
+            var emails = [];
+            inscriptions.forEach(function(ins) {
+                if (ins.membre_email && emails.indexOf(ins.membre_email) === -1) emails.push(ins.membre_email);
+            });
+            var emailFilter = emails.map(function(e) { return encodeURIComponent(e); }).join(',');
+            return supabaseFetch('/rest/v1/membres?email=in.(' + emailFilter + ')&select=email,nom,prenom')
+                .then(function(membres) {
+                    var membresMap = {};
+                    if (membres) {
+                        membres.forEach(function(m) { membresMap[m.email] = m; });
+                    }
+                    inscriptions.forEach(function(ins) {
+                        var membre = membresMap[ins.membre_email];
+                        if (membre && ins.adresse_snapshot) {
+                            if (!ins.adresse_snapshot.nom && membre.nom) ins.adresse_snapshot.nom = membre.nom;
+                            if (!ins.adresse_snapshot.prenom && membre.prenom) ins.adresse_snapshot.prenom = membre.prenom;
+                        }
+                    });
+                    var billetsMap = {};
+                    mesBillets.forEach(function(b) { billetsMap[b.id] = b; });
+                    renderPreparationEnvois(inscriptions, billetsMap);
+                });
         })
         .catch(function(error) {
             console.error('Erreur chargement envois:', error);

@@ -238,11 +238,11 @@ function isProfilComplet(callback) {
     var user = firebase.auth().currentUser;
     if (!user) { callback(false); return; }
     var email = user.email;
-    supabaseFetch('/rest/v1/membres?email=eq.' + encodeURIComponent(email) + '&select=prenom,rue,code_postal,ville,pays')
+    supabaseFetch('/rest/v1/membres?email=eq.' + encodeURIComponent(email) + '&select=nom,prenom,rue,code_postal,ville,pays')
         .then(function(data) {
             if (!data || data.length === 0) { callback(false); return; }
             var m = data[0];
-            var complet = m.prenom && m.rue && m.code_postal && m.ville && m.pays;
+            var complet = m.nom && m.prenom && m.rue && m.code_postal && m.ville && m.pays;
             callback(!!complet);
         })
         .catch(function() { callback(false); });
