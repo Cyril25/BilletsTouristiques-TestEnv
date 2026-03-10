@@ -528,8 +528,7 @@ function loadCollecteursForCatalogue() {
 // --- Génération du HTML d'inscription pour une carte ---
 function buildInscriptionHtml(item) {
     var inscription = mesInscriptions[item.id];
-    var collecteOuverte = item.Collecteur &&
-        (item.Categorie === 'Pré collecte' || item.Categorie === 'Collecte') &&
+    var collecteOuverte = (item.Categorie === 'Pré collecte' || item.Categorie === 'Collecte') &&
         !item.DateFin;
 
     var html = '';
@@ -609,7 +608,8 @@ function confirmerInscription(billetId) {
     var billet = allData.find(function(b) { return b.id === billetId; });
     if (!billet) return;
     var nbNormaux = parseInt(document.getElementById('insc-nb-normaux-' + billetId).value) || 1;
-    var nbVariantes = parseInt(document.getElementById('insc-nb-variantes-' + billetId).value) || 0;
+    var variantesEl = document.getElementById('insc-nb-variantes-' + billetId);
+    var nbVariantes = variantesEl ? parseInt(variantesEl.value) || 0 : 0;
 
     // Charger l'adresse du profil pour le snapshot
     supabaseFetch('/rest/v1/membres?email=eq.' + encodeURIComponent(email) + '&select=prenom,rue,code_postal,ville,pays')
