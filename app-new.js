@@ -623,7 +623,7 @@ function confirmerInscription(billetId) {
     var nbVariantes = variantesEl ? parseInt(variantesEl.value) || 0 : 0;
 
     // Charger l'adresse du profil pour le snapshot
-    supabaseFetch('/rest/v1/membres?email=eq.' + encodeURIComponent(email) + '&select=prenom,rue,code_postal,ville,pays')
+    supabaseFetch('/rest/v1/membres?email=eq.' + encodeURIComponent(email) + '&select=nom,prenom,rue,code_postal,ville,pays')
         .then(function(membreData) {
             var adresse = membreData && membreData[0] ? membreData[0] : {};
             var body = {

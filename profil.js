@@ -71,7 +71,7 @@ function loadProfil() {
     if (!user) return;
 
     var email = user.email;
-    supabaseFetch('/rest/v1/membres?email=eq.' + encodeURIComponent(email) + '&select=prenom,rue,code_postal,ville,pays')
+    supabaseFetch('/rest/v1/membres?email=eq.' + encodeURIComponent(email) + '&select=nom,prenom,rue,code_postal,ville,pays')
         .then(function(data) {
             if (data && data.length > 0) {
                 prefillProfil(data[0]);
@@ -84,6 +84,7 @@ function loadProfil() {
 
 function prefillProfil(data) {
     var fields = {
+        'profil-nom': 'nom',
         'profil-prenom': 'prenom',
         'profil-rue': 'rue',
         'profil-code-postal': 'code_postal',
@@ -104,6 +105,7 @@ function saveProfil() {
     var user = firebase.auth().currentUser;
     if (!user) return;
 
+    var nom = document.getElementById('profil-nom').value.trim();
     var prenom = document.getElementById('profil-prenom').value.trim();
     var rue = document.getElementById('profil-rue').value.trim();
     var codePostal = document.getElementById('profil-code-postal').value.trim();
@@ -111,13 +113,14 @@ function saveProfil() {
     var pays = document.getElementById('profil-pays').value.trim();
 
     // Validation
-    if (!prenom || !rue || !codePostal || !ville || !pays) {
+    if (!nom || !prenom || !rue || !codePostal || !ville || !pays) {
         showToast('Tous les champs sont obligatoires', 'error');
         return;
     }
 
     var email = user.email;
     var body = {
+        nom: nom,
         prenom: prenom,
         rue: rue,
         code_postal: codePostal,
