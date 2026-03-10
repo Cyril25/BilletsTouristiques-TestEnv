@@ -499,7 +499,7 @@ function loadMesInscriptions() {
     var user = firebase.auth().currentUser;
     if (!user) return;
     var email = user.email;
-    supabaseFetch('/rest/v1/inscriptions?membre_email=eq.' + encodeURIComponent(email) + '&select=id,billet_id,nb_normaux,nb_variantes,paye,envoye,pas_interesse')
+    supabaseFetch('/rest/v1/inscriptions?membre_email=eq.' + encodeURIComponent(email) + '&select=id,billet_id,nb_normaux,nb_variantes,statut_paiement,envoye,pas_interesse')
         .then(function(data) {
             mesInscriptions = {};
             (data || []).forEach(function(insc) {
@@ -525,6 +525,18 @@ function loadCollecteursForCatalogue() {
         });
 }
 
+// --- Badge paiement pour le catalogue ---
+function badgePaiementCatalogue(statut, montant) {
+    statut = statut || 'non_paye';
+    if (statut === 'confirme') {
+        return '<span class="badge-paiement badge-paye">Payé</span>';
+    }
+    if (statut === 'declare') {
+        return '<span class="badge-paiement badge-declare">En attente de confirmation</span>';
+    }
+    return '<span class="badge-paiement badge-non-paye">Non payé — ' + montant.toFixed(2) + ' €</span>';
+}
+
 // --- Génération du HTML d'inscription pour une carte ---
 function buildInscriptionHtml(item) {
     var inscription = mesInscriptions[item.id];
@@ -537,9 +549,8 @@ function buildInscriptionHtml(item) {
         var montant = parseFloat(item.Prix || 0) * (inscription.nb_normaux + inscription.nb_variantes);
         html = '<div class="inscription-badges">'
             + '<span class="badge-inscrit">Inscrit</span>'
-            + '<span class="badge-paiement ' + (inscription.paye ? 'badge-paye' : 'badge-non-paye') + '">'
-            + (inscription.paye ? 'Payé' : 'Non payé — ' + montant.toFixed(2) + ' €')
-            + '</span>'
+            + badgePaiementCatalogue(inscription.statut_paiement, montant)
+
             + '</div>';
         // Bouton contacter le collecteur
         var collecteurInfo = collecteursMap[item.Collecteur] || {};
@@ -624,7 +635,7 @@ function confirmerInscription(billetId) {
                 mode_envoi: document.getElementById('insc-envoi-' + billetId).value,
                 commentaire: (document.getElementById('insc-commentaire-' + billetId).value || '').trim(),
                 adresse_snapshot: adresse,
-                paye: false,
+                statut_paiement: 'non_paye',
                 envoye: false,
                 fdp_regles: false,
                 pas_interesse: false

@@ -75,7 +75,7 @@ function loadMesCollectes() {
             for (var i = 0; i < mesBillets.length; i++) {
                 billetIds.push(mesBillets[i].id);
             }
-            return supabaseFetch('/rest/v1/inscriptions?billet_id=in.(' + billetIds.join(',') + ')&pas_interesse=eq.false&select=billet_id,paye,envoye');
+            return supabaseFetch('/rest/v1/inscriptions?billet_id=in.(' + billetIds.join(',') + ')&pas_interesse=eq.false&select=billet_id,statut_paiement,envoye');
         })
         .then(function(inscriptions) {
             mesInscriptionsParBillet = {};
@@ -83,10 +83,10 @@ function loadMesCollectes() {
                 for (var i = 0; i < inscriptions.length; i++) {
                     var ins = inscriptions[i];
                     if (!mesInscriptionsParBillet[ins.billet_id]) {
-                        mesInscriptionsParBillet[ins.billet_id] = { total: 0, payes: 0, envoyes: 0 };
+                        mesInscriptionsParBillet[ins.billet_id] = { total: 0, confirmes: 0, envoyes: 0 };
                     }
                     mesInscriptionsParBillet[ins.billet_id].total++;
-                    if (ins.paye) mesInscriptionsParBillet[ins.billet_id].payes++;
+                    if (ins.statut_paiement === 'confirme') mesInscriptionsParBillet[ins.billet_id].confirmes++;
                     if (ins.envoye) mesInscriptionsParBillet[ins.billet_id].envoyes++;
                 }
             }
@@ -140,12 +140,12 @@ function renderCollectesList() {
         html += '</div>';
 
         // Indicateurs payé / envoyé
-        var stats = mesInscriptionsParBillet[b.id] || { total: 0, payes: 0, envoyes: 0 };
+        var stats = mesInscriptionsParBillet[b.id] || { total: 0, confirmes: 0, envoyes: 0 };
         if (stats.total > 0) {
-            var allPayes = stats.payes === stats.total;
+            var allConfirmes = stats.confirmes === stats.total;
             var allEnvoyes = stats.envoyes === stats.total;
             html += '<div class="collecte-card-indicators">';
-            html += '<span class="indicator ' + (allPayes ? 'indicator-ok' : 'indicator-pending') + '"><i class="fa-solid fa-' + (allPayes ? 'check-circle' : 'clock') + '"></i> ' + stats.payes + '/' + stats.total + ' payés</span>';
+            html += '<span class="indicator ' + (allConfirmes ? 'indicator-ok' : 'indicator-pending') + '"><i class="fa-solid fa-' + (allConfirmes ? 'check-circle' : 'clock') + '"></i> ' + stats.confirmes + '/' + stats.total + ' payés</span>';
             html += '<span class="indicator ' + (allEnvoyes ? 'indicator-ok' : 'indicator-pending') + '"><i class="fa-solid fa-' + (allEnvoyes ? 'check-circle' : 'clock') + '"></i> ' + stats.envoyes + '/' + stats.total + ' envoyés</span>';
             html += '</div>';
         } else {
@@ -200,15 +200,15 @@ function renderCollecteDetail(billetId, inscriptions) {
 
     // Compute counters
     var totalInscrits = inscriptions.length;
-    var totalPayes = 0;
+    var totalConfirmes = 0;
     var totalNormaux = 0;
     var totalVariantes = 0;
     for (var i = 0; i < inscriptions.length; i++) {
-        if (inscriptions[i].paye) totalPayes++;
+        if (inscriptions[i].statut_paiement === 'confirme') totalConfirmes++;
         totalNormaux += (inscriptions[i].nb_normaux || 0);
         totalVariantes += (inscriptions[i].nb_variantes || 0);
     }
-    var progressPct = totalInscrits > 0 ? Math.round((totalPayes / totalInscrits) * 100) : 0;
+    var progressPct = totalInscrits > 0 ? Math.round((totalConfirmes / totalInscrits) * 100) : 0;
 
     var html = '';
 
@@ -225,7 +225,7 @@ function renderCollecteDetail(billetId, inscriptions) {
     html += '<div class="collecte-compteurs">';
     html += '<div class="compteur-item">';
     html += '<span class="compteur-label">Paiements</span>';
-    html += '<span class="compteur-value">' + totalPayes + '/' + totalInscrits + ' payés</span>';
+    html += '<span class="compteur-value">' + totalConfirmes + '/' + totalInscrits + ' payés</span>';
     html += '<div class="progress-bar"><div class="progress-fill" style="width:' + progressPct + '%"></div></div>';
     html += '</div>';
     html += '<div class="compteur-item">';
@@ -278,7 +278,7 @@ function renderCollecteDetail(billetId, inscriptions) {
             html += '<td data-label="Paiement">' + (ins.mode_paiement || '') + '</td>';
             html += '<td data-label="Envoi">' + (ins.mode_envoi || '') + '</td>';
             html += '<td data-label="Montant">' + montant + ' €</td>';
-            html += '<td data-label="Payé"><input type="checkbox" id="chk-paye-' + ins.id + '" ' + (ins.paye ? 'checked' : '') + ' onchange="toggleInscriptionField(' + ins.id + ', \'paye\', this.checked)"></td>';
+            html += '<td data-label="Payé">' + badgePaiementCollecteur(ins) + '</td>';
             html += '<td data-label="Envoyé"><input type="checkbox" id="chk-envoye-' + ins.id + '" ' + (ins.envoye ? 'checked' : '') + ' onchange="toggleInscriptionField(' + ins.id + ', \'envoye\', this.checked)"></td>';
             html += '<td data-label="FDP"><input type="checkbox" id="chk-fdp_regles-' + ins.id + '" ' + (ins.fdp_regles ? 'checked' : '') + ' onchange="toggleInscriptionField(' + ins.id + ', \'fdp_regles\', this.checked)"></td>';
             html += '<td data-label="Actions"><button class="btn-desinscrire" onclick="desinscrireMembre(' + ins.id + ', \'' + nomPrenom.replace(/'/g, "\\'") + '\')"><i class="fa-solid fa-user-minus"></i></button></td>';
@@ -346,19 +346,19 @@ function toggleInscriptionField(inscriptionId, field, newValue) {
 
 function updateCompteurs() {
     var totalInscrits = currentInscriptions.length;
-    var totalPayes = 0;
+    var totalConfirmes = 0;
     var totalNormaux = 0;
     var totalVariantes = 0;
     for (var i = 0; i < currentInscriptions.length; i++) {
-        if (currentInscriptions[i].paye) totalPayes++;
+        if (currentInscriptions[i].statut_paiement === 'confirme') totalConfirmes++;
         totalNormaux += (currentInscriptions[i].nb_normaux || 0);
         totalVariantes += (currentInscriptions[i].nb_variantes || 0);
     }
-    var progressPct = totalInscrits > 0 ? Math.round((totalPayes / totalInscrits) * 100) : 0;
+    var progressPct = totalInscrits > 0 ? Math.round((totalConfirmes / totalInscrits) * 100) : 0;
 
     // Update counter display
     var compteurs = document.querySelectorAll('.compteur-value');
-    if (compteurs.length >= 1) compteurs[0].textContent = totalPayes + '/' + totalInscrits + ' payés';
+    if (compteurs.length >= 1) compteurs[0].textContent = totalConfirmes + '/' + totalInscrits + ' payés';
     if (compteurs.length >= 2) compteurs[1].textContent = totalNormaux + ' normaux, ' + totalVariantes + ' variantes';
 
     var progressFill = document.querySelector('.progress-fill');
@@ -485,7 +485,7 @@ function renderPreparationEnvois(inscriptions, billetsMap) {
             lignes += '<div class="envoi-ligne">'
                 + '<span class="envoi-billet">' + (billet.NomBillet || '?') + '</span>'
                 + '<span class="envoi-qty">N:' + (insc.nb_normaux || 0) + (insc.nb_variantes > 0 ? ' V:' + insc.nb_variantes : '') + '</span>'
-                + '<span class="badge-' + (insc.paye ? 'paye' : 'non-paye') + '">' + (insc.paye ? 'Payé' : 'Non payé') + '</span>'
+                + badgePaiementEnvoi(insc.statut_paiement)
                 + '<span class="badge-' + (insc.fdp_regles ? 'paye' : 'non-paye') + '">' + (insc.fdp_regles ? 'FDP OK' : 'FDP —') + '</span>'
                 + '<button onclick="marquerEnvoye(' + insc.id + ')" class="btn-marquer-envoye" title="Marquer envoyé"><i class="fa-solid fa-check"></i></button>'
                 + '</div>';
@@ -502,6 +502,53 @@ function renderPreparationEnvois(inscriptions, billetsMap) {
     }
 
     container.innerHTML = html;
+}
+
+// ============================================================
+// 9b. GESTION STATUT PAIEMENT COLLECTEUR
+// ============================================================
+
+function badgePaiementCollecteur(ins) {
+    var statut = ins.statut_paiement || 'non_paye';
+    if (statut === 'confirme') {
+        return '<span class="badge-paye badge-paiement-collecteur">Payé</span>'
+            + '<button class="btn-paiement-action btn-retrograder" onclick="changerStatutPaiement(' + ins.id + ', \'non_paye\')" title="Annuler la confirmation"><i class="fa-solid fa-rotate-left"></i></button>';
+    }
+    if (statut === 'declare') {
+        return '<span class="badge-declare badge-paiement-collecteur">Déclaré</span>'
+            + '<button class="btn-paiement-action btn-confirmer-paiement" onclick="changerStatutPaiement(' + ins.id + ', \'confirme\')" title="Confirmer le paiement"><i class="fa-solid fa-check"></i></button>'
+            + '<button class="btn-paiement-action btn-retrograder" onclick="changerStatutPaiement(' + ins.id + ', \'non_paye\')" title="Refuser"><i class="fa-solid fa-xmark"></i></button>';
+    }
+    // non_paye
+    return '<span class="badge-non-paye badge-paiement-collecteur">Non payé</span>'
+        + '<button class="btn-paiement-action btn-confirmer-paiement" onclick="changerStatutPaiement(' + ins.id + ', \'confirme\')" title="Confirmer le paiement"><i class="fa-solid fa-check"></i></button>';
+}
+
+function badgePaiementEnvoi(statut) {
+    statut = statut || 'non_paye';
+    if (statut === 'confirme') return '<span class="badge-paye">Payé</span>';
+    if (statut === 'declare') return '<span class="badge-declare">Déclaré</span>';
+    return '<span class="badge-non-paye">Non payé</span>';
+}
+
+function changerStatutPaiement(inscriptionId, nouveauStatut) {
+    supabaseFetch('/rest/v1/inscriptions?id=eq.' + inscriptionId, {
+        method: 'PATCH',
+        body: JSON.stringify({ statut_paiement: nouveauStatut })
+    })
+    .then(function() {
+        for (var i = 0; i < currentInscriptions.length; i++) {
+            if (currentInscriptions[i].id === inscriptionId) {
+                currentInscriptions[i].statut_paiement = nouveauStatut;
+                break;
+            }
+        }
+        renderCollecteDetail(currentBilletId, currentInscriptions);
+    })
+    .catch(function(error) {
+        console.error('Erreur changement statut paiement:', error);
+        showToast('Erreur lors du changement de statut', 'error');
+    });
 }
 
 function marquerEnvoye(inscriptionId) {

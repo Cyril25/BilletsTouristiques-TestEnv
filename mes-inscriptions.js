@@ -77,11 +77,12 @@ function renderInscriptions() {
         var nbNormaux = insc.nb_normaux || 0;
         var nbVariantes = insc.nb_variantes || 0;
         var montant = prix * (nbNormaux + nbVariantes);
-        if (!insc.paye) totalDu += montant;
+        var statut = insc.statut_paiement || 'non_paye';
+        if (statut !== 'confirme') totalDu += montant;
 
         var collecteur = collecteursMap[billet.Collecteur] || {};
         var paypalLink = '';
-        if (!insc.paye && insc.mode_paiement === 'PayPal') {
+        if (statut === 'non_paye' && insc.mode_paiement === 'PayPal') {
             if (collecteur.paypal_me) {
                 paypalLink = '<a href="https://paypal.me/' + collecteur.paypal_me + '/' + montant.toFixed(2) + '" target="_blank" class="btn-payer"><i class="fa-brands fa-paypal"></i> Payer via PayPal</a>';
             } else if (collecteur.paypal_email) {
@@ -90,7 +91,7 @@ function renderInscriptions() {
         }
 
         var dateInsc = insc.date_inscription ? new Date(insc.date_inscription).toLocaleDateString('fr-FR') : '';
-        var montantClass = insc.paye ? 'montant-paye' : 'montant-non-paye';
+        var montantClass = statut === 'confirme' ? 'montant-paye' : 'montant-non-paye';
 
         return '<div class="inscription-card">'
             + '<div class="inscription-card-header">'
@@ -103,7 +104,7 @@ function renderInscriptions() {
             + '<span class="' + montantClass + '"><i class="fa-solid fa-euro-sign"></i> ' + montant.toFixed(2) + ' \u20AC</span>'
             + '</div>'
             + '<div class="inscription-card-statuts">'
-            + '<span class="badge-paiement ' + (insc.paye ? 'badge-paye' : 'badge-non-paye') + '">' + (insc.paye ? 'Pay\u00E9' : 'Non pay\u00E9') + '</span>'
+            + badgePaiementMembre(statut, insc.id)
             + '<span class="badge-paiement ' + (insc.envoye ? 'badge-envoye' : 'badge-non-envoye') + '">' + (insc.envoye ? 'Envoy\u00E9' : 'Non envoy\u00E9') + '</span>'
             + '</div>'
             + '<div class="inscription-card-footer">'
@@ -125,7 +126,42 @@ function renderInscriptions() {
 }
 
 // ============================================================
-// 3. INITIALISATION
+// 3. BADGE PAIEMENT ET DECLARATION
+// ============================================================
+
+function badgePaiementMembre(statut, inscriptionId) {
+    if (statut === 'confirme') {
+        return '<span class="badge-paiement badge-paye">Payé</span>';
+    }
+    if (statut === 'declare') {
+        return '<span class="badge-paiement badge-declare">En attente de confirmation</span>';
+    }
+    // non_paye
+    return '<button class="btn-jai-paye" onclick="declarerPaiement(' + inscriptionId + ')"><i class="fa-solid fa-hand-holding-dollar"></i> J\'ai payé</button>';
+}
+
+function declarerPaiement(inscriptionId) {
+    supabaseFetch('/rest/v1/inscriptions?id=eq.' + inscriptionId, {
+        method: 'PATCH',
+        body: JSON.stringify({ statut_paiement: 'declare' })
+    })
+    .then(function() {
+        // Mettre à jour localement et re-render
+        for (var i = 0; i < mesInscriptions.length; i++) {
+            if (mesInscriptions[i].id === inscriptionId) {
+                mesInscriptions[i].statut_paiement = 'declare';
+                break;
+            }
+        }
+        renderInscriptions();
+    })
+    .catch(function(error) {
+        console.error('Erreur déclaration paiement:', error);
+    });
+}
+
+// ============================================================
+// 4. INITIALISATION
 // ============================================================
 
 document.addEventListener('DOMContentLoaded', function() {

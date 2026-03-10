@@ -2780,6 +2780,11 @@ body.login-page {
     background-color: var(--color-warning);
 }
 
+.badge-declare {
+    background-color: #FF9800;
+    color: white;
+}
+
 .badge-pas-interesse {
     background-color: #9e9e9e;
     color: white;
@@ -3454,6 +3459,15 @@ body.login-page {
     white-space: nowrap;
 }
 
+.badge-declare {
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background-color: #FF9800;
+    color: white;
+    white-space: nowrap;
+}
+
 /* --- Bouton marquer envoye --- */
 .btn-marquer-envoye {
     background-color: var(--color-success);
@@ -3645,6 +3659,68 @@ body.login-page {
 
 .btn-payer i {
     margin-right: 4px;
+}
+
+/* Bouton "J'ai payé" — membre */
+.btn-jai-paye {
+    display: inline-block;
+    padding: 4px 12px;
+    background-color: #FF9800;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+}
+
+.btn-jai-paye:hover {
+    background-color: #F57C00;
+}
+
+.btn-jai-paye i {
+    margin-right: 4px;
+}
+
+/* Boutons action paiement — collecteur */
+.badge-paiement-collecteur {
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    color: white;
+    vertical-align: middle;
+}
+
+.btn-paiement-action {
+    display: inline-block;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    font-size: 0.7rem;
+    cursor: pointer;
+    color: white;
+    vertical-align: middle;
+    margin-left: 4px;
+    padding: 0;
+    line-height: 24px;
+    text-align: center;
+}
+
+.btn-confirmer-paiement {
+    background-color: var(--color-success);
+}
+
+.btn-confirmer-paiement:hover {
+    background-color: #388E3C;
+}
+
+.btn-retrograder {
+    background-color: #9e9e9e;
+}
+
+.btn-retrograder:hover {
+    background-color: #757575;
 }
 
 /* État vide */
