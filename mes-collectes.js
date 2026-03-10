@@ -60,10 +60,36 @@ function checkCollecteur() {
 // ============================================================
 // 4. CHARGEMENT LISTE DES COLLECTES (Task 4)
 // ============================================================
+var mesInscriptionsParBillet = {};
+
 function loadMesCollectes() {
     supabaseFetch('/rest/v1/billets?select=id,"NomBillet","Ville","Categorie","Collecteur","Prix","DateColl","DateFin","HasVariante","Date"&"Collecteur"=eq.' + encodeURIComponent(monCollecteur.alias) + '&order="Date".desc.nullslast')
         .then(function(billets) {
             mesBillets = billets || [];
+            if (mesBillets.length === 0) {
+                renderCollectesList();
+                return;
+            }
+            // Charger toutes les inscriptions du collecteur pour les compteurs
+            var billetIds = [];
+            for (var i = 0; i < mesBillets.length; i++) {
+                billetIds.push(mesBillets[i].id);
+            }
+            return supabaseFetch('/rest/v1/inscriptions?billet_id=in.(' + billetIds.join(',') + ')&pas_interesse=eq.false&select=billet_id,paye,envoye');
+        })
+        .then(function(inscriptions) {
+            mesInscriptionsParBillet = {};
+            if (inscriptions) {
+                for (var i = 0; i < inscriptions.length; i++) {
+                    var ins = inscriptions[i];
+                    if (!mesInscriptionsParBillet[ins.billet_id]) {
+                        mesInscriptionsParBillet[ins.billet_id] = { total: 0, payes: 0, envoyes: 0 };
+                    }
+                    mesInscriptionsParBillet[ins.billet_id].total++;
+                    if (ins.paye) mesInscriptionsParBillet[ins.billet_id].payes++;
+                    if (ins.envoye) mesInscriptionsParBillet[ins.billet_id].envoyes++;
+                }
+            }
             renderCollectesList();
         })
         .catch(function(error) {
@@ -103,6 +129,20 @@ function renderCollectesList() {
         if (b.Prix) html += '<span><i class="fa-solid fa-euro-sign"></i> ' + b.Prix + '</span>';
         if (b.DateColl) html += '<span><i class="fa-solid fa-calendar"></i> ' + b.DateColl + '</span>';
         html += '</div>';
+
+        // Indicateurs payé / envoyé
+        var stats = mesInscriptionsParBillet[b.id] || { total: 0, payes: 0, envoyes: 0 };
+        if (stats.total > 0) {
+            var allPayes = stats.payes === stats.total;
+            var allEnvoyes = stats.envoyes === stats.total;
+            html += '<div class="collecte-card-indicators">';
+            html += '<span class="indicator ' + (allPayes ? 'indicator-ok' : 'indicator-pending') + '"><i class="fa-solid fa-' + (allPayes ? 'check-circle' : 'clock') + '"></i> ' + stats.payes + '/' + stats.total + ' payés</span>';
+            html += '<span class="indicator ' + (allEnvoyes ? 'indicator-ok' : 'indicator-pending') + '"><i class="fa-solid fa-' + (allEnvoyes ? 'check-circle' : 'clock') + '"></i> ' + stats.envoyes + '/' + stats.total + ' envoyés</span>';
+            html += '</div>';
+        } else {
+            html += '<div class="collecte-card-indicators"><span class="indicator indicator-none">Aucun inscrit</span></div>';
+        }
+
         html += '<div class="collecte-card-action"><i class="fa-solid fa-chevron-right"></i></div>';
         html += '</div>';
     }

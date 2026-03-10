@@ -3046,6 +3046,38 @@ body.login-page {
     color: var(--color-accent);
 }
 
+.collecte-card-indicators {
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+}
+
+.indicator {
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 12px;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.indicator-ok {
+    background-color: var(--color-success);
+    color: white;
+}
+
+.indicator-pending {
+    background-color: var(--color-warning);
+    color: white;
+}
+
+.indicator-none {
+    background-color: #e0e0e0;
+    color: #999;
+    font-style: italic;
+}
+
 .collecte-card-action {
     padding-left: var(--spacing-md);
     color: var(--color-accent);
