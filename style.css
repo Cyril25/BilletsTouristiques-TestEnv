@@ -167,7 +167,22 @@ body {
 .dropdown-content a:hover {
     background-color: #f1f1f1;
     color: var(--color-secondary);
-    
+}
+
+.dropdown-header {
+    display: block;
+    padding: 8px 16px 4px;
+    font-size: 0.75em;
+    font-weight: 700;
+    color: var(--color-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.dropdown-divider {
+    height: 1px;
+    margin: 6px 12px;
+    background-color: #ddd;
 }
 
 /* --- PROFIL & BOUTON DÉCONNEXION --- */

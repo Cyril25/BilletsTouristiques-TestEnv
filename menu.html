@@ -5,26 +5,29 @@
     <div class="nav-links" id="nav-links">
         <a href="index.html" class="nav-item">Accueil</a>
         <a href="billets.html" class="nav-item">Les billets</a>
-        
+
         <div class="dropdown">
-            <button class="dropbtn">Infos Pratiques <i class="fa-solid fa-caret-down"></i></button>
+            <button class="dropbtn">Ressources <i class="fa-solid fa-caret-down"></i></button>
             <div class="dropdown-content">
+                <span class="dropdown-header">Infos pratiques</span>
                 <a href="frais-port.html">Frais de port</a>
                 <a href="reglement.html">Règlement</a>
+                <span class="dropdown-header">Communauté</span>
+                <a href="infos-collecteurs.html">Infos Collecteurs</a>
+                <a href="contact.html">Qui contacter ?</a>
+                <div class="dropdown-divider"></div>
+                <a href="liens.html">Liens Utiles</a>
             </div>
         </div>
 
         <div class="dropdown">
-            <button class="dropbtn">Communauté <i class="fa-solid fa-caret-down"></i></button>
+            <button class="dropbtn">Mon espace <i class="fa-solid fa-caret-down"></i></button>
             <div class="dropdown-content">
-                <a href="infos-collecteurs.html">Infos Collecteurs</a>
-                <a href="contact.html">Qui contacter ?</a>
+                <a href="mes-inscriptions.html">Mes inscriptions</a>
+                <a href="mes-collectes.html">Mes collectes</a>
+                <a href="profil.html">Mon profil</a>
             </div>
         </div>
-
-        <a href="liens.html" class="nav-item">Liens Utiles</a>
-        <a href="mes-inscriptions.html" class="nav-item">Mes inscriptions</a>
-        <a href="mes-collectes.html" class="nav-item">Mes collectes</a>
 
         <!-- STORY 1.2 — Liens Administration (admin only) -->
         <div class="dropdown admin-only">
@@ -39,7 +42,6 @@
 
         <div class="user-info">
             <span id="user-email-display" class="user-email"></span>
-            <a href="profil.html" class="nav-item"><i class="fa-solid fa-user"></i> Mon profil</a>
             <button onclick="logout()" class="btn-logout">
                 <i class="fa-solid fa-power-off"></i> Sortir
             </button>
