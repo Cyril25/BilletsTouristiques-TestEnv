@@ -63,7 +63,7 @@ function checkCollecteur() {
 var mesInscriptionsParBillet = {};
 
 function loadMesCollectes() {
-    supabaseFetch('/rest/v1/billets?select=id,"NomBillet","Ville","Categorie","Collecteur","Prix","DateColl","DateFin","HasVariante","Date"&"Collecteur"=eq.' + encodeURIComponent(monCollecteur.alias) + '&order="Date".desc.nullslast')
+    supabaseFetch('/rest/v1/billets?select=id,"NomBillet","Ville","Categorie","Collecteur","Prix","DateColl","DateFin","HasVariante","Date","Reference","Millesime","Version"&"Collecteur"=eq.' + encodeURIComponent(monCollecteur.alias) + '&order="Date".desc.nullslast')
         .then(function(billets) {
             mesBillets = billets || [];
             if (mesBillets.length === 0) {
@@ -119,13 +119,22 @@ function renderCollectesList() {
         var statusClass = isOpen ? 'collecte-status-open' : 'collecte-status-closed';
         var statusLabel = isOpen ? 'En cours' : (b.Categorie || 'Terminé');
 
+        // Construire le préfixe "Référence - Année-Version"
+        var refParts = [];
+        if (b.Reference) refParts.push(b.Reference);
+        var milVersion = '';
+        if (b.Millesime) milVersion += b.Millesime;
+        if (b.Version) milVersion += '-' + b.Version;
+        if (milVersion) refParts.push(milVersion);
+        var refPrefix = refParts.length > 0 ? refParts.join(' - ') : '';
+
         html += '<div class="collecte-card" onclick="openCollecteDetail(' + b.id + ')">';
         html += '<div class="collecte-card-header">';
+        if (refPrefix) html += '<span class="collecte-ref">' + refPrefix + '</span>';
         html += '<h3>' + (b.NomBillet || '') + '</h3>';
         html += '<span class="collecte-status ' + statusClass + '">' + statusLabel + '</span>';
         html += '</div>';
         html += '<div class="collecte-card-info">';
-        if (b.Ville) html += '<span><i class="fa-solid fa-location-dot"></i> ' + b.Ville + '</span>';
         if (b.Prix) html += '<span><i class="fa-solid fa-euro-sign"></i> ' + b.Prix + '</span>';
         if (b.DateColl) html += '<span><i class="fa-solid fa-calendar"></i> ' + b.DateColl + '</span>';
         html += '</div>';
@@ -392,4 +401,127 @@ function desinscrireMembre(inscriptionId, membrePrenom) {
         console.error('Erreur désinscription:', error);
         showToast('Erreur lors de la désinscription', 'error');
     });
+}
+
+// ============================================================
+// 9. VUE TRANSVERSALE — PREPARATION ENVOIS (Story 5.7)
+// ============================================================
+
+function showTab(tabName) {
+    var collectesView = document.getElementById('collectes-list');
+    var envoisView = document.getElementById('envois-view');
+    var detailView = document.getElementById('collecte-detail');
+    var tabs = document.querySelectorAll('.tab-btn');
+
+    for (var i = 0; i < tabs.length; i++) {
+        tabs[i].classList.remove('active');
+    }
+
+    if (tabName === 'envois') {
+        if (collectesView) collectesView.style.display = 'none';
+        if (detailView) detailView.style.display = 'none';
+        if (envoisView) envoisView.style.display = '';
+        if (tabs[1]) tabs[1].classList.add('active');
+        loadPreparationEnvois();
+    } else {
+        if (collectesView) collectesView.style.display = '';
+        if (envoisView) envoisView.style.display = 'none';
+        if (tabs[0]) tabs[0].classList.add('active');
+    }
+}
+
+function loadPreparationEnvois() {
+    if (!monCollecteur) return;
+    supabaseFetch('/rest/v1/inscriptions?collecteur_alias=eq.' + encodeURIComponent(monCollecteur.alias) + '&envoye=eq.false&pas_interesse=eq.false&select=*&order=membre_email.asc')
+        .then(function(inscriptions) {
+            if (!inscriptions || inscriptions.length === 0) {
+                renderEnvoisVide();
+                return;
+            }
+            var billetIds = inscriptions.map(function(i) { return i.billet_id; });
+            var uniqueIds = billetIds.filter(function(id, idx) { return billetIds.indexOf(id) === idx; });
+            return supabaseFetch('/rest/v1/billets?id=in.(' + uniqueIds.join(',') + ')&select=id,"NomBillet","Ville","Prix"')
+                .then(function(billets) {
+                    var billetsMap = {};
+                    (billets || []).forEach(function(b) { billetsMap[b.id] = b; });
+                    renderPreparationEnvois(inscriptions, billetsMap);
+                });
+        })
+        .catch(function(error) {
+            console.error('Erreur chargement envois:', error);
+        });
+}
+
+function renderPreparationEnvois(inscriptions, billetsMap) {
+    var groupes = {};
+    inscriptions.forEach(function(insc) {
+        var key = insc.membre_email;
+        if (!groupes[key]) {
+            groupes[key] = {
+                email: key,
+                adresse: insc.adresse_snapshot || {},
+                inscriptions: []
+            };
+        }
+        groupes[key].inscriptions.push(insc);
+    });
+
+    var container = document.getElementById('envois-view');
+    if (!container) return;
+
+    var html = '';
+    var emails = Object.keys(groupes);
+    for (var g = 0; g < emails.length; g++) {
+        var email = emails[g];
+        var groupe = groupes[email];
+        var adr = groupe.adresse;
+        var nom = ((adr.prenom || '') + ' ' + (adr.nom || '')).trim() || email;
+        var adresseStr = [adr.rue, adr.code_postal, adr.ville, adr.pays].filter(Boolean).join(', ');
+
+        var lignes = '';
+        for (var l = 0; l < groupe.inscriptions.length; l++) {
+            var insc = groupe.inscriptions[l];
+            var billet = billetsMap[insc.billet_id] || {};
+            lignes += '<div class="envoi-ligne">'
+                + '<span class="envoi-billet">' + (billet.NomBillet || '?') + '</span>'
+                + '<span class="envoi-qty">N:' + (insc.nb_normaux || 0) + (insc.nb_variantes > 0 ? ' V:' + insc.nb_variantes : '') + '</span>'
+                + '<span class="badge-' + (insc.paye ? 'paye' : 'non-paye') + '">' + (insc.paye ? 'Payé' : 'Non payé') + '</span>'
+                + '<span class="badge-' + (insc.fdp_regles ? 'paye' : 'non-paye') + '">' + (insc.fdp_regles ? 'FDP OK' : 'FDP —') + '</span>'
+                + '<button onclick="marquerEnvoye(' + insc.id + ')" class="btn-marquer-envoye" title="Marquer envoyé"><i class="fa-solid fa-check"></i></button>'
+                + '</div>';
+        }
+
+        html += '<div class="envoi-groupe">'
+            + '<div class="envoi-groupe-header">'
+            + '<strong>' + nom + '</strong>'
+            + '<span class="envoi-adresse">' + (adresseStr || 'Adresse non renseignée') + '</span>'
+            + '<span class="envoi-count">' + groupe.inscriptions.length + ' billet(s)</span>'
+            + '</div>'
+            + '<div class="envoi-groupe-lignes">' + lignes + '</div>'
+            + '</div>';
+    }
+
+    container.innerHTML = html;
+}
+
+function marquerEnvoye(inscriptionId) {
+    supabaseFetch('/rest/v1/inscriptions?id=eq.' + inscriptionId, {
+        method: 'PATCH',
+        body: JSON.stringify({ envoye: true })
+    })
+    .then(function() {
+        showToast('Marqué comme envoyé');
+        loadPreparationEnvois();
+    })
+    .catch(function(error) {
+        console.error('Erreur marquage envoyé:', error);
+        showToast('Erreur', 'error');
+    });
+}
+
+function renderEnvoisVide() {
+    var container = document.getElementById('envois-view');
+    if (container) {
+        container.innerHTML = '<div class="envois-empty"><i class="fa-solid fa-check-circle"></i><p>Tous les envois sont à jour !</p></div>';
+    }
 }
