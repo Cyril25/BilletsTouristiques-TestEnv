@@ -3793,3 +3793,182 @@ body.login-page {
         align-items: flex-start;
     }
 }
+
+/* =========================================
+   RELANCE IMPAYÉS (Story 5.8)
+   ========================================= */
+
+.btn-relance {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--color-warning);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background var(--transition-fast);
+}
+
+.btn-relance:hover {
+    filter: brightness(0.9);
+}
+
+.relance-ok {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    color: var(--color-success);
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.relance-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 2000;
+    overflow-y: auto;
+    display: flex;
+    justify-content: center;
+    padding: var(--spacing-md);
+}
+
+.relance-modal-content {
+    background: white;
+    border-radius: var(--radius-md);
+    padding: var(--spacing-lg);
+    max-width: 700px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    align-self: flex-start;
+    margin-top: var(--spacing-lg);
+}
+
+.relance-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+}
+
+.relance-modal-header h2 {
+    margin: 0;
+    font-size: 1.2rem;
+    color: var(--color-primary);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.relance-close {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: #666;
+    padding: var(--spacing-xs);
+}
+
+.relance-close:hover {
+    color: var(--color-danger);
+}
+
+.relance-count {
+    color: #666;
+    margin: 0 0 var(--spacing-md) 0;
+    font-size: 0.9rem;
+}
+
+.relance-message {
+    border: 1px solid var(--color-accent);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    background: var(--color-bg);
+}
+
+.relance-header {
+    margin-bottom: var(--spacing-sm);
+    font-size: 0.9rem;
+    color: var(--color-primary);
+}
+
+.relance-texte {
+    width: 100%;
+    font-family: monospace;
+    font-size: 0.85rem;
+    border: 1px solid var(--color-accent);
+    border-radius: var(--radius-sm);
+    padding: var(--spacing-sm);
+    background: var(--color-surface);
+    resize: vertical;
+    box-sizing: border-box;
+}
+
+.relance-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-sm);
+}
+
+.btn-copier,
+.btn-mailto {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background var(--transition-fast);
+}
+
+.btn-copier {
+    background: var(--color-primary);
+    color: white;
+    border: none;
+}
+
+.btn-copier:hover {
+    background: var(--color-secondary);
+}
+
+.btn-mailto {
+    background: transparent;
+    color: var(--color-primary);
+    border: 1px solid var(--color-primary);
+    text-decoration: none;
+}
+
+.btn-mailto:hover {
+    background: var(--color-surface);
+}
+
+/* Responsive mobile */
+@media (max-width: 600px) {
+    .relance-modal-content {
+        padding: var(--spacing-md);
+        margin-top: var(--spacing-sm);
+    }
+
+    .relance-modal-header h2 {
+        font-size: 1rem;
+    }
+
+    .relance-actions {
+        flex-direction: column;
+    }
+
+    .btn-copier,
+    .btn-mailto {
+        width: 100%;
+        justify-content: center;
+    }
+}

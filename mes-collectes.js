@@ -258,12 +258,20 @@ function renderCollecteDetail(billetId, inscriptions) {
     html += '</div>';
     html += '</div>';
 
-    // Close button
+    // Actions bar: close button + relance button
+    var isClotured = !isOpen;
+    var impayes = inscriptions.filter(function(i) { return i.statut_paiement !== 'confirme'; });
+
+    html += '<div class="collecte-actions-bar">';
     if (isOpen) {
-        html += '<div class="collecte-actions-bar">';
         html += '<button class="btn-cloturer" onclick="cloturerCollecte(' + billetId + ')"><i class="fa-solid fa-lock"></i> Clôturer la collecte</button>';
-        html += '</div>';
     }
+    if (isClotured && impayes.length > 0) {
+        html += '<button onclick="ouvrirRelance(' + billetId + ')" class="btn-relance"><i class="fa-solid fa-envelope"></i> Relancer les impayés (' + impayes.length + ')</button>';
+    } else if (isClotured && impayes.length === 0) {
+        html += '<span class="relance-ok"><i class="fa-solid fa-check-circle"></i> Tous les paiements sont reçus</span>';
+    }
+    html += '</div>';
 
     // Inscriptions table
     if (inscriptions.length === 0) {
@@ -615,4 +623,148 @@ function renderEnvoisVide() {
     if (container) {
         container.innerHTML = '<div class="envois-empty"><i class="fa-solid fa-check-circle"></i><p>Tous les envois sont à jour !</p></div>';
     }
+}
+
+// ============================================================
+// 10. RELANCE IMPAYÉS (Story 5.8)
+// ============================================================
+
+function ouvrirRelance(billetId) {
+    var billet = null;
+    for (var i = 0; i < mesBillets.length; i++) {
+        if (mesBillets[i].id === billetId) {
+            billet = mesBillets[i];
+            break;
+        }
+    }
+    if (!billet) return;
+
+    supabaseFetch('/rest/v1/inscriptions?billet_id=eq.' + billetId + '&statut_paiement=neq.confirme&pas_interesse=eq.false&select=*')
+        .then(function(impayes) {
+            if (!impayes || impayes.length === 0) {
+                showToast('Aucun impayé à relancer');
+                return;
+            }
+            // Enrichir avec noms des membres
+            var emails = [];
+            impayes.forEach(function(ins) {
+                if (ins.membre_email && emails.indexOf(ins.membre_email) === -1) emails.push(ins.membre_email);
+            });
+            if (emails.length === 0) {
+                renderRelanceModal(billet, impayes);
+                return;
+            }
+            var emailFilter = emails.map(function(e) { return encodeURIComponent(e); }).join(',');
+            return supabaseFetch('/rest/v1/membres?email=in.(' + emailFilter + ')&select=email,nom,prenom')
+                .then(function(membres) {
+                    var membresMap = {};
+                    if (membres) {
+                        membres.forEach(function(m) { membresMap[m.email] = m; });
+                    }
+                    impayes.forEach(function(ins) {
+                        var membre = membresMap[ins.membre_email];
+                        if (membre && ins.adresse_snapshot) {
+                            if (!ins.adresse_snapshot.nom && membre.nom) ins.adresse_snapshot.nom = membre.nom;
+                            if (!ins.adresse_snapshot.prenom && membre.prenom) ins.adresse_snapshot.prenom = membre.prenom;
+                        }
+                    });
+                    renderRelanceModal(billet, impayes);
+                });
+        })
+        .catch(function(error) {
+            console.error('Erreur chargement impayés:', error);
+            showToast('Erreur lors du chargement des impayés', 'error');
+        });
+}
+
+function renderRelanceModal(billet, impayes) {
+    var prix = parseFloat(billet.Prix || 0);
+    var paypalInfo = '';
+    if (monCollecteur.paypal_me) {
+        paypalInfo = 'https://paypal.me/' + monCollecteur.paypal_me;
+    } else if (monCollecteur.paypal_email) {
+        paypalInfo = monCollecteur.paypal_email;
+    }
+
+    var messagesHtml = impayes.map(function(insc, idx) {
+        var adr = insc.adresse_snapshot || {};
+        var prenom = adr.prenom || insc.membre_email;
+        var montant = prix * ((insc.nb_normaux || 0) + (insc.nb_variantes || 0));
+        var objet = 'Relance paiement — ' + (billet.NomBillet || 'Collecte');
+
+        var corps = 'Bonjour ' + prenom + ',\n\n'
+            + 'Je me permets de vous relancer concernant votre inscription à la collecte "' + (billet.NomBillet || '') + '".\n\n'
+            + 'Détails :\n'
+            + '- Billets normaux : ' + (insc.nb_normaux || 0) + '\n'
+            + (insc.nb_variantes > 0 ? '- Billets variantes : ' + insc.nb_variantes + '\n' : '')
+            + '- Montant dû : ' + montant.toFixed(2) + ' €\n'
+            + '- Mode d\'envoi : ' + (insc.mode_envoi || 'Normal') + '\n'
+            + (insc.mode_envoi && insc.mode_envoi !== 'Normal' ? '- Des frais de port supplémentaires peuvent s\'appliquer.\n' : '')
+            + '\n';
+
+        if (insc.mode_paiement === 'PayPal' && paypalInfo) {
+            corps += 'Vous pouvez effectuer le paiement via PayPal :\n' + paypalInfo + '/' + montant.toFixed(2) + '\n\n';
+        }
+
+        corps += 'Merci d\'avance,\n' + (monCollecteur.alias || 'Le collecteur');
+
+        var mailto = 'mailto:' + insc.membre_email
+            + '?subject=' + encodeURIComponent(objet)
+            + '&body=' + encodeURIComponent(corps);
+
+        return '<div class="relance-message" id="relance-msg-' + idx + '">'
+            + '<div class="relance-header">'
+            + '<strong>' + prenom + '</strong> (' + insc.membre_email + ')'
+            + ' — ' + montant.toFixed(2) + ' €'
+            + '</div>'
+            + '<textarea class="relance-texte" id="relance-texte-' + idx + '" rows="8" readonly>' + corps + '</textarea>'
+            + '<div class="relance-actions">'
+            + '<button onclick="copierRelance(' + idx + ')" class="btn-copier"><i class="fa-solid fa-copy"></i> Copier</button>'
+            + '<a href="' + mailto + '" class="btn-mailto"><i class="fa-solid fa-envelope"></i> Envoyer par email</a>'
+            + '</div>'
+            + '</div>';
+    }).join('');
+
+    var modal = document.getElementById('relance-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'relance-modal';
+        modal.className = 'relance-modal-overlay';
+        document.body.appendChild(modal);
+    }
+    modal.innerHTML = '<div class="relance-modal-content">'
+        + '<div class="relance-modal-header">'
+        + '<h2><i class="fa-solid fa-envelope"></i> Relance impayés — ' + (billet.NomBillet || '') + '</h2>'
+        + '<button onclick="fermerRelance()" class="relance-close"><i class="fa-solid fa-times"></i></button>'
+        + '</div>'
+        + '<p class="relance-count">' + impayes.length + ' membre(s) à relancer</p>'
+        + messagesHtml
+        + '</div>';
+    modal.style.display = '';
+}
+
+function copierRelance(idx) {
+    var textarea = document.getElementById('relance-texte-' + idx);
+    if (!textarea) return;
+    var text = textarea.value;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text)
+            .then(function() { showToast('Message copié !'); })
+            .catch(function() { fallbackCopy(textarea); });
+    } else {
+        fallbackCopy(textarea);
+    }
+}
+
+function fallbackCopy(textarea) {
+    textarea.removeAttribute('readonly');
+    textarea.select();
+    document.execCommand('copy');
+    textarea.setAttribute('readonly', 'readonly');
+    showToast('Message copié !');
+}
+
+function fermerRelance() {
+    var modal = document.getElementById('relance-modal');
+    if (modal) modal.style.display = 'none';
 }
