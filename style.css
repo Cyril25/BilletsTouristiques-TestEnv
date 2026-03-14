@@ -3194,10 +3194,17 @@ body.login-page {
 
 /* --- Actions (Cloturer) --- */
 .collecte-actions-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    align-items: center;
     margin-bottom: var(--spacing-lg);
 }
 
 .btn-cloturer {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     background-color: var(--color-warning);
     color: white;
     border: none;
@@ -3523,6 +3530,19 @@ body.login-page {
     color: #666;
 }
 
+/* --- Responsive actions bar --- */
+@media (max-width: 768px) {
+    .collecte-actions-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .collecte-actions-bar button,
+    .collecte-actions-bar .relance-ok {
+        justify-content: center;
+    }
+}
+
 /* --- Responsive envois --- */
 @media (max-width: 768px) {
     .envoi-groupe-header {
@@ -3616,6 +3636,7 @@ body.login-page {
 .inscription-card-statuts {
     display: flex;
     gap: var(--spacing-sm);
+    align-items: center;
     padding: 0 var(--spacing-lg) var(--spacing-md);
 }
 
@@ -3681,17 +3702,16 @@ body.login-page {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 8px 16px;
+    padding: 4px 12px;
     background-color: #E67E22;
     color: #fff;
     border: none;
     border-radius: var(--radius-md, 8px);
-    font-size: 0.95rem;
+    font-size: 0.8rem;
     font-weight: 500;
     cursor: pointer;
     box-shadow: 0 2px 4px rgba(0,0,0,0.15);
     transition: background-color var(--transition-fast), box-shadow var(--transition-fast);
-    min-height: 44px;
 }
 
 .btn-jai-paye:hover {
@@ -3706,6 +3726,14 @@ body.login-page {
 
 .btn-jai-paye i {
     margin-right: 0;
+}
+
+/* Cellule paiement — wrapper flex pour badge + boutons */
+.paiement-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
 }
 
 /* Boutons action paiement — collecteur */

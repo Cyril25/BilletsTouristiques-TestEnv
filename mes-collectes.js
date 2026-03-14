@@ -569,17 +569,17 @@ function renderPreparationEnvois(inscriptions, billetsMap) {
 function badgePaiementCollecteur(ins) {
     var statut = ins.statut_paiement || 'non_paye';
     if (statut === 'confirme') {
-        return '<span class="badge-paye badge-paiement-collecteur">Payé</span>'
-            + '<button class="btn-paiement-action btn-retrograder" onclick="changerStatutPaiement(' + ins.id + ', \'non_paye\')" title="Annuler la confirmation"><i class="fa-solid fa-rotate-left"></i></button>';
+        return '<div class="paiement-cell"><span class="badge-paye badge-paiement-collecteur">Payé</span>'
+            + '<button class="btn-paiement-action btn-retrograder" onclick="changerStatutPaiement(' + ins.id + ', \'non_paye\')" title="Annuler la confirmation"><i class="fa-solid fa-rotate-left"></i></button></div>';
     }
     if (statut === 'declare') {
-        return '<span class="badge-declare badge-paiement-collecteur">Déclaré</span>'
+        return '<div class="paiement-cell"><span class="badge-declare badge-paiement-collecteur">Déclaré</span>'
             + '<button class="btn-paiement-action btn-confirmer-paiement" onclick="changerStatutPaiement(' + ins.id + ', \'confirme\')" title="Confirmer le paiement"><i class="fa-solid fa-check"></i></button>'
-            + '<button class="btn-paiement-action btn-retrograder" onclick="changerStatutPaiement(' + ins.id + ', \'non_paye\')" title="Refuser"><i class="fa-solid fa-xmark"></i></button>';
+            + '<button class="btn-paiement-action btn-retrograder" onclick="changerStatutPaiement(' + ins.id + ', \'non_paye\')" title="Refuser"><i class="fa-solid fa-xmark"></i></button></div>';
     }
     // non_paye
-    return '<span class="badge-non-paye badge-paiement-collecteur">Non payé</span>'
-        + '<button class="btn-paiement-action btn-confirmer-paiement" onclick="changerStatutPaiement(' + ins.id + ', \'confirme\')" title="Confirmer le paiement"><i class="fa-solid fa-check"></i></button>';
+    return '<div class="paiement-cell"><span class="badge-non-paye badge-paiement-collecteur">Non payé</span>'
+        + '<button class="btn-paiement-action btn-confirmer-paiement" onclick="changerStatutPaiement(' + ins.id + ', \'confirme\')" title="Confirmer le paiement"><i class="fa-solid fa-check"></i></button></div>';
 }
 
 function badgePaiementEnvoi(statut) {
