@@ -2224,6 +2224,20 @@ body.login-page {
     display: block;
 }
 
+/* Story 9.6 — Champs prix désactivés en pré-collecte */
+.field-hint-warning {
+    display: block;
+    color: #e67e22;
+    font-size: 0.85rem;
+    margin-top: 4px;
+    font-style: italic;
+}
+.admin-panel input:disabled {
+    background-color: #f0f0f0;
+    color: #999;
+    cursor: not-allowed;
+}
+
 .admin-form-group-checkbox label {
     display: flex;
     align-items: center;
@@ -2777,6 +2791,38 @@ body.login-page {
     border-radius: 12px;
     font-size: 0.8em;
     font-weight: 500;
+}
+
+/* Story 9.7 — Badges statut collecte */
+.badge-collecte {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+.badge-collecte-pre {
+    background-color: #FFF3CD;
+    color: #856404;
+}
+.badge-collecte-en-cours {
+    background-color: #CCE5FF;
+    color: #004085;
+}
+.badge-collecte-termine {
+    background-color: #D4EDDA;
+    color: #155724;
+}
+
+/* Story 9.8 — Badge prix non défini et montant en attente */
+.badge-prix-indefini {
+    background-color: #F0F0F0;
+    color: #888;
+    font-style: italic;
+}
+.montant-indefini {
+    color: #999;
+    font-style: italic;
 }
 
 .badge-paiement {

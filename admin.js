@@ -558,10 +558,12 @@ function initPanel() {
     }
 
     // Story 9.3 — Mise à jour état des champs date quand catégorie change
+    // Story 9.6 — Toggle prix fields quand catégorie change
     var categorieSelect = document.getElementById('field-categorie');
     if (categorieSelect) {
         categorieSelect.addEventListener('change', function() {
             updateDateFieldsState(categorieSelect.value);
+            togglePrixFields();
         });
     }
 
@@ -784,6 +786,9 @@ function openBilletPanel(billetData, docId) {
         var categorieField = document.getElementById('field-categorie');
         if (categorieField) categorieField.value = CATEGORIE_DEFAULT;
 
+        // Story 9.6 — Bloquer les champs prix selon le statut par défaut
+        togglePrixFields();
+
         // Story 5.2 — Masquer les champs Google en mode ajout
         document.querySelectorAll('[data-google-field="true"]').forEach(function(group) {
             group.style.display = 'none';
@@ -905,6 +910,9 @@ function prefillForm(data) {
 
     // Story 9.3 — Activer/désactiver les champs date selon le statut
     updateDateFieldsState(categorie);
+
+    // Story 9.6 — Bloquer les champs prix en Pré-collecte
+    togglePrixFields();
 }
 
 // --- Story 9.2 — Affichage conditionnel du champ PrixVariante ---
@@ -918,6 +926,29 @@ function togglePrixVarianteField() {
     if (!show) {
         var prixVarEl = document.getElementById('field-prix-variante');
         if (prixVarEl) prixVarEl.value = '';
+    }
+}
+
+// --- Story 9.6 — Bloquer les champs prix en Pré-collecte ---
+function togglePrixFields() {
+    var categorieEl = document.getElementById('field-categorie');
+    var prixEl = document.getElementById('field-prix');
+    var prixVarEl = document.getElementById('field-prix-variante');
+    var msgEl = document.getElementById('prix-precollecte-msg');
+    if (!categorieEl || !prixEl) return;
+
+    var isPreCollecte = (categorieEl.value === 'Pré collecte');
+
+    prixEl.disabled = isPreCollecte;
+    if (prixVarEl) prixVarEl.disabled = isPreCollecte;
+
+    if (isPreCollecte) {
+        prixEl.value = '';
+        if (prixVarEl) prixVarEl.value = '';
+    }
+
+    if (msgEl) {
+        msgEl.style.display = isPreCollecte ? '' : 'none';
     }
 }
 

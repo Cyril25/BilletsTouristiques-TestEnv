@@ -28,7 +28,7 @@ function loadMesInscriptions() {
                 return;
             }
             var idsParam = 'id=in.(' + billetIds.join(',') + ')';
-            return supabaseFetch('/rest/v1/billets?' + idsParam + '&select=id,"NomBillet","Ville","Collecteur","Prix","PrixVariante"');
+            return supabaseFetch('/rest/v1/billets?' + idsParam + '&select=id,"NomBillet","Ville","Collecteur","Prix","PrixVariante","Categorie"');
         })
         .then(function(billets) {
             if (billets) {
@@ -79,11 +79,11 @@ function renderInscriptions() {
         var nbVariantes = insc.nb_variantes || 0;
         var montant = (prix * nbNormaux) + (prixVar * nbVariantes);
         var statut = insc.statut_paiement || 'non_paye';
-        if (statut !== 'confirme') totalDu += montant;
+        if (statut !== 'confirme' && billet.Categorie !== 'Pré collecte') totalDu += montant;
 
         var collecteur = collecteursMap[billet.Collecteur] || {};
         var paypalLink = '';
-        if (statut === 'non_paye' && insc.mode_paiement === 'PayPal') {
+        if (statut === 'non_paye' && insc.mode_paiement === 'PayPal' && billet.Categorie !== 'Pré collecte') {
             if (collecteur.paypal_me) {
                 paypalLink = '<a href="https://paypal.me/' + collecteur.paypal_me + '/' + montant.toFixed(2) + '" target="_blank" class="btn-payer"><i class="fa-brands fa-paypal"></i> Payer via PayPal</a>';
             } else if (collecteur.paypal_email) {
@@ -102,10 +102,13 @@ function renderInscriptions() {
             + '<div class="inscription-card-details">'
             + '<span><i class="fa-solid fa-user"></i> ' + (billet.Collecteur || '\u2014') + '</span>'
             + '<span><i class="fa-solid fa-ticket"></i> ' + nbNormaux + (nbVariantes > 0 ? ' + ' + nbVariantes + ' var.' : '') + '</span>'
-            + '<span class="' + montantClass + '"><i class="fa-solid fa-euro-sign"></i> ' + montant.toFixed(2) + ' \u20AC</span>'
+            + (billet.Categorie === 'Pré collecte'
+                ? '<span class="montant-indefini"><i class="fa-solid fa-euro-sign"></i> En attente</span>'
+                : '<span class="' + montantClass + '"><i class="fa-solid fa-euro-sign"></i> ' + montant.toFixed(2) + ' \u20AC</span>')
             + '</div>'
             + '<div class="inscription-card-statuts">'
-            + badgePaiementMembre(statut, insc.id)
+            + badgeCollecte(billet.Categorie)
+            + badgePaiementMembre(statut, insc.id, billet.Categorie)
             + '<span class="badge-paiement ' + (insc.envoye ? 'badge-envoye' : 'badge-non-envoye') + '">' + (insc.envoye ? 'Envoy\u00E9' : 'Non envoy\u00E9') + '</span>'
             + '</div>'
             + '<div class="inscription-card-footer">'
@@ -130,14 +133,30 @@ function renderInscriptions() {
 // 3. BADGE PAIEMENT ET DECLARATION
 // ============================================================
 
-function badgePaiementMembre(statut, inscriptionId) {
+// Story 9.7 — Badge statut collecte
+function badgeCollecte(categorie) {
+    var cat = categorie || 'Pré collecte';
+    if (cat === 'Terminé') {
+        return '<span class="badge-collecte badge-collecte-termine">Terminé</span>';
+    }
+    if (cat === 'Collecte') {
+        return '<span class="badge-collecte badge-collecte-en-cours">Collecte en cours</span>';
+    }
+    // Pré collecte (défaut)
+    return '<span class="badge-collecte badge-collecte-pre">Pré-collecte</span>';
+}
+
+function badgePaiementMembre(statut, inscriptionId, categorie) {
     if (statut === 'confirme') {
         return '<span class="badge-paiement badge-paye">Payé</span>';
     }
     if (statut === 'declare') {
         return '<span class="badge-paiement badge-declare">En attente de confirmation</span>';
     }
-    // non_paye
+    // non_paye — Story 9.8 : bloquer en pré-collecte
+    if (categorie === 'Pré collecte') {
+        return '<span class="badge-paiement badge-prix-indefini">Prix non défini</span>';
+    }
     return '<button class="btn-jai-paye" title="Cliquez pour déclarer votre paiement" onclick="declarerPaiement(' + inscriptionId + ')"><i class="fa-solid fa-hand-holding-dollar"></i> J\'ai payé</button>';
 }
 
