@@ -6,7 +6,7 @@
 //                    Les données changent plusieurs fois par jour.
 // ============================================================
 
-const CACHE_NAME = 'billets-v14';
+const CACHE_NAME = 'billets-v15';
 
 const STATIC_ASSETS = [
     '/',

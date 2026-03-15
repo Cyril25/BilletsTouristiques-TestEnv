@@ -101,6 +101,12 @@
                         <input type="text" id="field-version" name="Version" autocomplete="off" placeholder="1">
                     </div>
 
+                    <div class="admin-form-group admin-form-group-checkbox">
+                        <label>
+                            <input type="checkbox" id="field-version-normale" checked>
+                            Normale
+                        </label>
+                    </div>
                     <div class="admin-form-group">
                         <label for="field-has-variante">Variante</label>
                         <select id="field-has-variante" name="HasVariante" class="admin-form-select">
@@ -109,12 +115,7 @@
                             <option value="anniversary">Anniversaire</option>
                             <option value="doré">Doré</option>
                         </select>
-                    </div>
-                    <div class="admin-form-group" id="group-version-normale" style="display:none;">
-                        <label>
-                            <input type="checkbox" id="field-version-normale" checked>
-                            La version normale existe
-                        </label>
+                        <span class="admin-form-error" id="error-has-variante"></span>
                     </div>
                 </fieldset>
 

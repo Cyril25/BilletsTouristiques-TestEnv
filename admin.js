@@ -957,11 +957,11 @@ function prefillForm(data) {
     var categorieField = document.getElementById('field-categorie');
     if (categorieField) categorieField.value = categorie;
 
-    // Checkbox "Version normale existe"
+    // Checkbox "Normale" — Story 9.9
     var cbNormale = document.getElementById('field-version-normale');
     if (cbNormale) {
-        // Si HasVariante était 'only', décocher la checkbox et remettre HasVariante à vide
         if (data.HasVariante === 'only') {
+            // Billets legacy avec valeur 'only' : décocher Normale, remettre variante à vide
             var hasVarEl = document.getElementById('field-has-variante');
             if (hasVarEl) hasVarEl.value = '';
             cbNormale.checked = false;
@@ -980,27 +980,21 @@ function prefillForm(data) {
     togglePrixFields();
 }
 
-// --- Story 9.2 — Affichage conditionnel du champ PrixVariante ---
+// --- Story 9.9 — Affichage conditionnel du champ PrixVariante ---
 function togglePrixVarianteField() {
     var hasVarianteEl = document.getElementById('field-has-variante');
     var groupPrixVariante = document.getElementById('group-prix-variante');
-    var groupVersionNormale = document.getElementById('group-version-normale');
     if (!hasVarianteEl || !groupPrixVariante) return;
     var val = hasVarianteEl.value;
     var show = val && val !== 'N';
     groupPrixVariante.style.display = show ? '' : 'none';
-    if (groupVersionNormale) {
-        groupVersionNormale.style.display = show ? '' : 'none';
-        // Quand pas de variante, remettre la checkbox cochée par défaut
-        if (!show) {
-            var cbNormale = document.getElementById('field-version-normale');
-            if (cbNormale) cbNormale.checked = true;
-        }
-    }
     if (!show) {
         var prixVarEl = document.getElementById('field-prix-variante');
         if (prixVarEl) prixVarEl.value = '';
     }
+    // Effacer l'erreur de validation croisee quand on change la variante
+    var errorVariante = document.getElementById('error-has-variante');
+    if (errorVariante) errorVariante.textContent = '';
 }
 
 // --- Story 9.6 — Bloquer les champs prix en Pré-collecte ---
@@ -1175,6 +1169,20 @@ function validateBilletForm() {
         if (!firstErrorField) firstErrorField = collecteur;
     }
 
+    // Story 9.9 — Validation croisee : au moins un type (normale ou variante)
+    var cbNormale = document.getElementById('field-version-normale');
+    var hasVariante = document.getElementById('field-has-variante');
+    if (cbNormale && hasVariante) {
+        var normaleActive = cbNormale.checked;
+        var varianteVal = hasVariante.value;
+        var varianteActive = varianteVal && varianteVal !== 'N';
+        if (!normaleActive && !varianteActive) {
+            setFieldError('field-has-variante', 'error-has-variante', 'Un billet doit avoir au moins un type (normal ou variante)');
+            valid = false;
+            if (!firstErrorField) firstErrorField = hasVariante;
+        }
+    }
+
     // Story 9.2 — Validation prix variante
     var prixVariante = document.getElementById('field-prix-variante');
     if (prixVariante && prixVariante.value !== '' && (isNaN(parseFloat(prixVariante.value)) || parseFloat(prixVariante.value) < 0)) {
@@ -1210,10 +1218,8 @@ function collectFormData() {
         Version: getValue('field-version'),
         HasVariante: getValue('field-has-variante') || null,
         VersionNormaleExiste: (function() {
-            var hasVar = document.getElementById('field-has-variante');
             var cb = document.getElementById('field-version-normale');
-            var varActive = hasVar && hasVar.value && hasVar.value !== 'N';
-            return varActive && cb ? cb.checked : true;
+            return cb ? cb.checked : true;
         })(),
         Dep: getValue('field-dep'),
         Cp: getValue('field-cp'),
