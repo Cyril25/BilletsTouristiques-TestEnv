@@ -64,7 +64,7 @@ function loadUsers() {
     var grid = document.getElementById('user-cards-grid');
     if (!grid) return;
 
-    supabaseFetch('/rest/v1/membres?select=email,role,pseudo,nom&order=email.asc', { method: 'GET' })
+    supabaseFetch('/rest/v1/membres?select=email,role,pseudo,nom,prenom&order=email.asc', { method: 'GET' })
         .then(function(rows) {
             usersList = rows.map(function(row) {
                 row._id = row.email;
@@ -105,8 +105,9 @@ function renderUserCards() {
         var email = user._id || '';
         var pseudo = user.pseudo || '';
         var nom = user.nom || '';
+        var prenom = user.prenom || '';
         var role = user.role || '';
-        var displayName = pseudo || nom || email;
+        var displayName = pseudo || ((prenom && nom) ? prenom + ' ' + nom : (prenom || nom)) || email;
         var isAdmin = role === 'admin';
         var badgeClass = isAdmin ? 'user-badge-role user-badge-admin' : 'user-badge-role user-badge-member';
         var badgeLabel = isAdmin ? 'Admin' : 'Membre';
@@ -131,6 +132,10 @@ function renderUserCards() {
                 '<div class="user-edit-field">' +
                     '<label>Nom</label>' +
                     '<input type="text" class="user-edit-nom" value="' + escapeAttr(nom) + '" placeholder="Nom">' +
+                '</div>' +
+                '<div class="user-edit-field">' +
+                    '<label>Prénom</label>' +
+                    '<input type="text" class="user-edit-prenom" value="' + escapeAttr(prenom) + '" placeholder="Prénom">' +
                 '</div>' +
                 '<div class="user-edit-actions">' +
                     '<button class="user-edit-save-btn user-modal-btn user-modal-btn-primary" data-doc-id="' + escapeAttr(email) + '"><i class="fa-solid fa-check"></i> Sauvegarder</button>' +
@@ -204,9 +209,11 @@ function initUserEvents() {
                 if (!card) return;
                 var pseudoInput = card.querySelector('.user-edit-pseudo');
                 var nomInput = card.querySelector('.user-edit-nom');
+                var prenomInput = card.querySelector('.user-edit-prenom');
                 var newPseudo = pseudoInput ? pseudoInput.value.trim() : '';
                 var newNom = nomInput ? nomInput.value.trim() : '';
-                saveUserProfile(emailToEdit, newPseudo, newNom);
+                var newPrenom = prenomInput ? prenomInput.value.trim() : '';
+                saveUserProfile(emailToEdit, newPseudo, newNom, newPrenom);
                 return;
             }
 
@@ -293,18 +300,21 @@ function addUser() {
 
     var pseudoInput = document.getElementById('new-user-pseudo');
     var nomInput = document.getElementById('new-user-nom');
+    var prenomInput = document.getElementById('new-user-prenom');
     var pseudo = pseudoInput ? pseudoInput.value.trim() : '';
     var nom = nomInput ? nomInput.value.trim() : '';
+    var prenom = prenomInput ? prenomInput.value.trim() : '';
 
     supabaseFetch('/rest/v1/membres', {
         method: 'POST',
-        body: JSON.stringify({ email: email, role: 'member', pseudo: pseudo, nom: nom })
+        body: JSON.stringify({ email: email, role: 'member', pseudo: pseudo, nom: nom, prenom: prenom })
     })
         .then(function() {
             showToast('Membre ajouté avec succès', 'success');
             emailInput.value = '';
             if (pseudoInput) pseudoInput.value = '';
             if (nomInput) nomInput.value = '';
+            if (prenomInput) prenomInput.value = '';
             if (addForm) addForm.style.display = 'none';
             loadUsers();
         })
@@ -315,12 +325,12 @@ function addUser() {
 }
 
 // ============================================================
-// 7b2. SAUVEGARDE PROFIL (PSEUDO / NOM)
+// 7b2. SAUVEGARDE PROFIL (PSEUDO / NOM / PRENOM)
 // ============================================================
-function saveUserProfile(email, pseudo, nom) {
+function saveUserProfile(email, pseudo, nom, prenom) {
     supabaseFetch('/rest/v1/membres?email=eq.' + encodeURIComponent(email), {
         method: 'PATCH',
-        body: JSON.stringify({ pseudo: pseudo, nom: nom })
+        body: JSON.stringify({ pseudo: pseudo, nom: nom, prenom: prenom })
     })
         .then(function() {
             // Mettre a jour la liste en memoire
@@ -328,6 +338,7 @@ function saveUserProfile(email, pseudo, nom) {
                 if (usersList[i]._id === email) {
                     usersList[i].pseudo = pseudo;
                     usersList[i].nom = nom;
+                    usersList[i].prenom = prenom;
                     break;
                 }
             }
