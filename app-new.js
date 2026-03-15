@@ -251,13 +251,14 @@ function populateFilters() {
     renderBilletsStatusCounters();
 }
 
-function renderBilletsStatusCounters() {
+function renderBilletsStatusCounters(filteredData) {
     var container = document.getElementById('billets-status-counters');
     if (!container) return;
 
+    var source = filteredData || allData;
     var counts = {};
-    var total = allData.length;
-    allData.forEach(function(billet) {
+    var total = source.length;
+    source.forEach(function(billet) {
         var statut = billet.Categorie || 'Non defini';
         counts[statut] = (counts[statut] || 0) + 1;
     });
@@ -315,22 +316,32 @@ function applyFilters(silent) {
     var fStart = document.getElementById('date-start').value;
     var fEnd = document.getElementById('date-end').value;
 
-    currentData = allData.filter(function(item) {
+    // Filtre sans la catégorie pour mettre à jour les compteurs des chips
+    var preFiltered = allData.filter(function(item) {
         var txt = !s || (item.NomBillet && item.NomBillet.toLowerCase().indexOf(s) !== -1) ||
             (item.Ville && item.Ville.toLowerCase().indexOf(s) !== -1) ||
             (item.Reference && item.Reference.toLowerCase().indexOf(s) !== -1) ||
             (item.Recherche && item.Recherche.toLowerCase().indexOf(s) !== -1);
 
-        // Comparaison de dates normalisées
         var itemDate = normalizeDate(item.Date);
         var matchDate = (!fStart || (itemDate && itemDate >= fStart)) &&
             (!fEnd || (itemDate && itemDate <= fEnd));
 
         return txt && matchDate &&
-            (!fCat || (item.Categorie || 'Non defini') === fCat) &&
             (!fPays || item.Pays === fPays) && (!fYear || item.Millesime == fYear) &&
             (!fTheme || item.Theme === fTheme) && (!fColl || item.Collecteur === fColl);
     });
+
+    renderBilletsStatusCounters(preFiltered);
+
+    // Puis filtre par catégorie pour l'affichage
+    if (fCat) {
+        currentData = preFiltered.filter(function(item) {
+            return (item.Categorie || 'Non defini') === fCat;
+        });
+    } else {
+        currentData = preFiltered;
+    }
 
     if (!silent) {
         // Vider l'affichage
