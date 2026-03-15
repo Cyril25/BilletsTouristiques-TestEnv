@@ -1214,11 +1214,23 @@ function validateBilletForm() {
         if (!firstErrorField) firstErrorField = prix;
     }
 
-    // Prix obligatoire en statut Collecte
-    if (isCollecte && prix && (prix.value.trim() === '' || parseFloat(prix.value) <= 0)) {
+    // Prix obligatoire en statut Collecte (seulement si version normale existe)
+    var cbNormaleForPrix = document.getElementById('field-version-normale');
+    var normaleExistePourPrix = cbNormaleForPrix ? cbNormaleForPrix.checked : true;
+    if (isCollecte && normaleExistePourPrix && prix && (prix.value.trim() === '' || parseFloat(prix.value) <= 0)) {
         setFieldError('field-prix', 'error-prix', 'Le prix est obligatoire pour passer en Collecte');
         valid = false;
         if (!firstErrorField) firstErrorField = prix;
+    }
+
+    // Prix variante obligatoire en statut Collecte si variante active et pas de version normale
+    var hasVarianteForPrix = document.getElementById('field-has-variante');
+    var varianteActivePourPrix = hasVarianteForPrix && hasVarianteForPrix.value && hasVarianteForPrix.value !== 'N';
+    var prixVarianteForValidation = document.getElementById('field-prix-variante');
+    if (isCollecte && varianteActivePourPrix && !normaleExistePourPrix && prixVarianteForValidation && (prixVarianteForValidation.value.trim() === '' || parseFloat(prixVarianteForValidation.value) <= 0)) {
+        setFieldError('field-prix-variante', 'error-prix-variante', 'Le prix variante est obligatoire pour passer en Collecte');
+        valid = false;
+        if (!firstErrorField) firstErrorField = prixVarianteForValidation;
     }
 
     // Collecteur obligatoire en statut Collecte
