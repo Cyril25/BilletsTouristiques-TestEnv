@@ -63,7 +63,7 @@ function checkCollecteur() {
 var mesInscriptionsParBillet = {};
 
 function loadMesCollectes() {
-    supabaseFetch('/rest/v1/billets?select=id,"NomBillet","Ville","Categorie","Collecteur","Prix","PrixVariante","DateColl","DateFin","HasVariante","VersionNormaleExiste","Date","Reference","Millesime","Version"&"Collecteur"=eq.' + encodeURIComponent(monCollecteur.alias) + '&order="Date".desc.nullslast')
+    supabaseFetch('/rest/v1/billets?select=id,"NomBillet","Ville","Categorie","Collecteur","Prix","PrixVariante","DateColl","DateFin","HasVariante","VersionNormaleExiste","Date","Reference","Millesime","Version",attenuee&"Collecteur"=eq.' + encodeURIComponent(monCollecteur.alias) + '&order="Date".desc.nullslast')
         .then(function(billets) {
             mesBillets = billets || [];
             if (mesBillets.length === 0) {
@@ -128,7 +128,8 @@ function renderCollectesList() {
         if (milVersion) refParts.push(milVersion);
         var refPrefix = refParts.length > 0 ? refParts.join(' - ') : '';
 
-        html += '<div class="collecte-card" onclick="openCollecteDetail(' + b.id + ')">';
+        var attenuee = b.attenuee === true;
+        html += '<div class="collecte-card' + (attenuee ? ' collecte-card-attenuee' : '') + '" onclick="openCollecteDetail(' + b.id + ')">';
         html += '<div class="collecte-card-header">';
         if (refPrefix) html += '<span class="collecte-ref">' + refPrefix + '</span>';
         html += '<h3>' + (b.NomBillet || '') + '</h3>';
@@ -162,6 +163,7 @@ function renderCollectesList() {
             html += '<div class="collecte-card-indicators"><span class="indicator indicator-none">Aucun inscrit</span></div>';
         }
 
+        html += '<button class="btn-attenuee' + (attenuee ? ' btn-attenuee-active' : '') + '" onclick="event.stopPropagation(); toggleAttenuee(' + b.id + ', ' + !attenuee + ')" title="' + (attenuee ? 'Rendre visible' : 'Atténuer cette collecte') + '"><i class="fa-solid fa-eye' + (attenuee ? '-slash' : '') + '"></i></button>';
         html += '<div class="collecte-card-action"><i class="fa-solid fa-chevron-right"></i></div>';
         html += '</div>';
     }
@@ -859,4 +861,27 @@ function exporterCSV(billetId) {
     URL.revokeObjectURL(url);
 
     showToast('Export CSV téléchargé !');
+}
+
+// ============================================================
+// 11. ATTENUER UNE COLLECTE
+// ============================================================
+function toggleAttenuee(billetId, newValue) {
+    supabaseFetch('/rest/v1/billets?id=eq.' + billetId, {
+        method: 'PATCH',
+        body: JSON.stringify({ attenuee: newValue })
+    })
+    .then(function() {
+        for (var i = 0; i < mesBillets.length; i++) {
+            if (mesBillets[i].id === billetId) {
+                mesBillets[i].attenuee = newValue;
+                break;
+            }
+        }
+        renderCollectesList();
+    })
+    .catch(function(error) {
+        console.error('Erreur atténuation:', error);
+        showToast('Erreur lors de la modification', 'error');
+    });
 }

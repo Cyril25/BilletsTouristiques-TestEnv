@@ -3438,6 +3438,35 @@ body.login-page {
     color: var(--color-accent);
 }
 
+/* --- Collecte atténuée --- */
+.collecte-card-attenuee {
+    opacity: 0.45;
+}
+
+.collecte-card-attenuee:hover {
+    opacity: 0.7;
+}
+
+.btn-attenuee {
+    background: none;
+    border: none;
+    color: #999;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.btn-attenuee:hover {
+    color: var(--color-primary);
+    background: rgba(0,0,0,0.05);
+}
+
+.btn-attenuee-active {
+    color: var(--color-accent);
+}
+
 /* --- Vue detaillee --- */
 .btn-retour-liste {
     background: none;
