@@ -68,9 +68,9 @@
         <div class="admin-panel-body">
             <form id="admin-billet-form" novalidate>
 
-                <!-- Section : Informations principales -->
+                <!-- Section 1 : Identification du billet -->
                 <fieldset class="admin-form-section">
-                    <legend>Informations principales</legend>
+                    <legend>Identification du billet</legend>
 
                     <div class="admin-form-group">
                         <label for="field-nom-billet">Nom du billet *</label>
@@ -79,14 +79,9 @@
                     </div>
 
                     <div class="admin-form-group">
-                        <label for="field-ville">Ville *</label>
-                        <input type="text" id="field-ville" name="Ville" required autocomplete="off" placeholder="Paris">
-                        <span class="admin-form-error" id="error-ville"></span>
-                    </div>
-
-                    <div class="admin-form-group">
-                        <label for="field-reference">Reference</label>
-                        <input type="text" id="field-reference" name="Reference" autocomplete="off" placeholder="UEBE">
+                        <label for="field-reference">Reference *</label>
+                        <input type="text" id="field-reference" name="Reference" required autocomplete="off" placeholder="UEBE">
+                        <span class="admin-form-error" id="error-reference"></span>
                     </div>
 
                     <div class="admin-form-group">
@@ -97,14 +92,20 @@
                     </div>
 
                     <div class="admin-form-group">
-                        <label for="field-version">Version</label>
-                        <input type="text" id="field-version" name="Version" autocomplete="off" placeholder="1">
+                        <label for="field-version">Version *</label>
+                        <input type="text" id="field-version" name="Version" required autocomplete="off" placeholder="1">
+                        <span class="admin-form-error" id="error-version"></span>
                     </div>
+                </fieldset>
+
+                <!-- Section 2 : Type de billet -->
+                <fieldset class="admin-form-section">
+                    <legend>Type de billet</legend>
 
                     <div class="admin-form-group admin-form-group-checkbox">
                         <label>
                             <input type="checkbox" id="field-version-normale" checked>
-                            Normale
+                            Existe en version normale
                         </label>
                     </div>
                     <div class="admin-form-group">
@@ -117,17 +118,23 @@
                         </select>
                         <span class="admin-form-error" id="error-has-variante"></span>
                     </div>
+                    <small class="field-hint">Un billet doit exister en au moins un type : normal ou variante.</small>
                 </fieldset>
 
-                <!-- Section : Localisation & Classification -->
+                <!-- Section 3 : Localisation & Description -->
                 <fieldset class="admin-form-section">
-                    <legend>Localisation & Classification</legend>
+                    <legend>Localisation & Description</legend>
 
                     <div class="admin-form-group">
                         <label for="field-pays">Pays</label>
                         <select id="field-pays" name="Pays" class="admin-form-select">
                             <option value="">— Sélectionner un pays —</option>
                         </select>
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label for="field-ville">Ville</label>
+                        <input type="text" id="field-ville" name="Ville" autocomplete="off" placeholder="Paris">
                     </div>
 
                     <div class="admin-form-group">
@@ -146,11 +153,11 @@
                     </div>
                 </fieldset>
 
-                <!-- Section : Categorie -->
+                <!-- Section 4 : Statut du billet -->
                 <fieldset class="admin-form-section">
-                    <legend>Categorie</legend>
+                    <legend>Statut du billet</legend>
                     <div class="admin-form-group">
-                        <label for="field-categorie">Categorie du billet</label>
+                        <label for="field-categorie">Statut du billet</label>
                         <select id="field-categorie" name="Categorie" class="admin-form-select">
                             <option value="Jamais édité, projet">Jamais édité, projet</option>
                             <option value="Pré collecte">Pré collecte</option>
@@ -161,7 +168,7 @@
                     </div>
                 </fieldset>
 
-                <!-- Section : Dates -->
+                <!-- Section 5 : Dates -->
                 <fieldset class="admin-form-section">
                     <legend>Dates</legend>
 
@@ -181,7 +188,7 @@
                     </div>
                 </fieldset>
 
-                <!-- Section : Collecte & Prix -->
+                <!-- Section 6 : Collecte & Prix -->
                 <fieldset class="admin-form-section">
                     <legend>Collecte & Prix</legend>
 
@@ -222,7 +229,7 @@
                     </div>
                 </fieldset>
 
-                <!-- Section : Image & Liens -->
+                <!-- Section 7 : Image & Liens -->
                 <fieldset class="admin-form-section">
                     <legend>Image & Liens</legend>
 
@@ -252,18 +259,13 @@
                     </div>
                 </fieldset>
 
-                <!-- Section : Autres informations -->
+                <!-- Section 8 : Commentaire -->
                 <fieldset class="admin-form-section">
-                    <legend>Autres informations</legend>
+                    <legend>Commentaire</legend>
 
                     <div class="admin-form-group">
                         <label for="field-commentaire">Commentaire</label>
                         <textarea id="field-commentaire" name="Commentaire" rows="3"></textarea>
-                    </div>
-
-                    <div class="admin-form-group">
-                        <label for="field-compteur-bt">Compteur BT</label>
-                        <input type="text" id="field-compteur-bt" name="CompteurBT" autocomplete="off">
                     </div>
                 </fieldset>
 

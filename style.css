@@ -2238,6 +2238,15 @@ body.login-page {
     display: block;
 }
 
+/* Texte d'aide sous les champs */
+.field-hint {
+    display: block;
+    color: #888;
+    font-size: 0.82rem;
+    margin-top: 4px;
+    font-style: italic;
+}
+
 /* Story 9.6 — Champs prix désactivés en pré-collecte */
 .field-hint-warning {
     display: block;

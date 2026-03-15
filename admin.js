@@ -887,8 +887,7 @@ function prefillForm(data) {
         'field-sondage': 'Sondage',
         'field-link-sondage': 'LinkSondage',
         'field-link-sheet': 'LinkSheet',
-        'field-link-fb': 'LinkFB',
-        'field-compteur-bt': 'CompteurBT'
+        'field-link-fb': 'LinkFB'
     };
 
     for (var fieldId in fields) {
@@ -1137,11 +1136,18 @@ function validateBilletForm() {
         if (!firstErrorField) firstErrorField = nomBillet;
     }
 
-    var ville = document.getElementById('field-ville');
-    if (ville && ville.value.trim() === '') {
-        setFieldError('field-ville', 'error-ville', 'Le champ Ville est requis');
+    var reference = document.getElementById('field-reference');
+    if (reference && reference.value.trim() === '') {
+        setFieldError('field-reference', 'error-reference', 'Le champ Reference est requis');
         valid = false;
-        if (!firstErrorField) firstErrorField = ville;
+        if (!firstErrorField) firstErrorField = reference;
+    }
+
+    var version = document.getElementById('field-version');
+    if (version && version.value.trim() === '') {
+        setFieldError('field-version', 'error-version', 'Le champ Version est requis');
+        valid = false;
+        if (!firstErrorField) firstErrorField = version;
     }
 
     var prix = document.getElementById('field-prix');
@@ -1240,7 +1246,6 @@ function collectFormData() {
         LinkSheet: panel && panel.dataset.editId ? getValue('field-link-sheet') : '',
         LinkFB: getValue('field-link-fb'),
         Commentaire: getValue('field-commentaire'),
-        CompteurBT: getValue('field-compteur-bt'),
         Categorie: getValue('field-categorie') || CATEGORIE_DEFAULT
     };
 
