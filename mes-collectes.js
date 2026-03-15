@@ -285,6 +285,9 @@ function renderCollecteDetail(billetId, inscriptions) {
     } else if (isClotured && impayes.length === 0) {
         html += '<span class="relance-ok"><i class="fa-solid fa-check-circle"></i> Tous les paiements sont reçus</span>';
     }
+    // Bouton inscrire un membre
+    html += '<button class="btn-inscrire-membre" onclick="ouvrirModalInscription()"><i class="fa-solid fa-user-plus"></i> Inscrire un membre</button>';
+
     // Story 9.5 — Bouton export CSV
     var inscActives = inscriptions.filter(function(i) { return !i.pas_interesse; });
     if (inscActives.length > 0) {
@@ -332,7 +335,10 @@ function renderCollecteDetail(billetId, inscriptions) {
             html += '<td data-label="Payé">' + badgePaiementCollecteur(ins) + '</td>';
             html += '<td data-label="Envoyé"><input type="checkbox" id="chk-envoye-' + ins.id + '" ' + (ins.envoye ? 'checked' : '') + ' onchange="toggleInscriptionField(' + ins.id + ', \'envoye\', this.checked)"></td>';
             html += '<td data-label="FDP"><input type="checkbox" id="chk-fdp_regles-' + ins.id + '" ' + (ins.fdp_regles ? 'checked' : '') + ' onchange="toggleInscriptionField(' + ins.id + ', \'fdp_regles\', this.checked)"></td>';
-            html += '<td data-label="Actions"><button class="btn-desinscrire" onclick="desinscrireMembre(' + ins.id + ', \'' + nomPrenom.replace(/'/g, "\\'") + '\')"><i class="fa-solid fa-user-minus"></i></button></td>';
+            html += '<td data-label="Actions">'
+                + '<button class="btn-modifier-inscription" onclick="ouvrirModalModification(' + ins.id + ')" title="Modifier l\'inscription"><i class="fa-solid fa-pen"></i></button>'
+                + '<button class="btn-desinscrire" onclick="desinscrireMembre(' + ins.id + ', \'' + nomPrenom.replace(/'/g, "\\'") + '\')"><i class="fa-solid fa-user-minus"></i></button>'
+                + '</td>';
             html += '</tr>';
 
             if (commentaire) {
@@ -882,6 +888,282 @@ function toggleAttenuee(billetId, newValue) {
     })
     .catch(function(error) {
         console.error('Erreur atténuation:', error);
+        showToast('Erreur lors de la modification', 'error');
+    });
+}
+
+// ============================================================
+// 12. INSCRIRE UN MEMBRE (ajout par le collecteur)
+// ============================================================
+
+var membresCache = null;
+
+function chargerMembres() {
+    if (membresCache) return Promise.resolve(membresCache);
+    return supabaseFetch('/rest/v1/membres?select=email,nom,prenom,rue,code_postal,ville,pays&order=nom.asc')
+        .then(function(data) {
+            membresCache = data || [];
+            return membresCache;
+        });
+}
+
+function ouvrirModalInscription() {
+    if (!currentBillet) return;
+    chargerMembres().then(function(membres) {
+        renderInscriptionModal(membres, null);
+    }).catch(function(error) {
+        console.error('Erreur chargement membres:', error);
+        showToast('Erreur lors du chargement des membres', 'error');
+    });
+}
+
+function renderInscriptionModal(membres, editInscription) {
+    var modal = document.getElementById('inscription-modal');
+    if (!modal) return;
+
+    var isEdit = !!editInscription;
+    var titre = isEdit ? 'Modifier l\'inscription' : 'Inscrire un membre';
+    var billet = currentBillet;
+    var varianteActive = billet.HasVariante && billet.HasVariante !== 'N';
+    var vne = billet.VersionNormaleExiste !== false;
+
+    // Valeurs par défaut ou valeurs existantes
+    var defEmail = isEdit ? editInscription.membre_email : '';
+    var defNormaux = isEdit ? (editInscription.nb_normaux || 0) : (varianteActive && vne ? 0 : (vne ? 1 : 0));
+    var defVariantes = isEdit ? (editInscription.nb_variantes || 0) : (!vne ? 1 : 0);
+    var defPaiement = isEdit ? (editInscription.mode_paiement || 'PayPal') : 'PayPal';
+    var defEnvoi = isEdit ? (editInscription.mode_envoi || 'Normal') : 'Normal';
+    var defCommentaire = isEdit ? (editInscription.commentaire || '') : '';
+
+    // Filtrer les membres déjà inscrits (sauf en mode edit)
+    var emailsInscrits = {};
+    if (!isEdit) {
+        currentInscriptions.forEach(function(ins) {
+            emailsInscrits[ins.membre_email] = true;
+        });
+    }
+
+    // Construire la liste des options membres
+    var optionsMembres = '<option value="">— Sélectionner un membre —</option>';
+    membres.forEach(function(m) {
+        if (!isEdit && emailsInscrits[m.email]) return;
+        var label = ((m.prenom || '') + ' ' + (m.nom || '')).trim() || m.email;
+        var selected = (m.email === defEmail) ? ' selected' : '';
+        optionsMembres += '<option value="' + m.email + '"' + selected + '>' + label + ' (' + m.email + ')</option>';
+    });
+
+    var html = '<div class="relance-modal-content">'
+        + '<div class="relance-modal-header">'
+        + '<h2><i class="fa-solid fa-user-plus"></i> ' + titre + '</h2>'
+        + '<button onclick="fermerModalInscription()" class="relance-close"><i class="fa-solid fa-times"></i></button>'
+        + '</div>';
+
+    html += '<div class="inscription-form-collecteur">';
+
+    // Sélecteur de membre
+    if (isEdit) {
+        var snap = editInscription.adresse_snapshot || {};
+        var nomAffiche = ((snap.prenom || '') + ' ' + (snap.nom || '')).trim() || defEmail;
+        html += '<div class="insc-form-field"><label>Membre</label><span class="insc-form-readonly">' + nomAffiche + '</span></div>';
+    } else {
+        html += '<div class="insc-form-field"><label>Membre</label>'
+            + '<input type="text" id="insc-membre-search" placeholder="Rechercher un membre..." oninput="filtrerMembresModal()" autocomplete="off">'
+            + '<select id="insc-membre-email" size="5" class="insc-membre-select">' + optionsMembres + '</select>'
+            + '</div>';
+    }
+
+    // Champs quantités
+    if (vne) {
+        html += '<div class="insc-form-field"><label>Nb normaux</label><input type="number" id="insc-nb-normaux" value="' + defNormaux + '" min="0"></div>';
+    }
+    if (varianteActive) {
+        html += '<div class="insc-form-field"><label>Nb variantes</label><input type="number" id="insc-nb-variantes" value="' + defVariantes + '" min="0"></div>';
+    }
+
+    // Mode paiement et envoi
+    html += '<div class="insc-form-field"><label>Paiement</label><select id="insc-paiement">'
+        + '<option value="PayPal"' + (defPaiement === 'PayPal' ? ' selected' : '') + '>PayPal</option>'
+        + '<option value="Chèque"' + (defPaiement === 'Chèque' ? ' selected' : '') + '>Chèque</option>'
+        + '</select></div>';
+
+    html += '<div class="insc-form-field"><label>Envoi</label><select id="insc-envoi">'
+        + '<option value="Normal"' + (defEnvoi === 'Normal' ? ' selected' : '') + '>Normal</option>'
+        + '<option value="Suivi"' + (defEnvoi === 'Suivi' ? ' selected' : '') + '>Suivi</option>'
+        + '<option value="Recommandé"' + (defEnvoi === 'Recommandé' ? ' selected' : '') + '>Recommandé</option>'
+        + '</select></div>';
+
+    // Commentaire
+    html += '<div class="insc-form-field"><label>Commentaire</label><textarea id="insc-commentaire" rows="2">' + defCommentaire + '</textarea></div>';
+
+    // Boutons
+    html += '<div class="insc-form-actions">';
+    if (isEdit) {
+        html += '<button onclick="soumettreModificationInscription(' + editInscription.id + ')" class="btn-confirmer-inscription-coll"><i class="fa-solid fa-check"></i> Enregistrer</button>';
+    } else {
+        html += '<button onclick="soumettreNouvelleInscription()" class="btn-confirmer-inscription-coll"><i class="fa-solid fa-check"></i> Inscrire</button>';
+    }
+    html += '<button onclick="fermerModalInscription()" class="btn-annuler-inscription-coll">Annuler</button>';
+    html += '</div>';
+
+    html += '</div></div>';
+
+    modal.innerHTML = html;
+    modal.style.display = '';
+}
+
+function filtrerMembresModal() {
+    var searchInput = document.getElementById('insc-membre-search');
+    var selectEl = document.getElementById('insc-membre-email');
+    if (!searchInput || !selectEl || !membresCache) return;
+
+    var terme = searchInput.value.toLowerCase().trim();
+    var emailsInscrits = {};
+    currentInscriptions.forEach(function(ins) {
+        emailsInscrits[ins.membre_email] = true;
+    });
+
+    var html = '<option value="">— Sélectionner un membre —</option>';
+    membresCache.forEach(function(m) {
+        if (emailsInscrits[m.email]) return;
+        var label = ((m.prenom || '') + ' ' + (m.nom || '')).trim() || m.email;
+        var searchable = (label + ' ' + m.email).toLowerCase();
+        if (terme && searchable.indexOf(terme) === -1) return;
+        html += '<option value="' + m.email + '">' + label + ' (' + m.email + ')</option>';
+    });
+    selectEl.innerHTML = html;
+}
+
+function fermerModalInscription() {
+    var modal = document.getElementById('inscription-modal');
+    if (modal) modal.style.display = 'none';
+}
+
+function soumettreNouvelleInscription() {
+    var selectEl = document.getElementById('insc-membre-email');
+    if (!selectEl || !selectEl.value) {
+        showToast('Veuillez sélectionner un membre', 'error');
+        return;
+    }
+    var email = selectEl.value;
+
+    var normauxEl = document.getElementById('insc-nb-normaux');
+    var nbNormaux = normauxEl ? parseInt(normauxEl.value) || 0 : 0;
+    var variantesEl = document.getElementById('insc-nb-variantes');
+    var nbVariantes = variantesEl ? parseInt(variantesEl.value) || 0 : 0;
+
+    if (nbNormaux + nbVariantes === 0) {
+        showToast('Sélectionnez au moins un billet', 'error');
+        return;
+    }
+
+    // Chercher l'adresse du membre dans le cache
+    var membre = null;
+    if (membresCache) {
+        for (var i = 0; i < membresCache.length; i++) {
+            if (membresCache[i].email === email) {
+                membre = membresCache[i];
+                break;
+            }
+        }
+    }
+    var adresseSnapshot = {};
+    if (membre) {
+        adresseSnapshot = {
+            nom: membre.nom || '',
+            prenom: membre.prenom || '',
+            rue: membre.rue || '',
+            code_postal: membre.code_postal || '',
+            ville: membre.ville || '',
+            pays: membre.pays || ''
+        };
+    }
+
+    var body = {
+        billet_id: currentBilletId,
+        membre_email: email,
+        nb_normaux: nbNormaux,
+        nb_variantes: nbVariantes,
+        mode_paiement: document.getElementById('insc-paiement').value,
+        mode_envoi: document.getElementById('insc-envoi').value,
+        commentaire: (document.getElementById('insc-commentaire').value || '').trim(),
+        adresse_snapshot: adresseSnapshot,
+        statut_paiement: 'non_paye',
+        envoye: false,
+        fdp_regles: false,
+        pas_interesse: false
+    };
+
+    supabaseFetch('/rest/v1/inscriptions', {
+        method: 'POST',
+        body: JSON.stringify(body)
+    })
+    .then(function() {
+        showToast('Membre inscrit avec succès !');
+        fermerModalInscription();
+        openCollecteDetail(currentBilletId);
+    })
+    .catch(function(error) {
+        console.error('Erreur inscription:', error);
+        if (error.message && error.message.indexOf('unique') !== -1) {
+            showToast('Ce membre est déjà inscrit à cette collecte', 'error');
+        } else {
+            showToast('Erreur lors de l\'inscription', 'error');
+        }
+    });
+}
+
+// ============================================================
+// 13. MODIFIER UNE INSCRIPTION (par le collecteur)
+// ============================================================
+
+function ouvrirModalModification(inscriptionId) {
+    var inscription = null;
+    for (var i = 0; i < currentInscriptions.length; i++) {
+        if (currentInscriptions[i].id === inscriptionId) {
+            inscription = currentInscriptions[i];
+            break;
+        }
+    }
+    if (!inscription) return;
+
+    chargerMembres().then(function(membres) {
+        renderInscriptionModal(membres, inscription);
+    }).catch(function(error) {
+        console.error('Erreur chargement membres:', error);
+        showToast('Erreur lors du chargement', 'error');
+    });
+}
+
+function soumettreModificationInscription(inscriptionId) {
+    var normauxEl = document.getElementById('insc-nb-normaux');
+    var nbNormaux = normauxEl ? parseInt(normauxEl.value) || 0 : 0;
+    var variantesEl = document.getElementById('insc-nb-variantes');
+    var nbVariantes = variantesEl ? parseInt(variantesEl.value) || 0 : 0;
+
+    if (nbNormaux + nbVariantes === 0) {
+        showToast('Sélectionnez au moins un billet', 'error');
+        return;
+    }
+
+    var body = {
+        nb_normaux: nbNormaux,
+        nb_variantes: nbVariantes,
+        mode_paiement: document.getElementById('insc-paiement').value,
+        mode_envoi: document.getElementById('insc-envoi').value,
+        commentaire: (document.getElementById('insc-commentaire').value || '').trim()
+    };
+
+    supabaseFetch('/rest/v1/inscriptions?id=eq.' + inscriptionId, {
+        method: 'PATCH',
+        body: JSON.stringify(body)
+    })
+    .then(function() {
+        showToast('Inscription modifiée');
+        fermerModalInscription();
+        openCollecteDetail(currentBilletId);
+    })
+    .catch(function(error) {
+        console.error('Erreur modification inscription:', error);
         showToast('Erreur lors de la modification', 'error');
     });
 }

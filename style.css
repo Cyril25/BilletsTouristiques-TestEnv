@@ -4388,3 +4388,145 @@ body.login-page {
         justify-content: center;
     }
 }
+
+/* ============================================================
+   INSCRIPTION PAR LE COLLECTEUR — Modal & Formulaire
+   ============================================================ */
+
+.btn-inscrire-membre {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background-color: var(--color-primary);
+    color: white;
+    border: none;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+}
+
+.btn-inscrire-membre:hover {
+    background-color: var(--color-accent);
+}
+
+.inscription-form-collecteur {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.insc-form-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.insc-form-field label {
+    font-size: 0.85em;
+    font-weight: 500;
+    color: #555;
+}
+
+.insc-form-field input[type="number"],
+.insc-form-field input[type="text"],
+.insc-form-field select,
+.insc-form-field textarea {
+    padding: var(--spacing-sm);
+    border: 1px solid #ccc;
+    border-radius: var(--radius-sm);
+    font-size: 0.95rem;
+    font-family: inherit;
+}
+
+.insc-form-field input[type="number"] {
+    max-width: 100px;
+}
+
+.insc-form-field textarea {
+    resize: vertical;
+}
+
+.insc-form-readonly {
+    padding: var(--spacing-sm);
+    background-color: var(--color-surface);
+    border-radius: var(--radius-sm);
+    font-size: 0.95rem;
+    color: #333;
+}
+
+.insc-membre-select {
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.insc-form-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-sm);
+}
+
+.btn-confirmer-inscription-coll {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background-color: var(--color-success);
+    color: white;
+    border: none;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+}
+
+.btn-confirmer-inscription-coll:hover {
+    background-color: #219A52;
+}
+
+.btn-annuler-inscription-coll {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background-color: transparent;
+    color: #666;
+    border: 1px solid #ccc;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+}
+
+.btn-annuler-inscription-coll:hover {
+    background-color: var(--color-surface);
+}
+
+.btn-modifier-inscription {
+    background: none;
+    border: none;
+    color: var(--color-primary);
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    transition: background-color var(--transition-fast);
+}
+
+.btn-modifier-inscription:hover {
+    background-color: var(--color-surface);
+    color: var(--color-accent);
+}
+
+@media (max-width: 600px) {
+    .insc-form-actions {
+        flex-direction: column;
+    }
+
+    .btn-confirmer-inscription-coll,
+    .btn-annuler-inscription-coll {
+        width: 100%;
+        justify-content: center;
+    }
+}
