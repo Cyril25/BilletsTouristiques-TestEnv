@@ -468,6 +468,7 @@ function desinscrireMembre(inscriptionId, membrePrenom) {
 function showTab(tabName) {
     var collectesView = document.getElementById('collectes-list');
     var envoisView = document.getElementById('envois-view');
+    var paiementsView = document.getElementById('paiements-view');
     var detailView = document.getElementById('collecte-detail');
     var tabs = document.querySelectorAll('.tab-btn');
 
@@ -475,15 +476,22 @@ function showTab(tabName) {
         tabs[i].classList.remove('active');
     }
 
-    if (tabName === 'envois') {
-        if (collectesView) collectesView.style.display = 'none';
-        if (detailView) detailView.style.display = 'none';
-        if (envoisView) envoisView.style.display = '';
+    // Hide all views
+    if (collectesView) collectesView.style.display = 'none';
+    if (envoisView) envoisView.style.display = 'none';
+    if (paiementsView) paiementsView.style.display = 'none';
+    if (detailView) detailView.style.display = 'none';
+
+    if (tabName === 'paiements') {
+        if (paiementsView) paiementsView.style.display = '';
         if (tabs[1]) tabs[1].classList.add('active');
+        loadVerificationPaiement();
+    } else if (tabName === 'envois') {
+        if (envoisView) envoisView.style.display = '';
+        if (tabs[2]) tabs[2].classList.add('active');
         loadPreparationEnvois();
     } else {
         if (collectesView) collectesView.style.display = '';
-        if (envoisView) envoisView.style.display = 'none';
         if (tabs[0]) tabs[0].classList.add('active');
     }
 }
@@ -650,6 +658,124 @@ function renderEnvoisVide() {
     var container = document.getElementById('envois-view');
     if (container) {
         container.innerHTML = '<div class="envois-empty"><i class="fa-solid fa-check-circle"></i><p>Tous les envois sont à jour !</p></div>';
+    }
+}
+
+// ============================================================
+// 9c. VUE TRANSVERSALE — VERIFICATION PAIEMENT
+// ============================================================
+
+function loadVerificationPaiement() {
+    if (!monCollecteur || mesBillets.length === 0) {
+        renderPaiementsVide();
+        return;
+    }
+    var billetIds = mesBillets.map(function(b) { return b.id; });
+    supabaseFetch('/rest/v1/inscriptions?billet_id=in.(' + billetIds.join(',') + ')&statut_paiement=in.(non_paye,declare)&pas_interesse=eq.false&select=*&order=membre_email.asc')
+        .then(function(inscriptions) {
+            if (!inscriptions || inscriptions.length === 0) {
+                renderPaiementsVide();
+                return;
+            }
+            var emails = [];
+            inscriptions.forEach(function(ins) {
+                if (ins.membre_email && emails.indexOf(ins.membre_email) === -1) emails.push(ins.membre_email);
+            });
+            var emailFilter = emails.map(function(e) { return encodeURIComponent(e); }).join(',');
+            return supabaseFetch('/rest/v1/membres?email=in.(' + emailFilter + ')&select=email,nom,prenom')
+                .then(function(membres) {
+                    var membresMap = {};
+                    if (membres) {
+                        membres.forEach(function(m) { membresMap[m.email] = m; });
+                    }
+                    inscriptions.forEach(function(ins) {
+                        var membre = membresMap[ins.membre_email];
+                        if (membre && ins.adresse_snapshot) {
+                            if (!ins.adresse_snapshot.nom && membre.nom) ins.adresse_snapshot.nom = membre.nom;
+                            if (!ins.adresse_snapshot.prenom && membre.prenom) ins.adresse_snapshot.prenom = membre.prenom;
+                        }
+                    });
+                    var billetsMap = {};
+                    mesBillets.forEach(function(b) { billetsMap[b.id] = b; });
+                    renderVerificationPaiement(inscriptions, billetsMap);
+                });
+        })
+        .catch(function(error) {
+            console.error('Erreur chargement vérification paiement:', error);
+        });
+}
+
+function renderVerificationPaiement(inscriptions, billetsMap) {
+    var groupes = {};
+    inscriptions.forEach(function(insc) {
+        var key = insc.membre_email;
+        if (!groupes[key]) {
+            groupes[key] = {
+                email: key,
+                adresse: insc.adresse_snapshot || {},
+                inscriptions: []
+            };
+        }
+        groupes[key].inscriptions.push(insc);
+    });
+
+    var container = document.getElementById('paiements-view');
+    if (!container) return;
+
+    var html = '';
+    var emails = Object.keys(groupes);
+    for (var g = 0; g < emails.length; g++) {
+        var email = emails[g];
+        var groupe = groupes[email];
+        var adr = groupe.adresse;
+        var nom = ((adr.prenom || '') + ' ' + (adr.nom || '')).trim() || email;
+
+        var lignes = '';
+        for (var l = 0; l < groupe.inscriptions.length; l++) {
+            var insc = groupe.inscriptions[l];
+            var billet = billetsMap[insc.billet_id] || {};
+            var prix = parseFloat(billet.Prix || 0);
+            var prixVariante = (billet.PrixVariante !== null && billet.PrixVariante !== undefined && billet.PrixVariante !== '') ? parseFloat(billet.PrixVariante) : prix;
+            var montant = ((prix * (insc.nb_normaux || 0)) + (prixVariante * (insc.nb_variantes || 0))).toFixed(2);
+            lignes += '<div class="envoi-ligne">'
+                + '<span class="envoi-billet">' + (billet.NomBillet || '?') + '</span>'
+                + '<span class="envoi-montant">' + montant + ' €</span>'
+                + badgePaiementEnvoi(insc.statut_paiement)
+                + '<button onclick="validerPaiementVue(' + insc.id + ')" class="btn-marquer-envoye" title="Confirmer le paiement"><i class="fa-solid fa-check"></i></button>'
+                + '</div>';
+        }
+
+        html += '<div class="envoi-groupe">'
+            + '<div class="envoi-groupe-header">'
+            + '<strong>' + nom + '</strong>'
+            + '<span class="envoi-count">' + groupe.inscriptions.length + ' billet(s)</span>'
+            + '</div>'
+            + '<div class="envoi-groupe-lignes">' + lignes + '</div>'
+            + '</div>';
+    }
+
+    container.innerHTML = html;
+}
+
+function validerPaiementVue(inscriptionId) {
+    supabaseFetch('/rest/v1/inscriptions?id=eq.' + inscriptionId, {
+        method: 'PATCH',
+        body: JSON.stringify({ statut_paiement: 'confirme' })
+    })
+    .then(function() {
+        showToast('Paiement confirmé');
+        loadVerificationPaiement();
+    })
+    .catch(function(error) {
+        console.error('Erreur confirmation paiement:', error);
+        showToast('Erreur', 'error');
+    });
+}
+
+function renderPaiementsVide() {
+    var container = document.getElementById('paiements-view');
+    if (container) {
+        container.innerHTML = '<div class="envois-empty"><i class="fa-solid fa-check-circle"></i><p>Tous les paiements sont vérifiés !</p></div>';
     }
 }
 

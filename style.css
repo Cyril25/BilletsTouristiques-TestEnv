@@ -3819,6 +3819,13 @@ body.login-page {
     font-size: 0.8rem;
 }
 
+.envoi-montant {
+    color: var(--color-primary);
+    font-weight: 600;
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
 /* --- Badges paiement/FDP --- */
 .badge-paye {
     font-size: 0.7rem;
