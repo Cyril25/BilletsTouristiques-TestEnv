@@ -638,8 +638,6 @@ function buildVersionBadgesHtml(item) {
     var html = '<div class="version-badges">';
     if (!versionNormaleExiste) {
         html += '<span class="version-badge version-badge--warning"><i class="fa-solid fa-triangle-exclamation"></i> Pas de version normale</span>';
-    } else {
-        html += '<span class="version-badge version-badge--normal"><i class="fa-solid fa-check"></i> Normale</span>';
     }
     if (varianteActive && varianteLabel) {
         html += '<span class="version-badge version-badge--variante"><i class="fa-solid fa-star"></i> ' + varianteLabel + '</span>';
