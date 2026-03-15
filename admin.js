@@ -256,9 +256,9 @@ function populateMillesimeSelect(mode) {
 // 4d. CHARGEMENT DES COLLECTEURS (Story 4.6)
 // ============================================================
 function loadCollecteurs() {
-    supabaseFetch('/rest/v1/collecteurs?select=id,alias&order=alias.asc')
+    supabaseFetch('/rest/v1/collecteurs?select=id,alias,masque&order=alias.asc')
         .then(function(data) {
-            collecteursList = data || [];
+            collecteursList = (data || []).filter(function(c) { return !c.masque; });
             populateCollecteurSelect();
         })
         .catch(function(error) {

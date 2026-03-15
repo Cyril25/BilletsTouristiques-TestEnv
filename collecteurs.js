@@ -44,6 +44,8 @@ function escapeAttr(text) {
 // 3. DONNEES EN MEMOIRE
 // ============================================================
 var collecteursData = [];
+var membresCache = [];
+var membreSelectTargetId = null;
 
 // ============================================================
 // 4. INITIALISATION
@@ -101,18 +103,32 @@ function renderCollecteurs() {
         var paypalEmail = c.paypal_email || '';
         var paypalMe = c.paypal_me || '';
         var emailMembre = c.email_membre || '';
+        var masque = c.masque || false;
         var displayName = alias;
         var fullName = [prenom, nom].filter(function(s) { return s; }).join(' ');
 
-        html += '<div class="user-card" data-collecteur-id="' + escapeAttr(id) + '">' +
+        html += '<div class="user-card' + (masque ? ' collecteur-masque' : '') + '" data-collecteur-id="' + escapeAttr(id) + '">' +
             '<div class="user-card-header">' +
                 '<span class="user-card-name">' + escapeHtml(displayName) + '</span>' +
-                (fullName ? '<span class="collecteur-fullname">' + escapeHtml(fullName) + '</span>' : '') +
+                '<div class="collecteur-header-right">' +
+                    (fullName ? '<span class="collecteur-fullname">' + escapeHtml(fullName) + '</span>' : '') +
+                    '<button class="collecteur-masque-toggle' + (masque ? ' active' : '') + '" ' +
+                        'data-collecteur-id="' + escapeAttr(id) + '" ' +
+                        'title="' + (masque ? 'Rendre visible' : 'Masquer') + '">' +
+                        '<i class="fa-solid ' + (masque ? 'fa-eye-slash' : 'fa-eye') + '"></i>' +
+                    '</button>' +
+                '</div>' +
             '</div>' +
             '<div class="user-card-details">' +
                 (paypalEmail ? '<span class="user-card-email"><i class="fa-solid fa-credit-card"></i> ' + escapeHtml(paypalEmail) + '</span>' : '') +
                 (paypalMe ? '<span class="user-card-pseudo"><i class="fa-brands fa-paypal"></i> ' + escapeHtml(paypalMe) + '</span>' : '') +
-                (emailMembre ? '<span class="user-card-email"><i class="fa-solid fa-link"></i> ' + escapeHtml(emailMembre) + '</span>' : '') +
+                '<span class="user-card-email collecteur-email-membre-display">' +
+                    '<i class="fa-solid fa-link"></i> ' +
+                    (emailMembre ? escapeHtml(emailMembre) : '<em>Aucun membre rattaché</em>') +
+                    ' <button class="collecteur-pick-membre-btn" data-collecteur-id="' + escapeAttr(id) + '" title="Choisir un membre">' +
+                        '<i class="fa-solid fa-address-book"></i>' +
+                    '</button>' +
+                '</span>' +
             '</div>' +
             // Mode edition (cache par defaut)
             '<div class="user-card-edit" data-collecteur-id="' + escapeAttr(id) + '" style="display:none">' +
@@ -165,6 +181,24 @@ function initCollecteurEvents() {
     var cardsGrid = document.getElementById('collecteur-cards-grid');
     if (cardsGrid) {
         cardsGrid.addEventListener('click', function(event) {
+            // Toggle masque
+            var masqueToggle = event.target.closest('.collecteur-masque-toggle');
+            if (masqueToggle) {
+                event.stopPropagation();
+                var collecteurId = masqueToggle.getAttribute('data-collecteur-id');
+                toggleMasqueCollecteur(collecteurId);
+                return;
+            }
+
+            // Pick membre button
+            var pickMembre = event.target.closest('.collecteur-pick-membre-btn');
+            if (pickMembre) {
+                event.stopPropagation();
+                var collecteurId = pickMembre.getAttribute('data-collecteur-id');
+                openMembreSelectPopup(collecteurId);
+                return;
+            }
+
             // Toggle edit mode
             var editToggle = event.target.closest('.collecteur-edit-toggle-btn');
             if (editToggle) {
@@ -235,10 +269,157 @@ function initCollecteurEvents() {
             if (e.key === 'Enter') addCollecteur();
         });
     }
+
+    // Membre select popup events
+    var membreOverlay = document.getElementById('membre-select-overlay');
+    var membreCancel = document.getElementById('membre-select-cancel');
+    var membreClear = document.getElementById('membre-select-clear');
+    var membreSearch = document.getElementById('membre-search-input');
+
+    if (membreCancel) {
+        membreCancel.addEventListener('click', function() {
+            closeMembreSelectPopup();
+        });
+    }
+
+    if (membreClear) {
+        membreClear.addEventListener('click', function() {
+            if (membreSelectTargetId) {
+                saveEmailMembre(membreSelectTargetId, '');
+            }
+        });
+    }
+
+    if (membreOverlay) {
+        membreOverlay.addEventListener('click', function(e) {
+            if (e.target === membreOverlay) closeMembreSelectPopup();
+        });
+    }
+
+    if (membreSearch) {
+        membreSearch.addEventListener('input', function() {
+            renderMembreList(membreSearch.value.trim().toLowerCase());
+        });
+    }
 }
 
 // ============================================================
-// 8. AJOUT D'UN COLLECTEUR
+// 8. TOGGLE MASQUE COLLECTEUR
+// ============================================================
+function toggleMasqueCollecteur(id) {
+    var collecteur = collecteursData.find(function(c) { return String(c.id) === String(id); });
+    if (!collecteur) return;
+
+    var newMasque = !collecteur.masque;
+
+    supabaseFetch('/rest/v1/collecteurs?id=eq.' + id, {
+        method: 'PATCH',
+        body: JSON.stringify({ masque: newMasque }),
+        headers: { 'Prefer': 'return=representation' }
+    })
+    .then(function() {
+        showToast(newMasque ? 'Collecteur masqué' : 'Collecteur visible', 'success');
+        loadCollecteursPage();
+    })
+    .catch(function(error) {
+        console.error('Erreur toggle masque:', error);
+        showToast('Erreur : ' + error.message, 'error');
+    });
+}
+
+// ============================================================
+// 9. POPUP SELECTION MEMBRE
+// ============================================================
+function openMembreSelectPopup(collecteurId) {
+    membreSelectTargetId = collecteurId;
+    var overlay = document.getElementById('membre-select-overlay');
+    var searchInput = document.getElementById('membre-search-input');
+    if (overlay) overlay.style.display = 'flex';
+    if (searchInput) { searchInput.value = ''; searchInput.focus(); }
+
+    if (membresCache.length > 0) {
+        renderMembreList('');
+        return;
+    }
+
+    var listDiv = document.getElementById('membre-list');
+    if (listDiv) listDiv.innerHTML = '<p style="text-align:center;color:#888">Chargement...</p>';
+
+    supabaseFetch('/rest/v1/membres?select=email,nom,prenom&order=nom.asc,prenom.asc')
+        .then(function(data) {
+            membresCache = data || [];
+            renderMembreList('');
+        })
+        .catch(function(error) {
+            console.error('Erreur chargement membres:', error);
+            if (listDiv) listDiv.innerHTML = '<p style="color:red">Erreur de chargement</p>';
+        });
+}
+
+function closeMembreSelectPopup() {
+    var overlay = document.getElementById('membre-select-overlay');
+    if (overlay) overlay.style.display = 'none';
+    membreSelectTargetId = null;
+}
+
+function renderMembreList(filter) {
+    var listDiv = document.getElementById('membre-list');
+    if (!listDiv) return;
+
+    var filtered = membresCache;
+    if (filter) {
+        filtered = membresCache.filter(function(m) {
+            var search = (m.nom || '') + ' ' + (m.prenom || '') + ' ' + (m.email || '');
+            return search.toLowerCase().indexOf(filter) !== -1;
+        });
+    }
+
+    if (filtered.length === 0) {
+        listDiv.innerHTML = '<p style="text-align:center;color:#888;padding:var(--spacing-md)">Aucun membre trouvé</p>';
+        return;
+    }
+
+    var html = '';
+    filtered.forEach(function(m) {
+        var displayName = [m.prenom, m.nom].filter(function(s) { return s; }).join(' ');
+        html += '<div class="membre-list-item" data-email="' + escapeAttr(m.email) + '">' +
+            '<span class="membre-list-name">' + escapeHtml(displayName || '—') + '</span>' +
+            '<span class="membre-list-email">' + escapeHtml(m.email) + '</span>' +
+            '</div>';
+    });
+
+    listDiv.innerHTML = html;
+
+    // Attach click handlers
+    listDiv.querySelectorAll('.membre-list-item').forEach(function(item) {
+        item.addEventListener('click', function() {
+            var email = item.getAttribute('data-email');
+            if (membreSelectTargetId) {
+                saveEmailMembre(membreSelectTargetId, email);
+            }
+        });
+    });
+}
+
+function saveEmailMembre(collecteurId, email) {
+    supabaseFetch('/rest/v1/collecteurs?id=eq.' + collecteurId, {
+        method: 'PATCH',
+        body: JSON.stringify({ email_membre: email }),
+        headers: { 'Prefer': 'return=representation' }
+    })
+    .then(function() {
+        showToast(email ? 'Membre rattaché : ' + email : 'Membre détaché', 'success');
+        closeMembreSelectPopup();
+        loadCollecteursPage();
+    })
+    .catch(function(error) {
+        console.error('Erreur rattachement membre:', error);
+        showToast('Erreur : ' + error.message, 'error');
+    });
+}
+
+// ============================================================
+// 10. AJOUT D'UN COLLECTEUR
 // ============================================================
 function addCollecteur() {
     var alias = document.getElementById('new-collecteur-alias').value.trim();
@@ -294,7 +475,7 @@ function resetAddCollecteurForm() {
 }
 
 // ============================================================
-// 9. MODIFICATION D'UN COLLECTEUR
+// 11. MODIFICATION D'UN COLLECTEUR
 // ============================================================
 function saveCollecteur(id) {
     var card = document.querySelector('[data-collecteur-id="' + id + '"]');

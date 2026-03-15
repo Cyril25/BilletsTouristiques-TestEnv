@@ -2623,6 +2623,112 @@ body.login-page {
     margin-left: var(--spacing-sm);
 }
 
+.collecteur-header-right {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+/* Toggle masquer collecteur */
+.collecteur-masque-toggle {
+    background: none;
+    border: 1px solid #ccc;
+    border-radius: var(--radius-sm);
+    padding: 4px 8px;
+    cursor: pointer;
+    color: var(--color-primary);
+    font-size: 0.85rem;
+    transition: all var(--transition-fast);
+}
+
+.collecteur-masque-toggle:hover {
+    background: var(--color-surface);
+}
+
+.collecteur-masque-toggle.active {
+    color: #999;
+    border-color: #ddd;
+}
+
+/* Carte grisée quand masqué */
+.user-card.collecteur-masque {
+    opacity: 0.45;
+    background: #f5f5f5;
+}
+
+.user-card.collecteur-masque .user-card-name {
+    text-decoration: line-through;
+}
+
+/* Bouton sélection membre */
+.collecteur-pick-membre-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--color-primary);
+    font-size: 0.85rem;
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+    transition: background var(--transition-fast);
+}
+
+.collecteur-pick-membre-btn:hover {
+    background: var(--color-surface);
+}
+
+.collecteur-email-membre-display em {
+    color: #aaa;
+    font-size: 0.85rem;
+}
+
+/* Popup sélection membre */
+.membre-search-input {
+    width: 100%;
+    padding: var(--spacing-sm);
+    border: 1px solid #ddd;
+    border-radius: var(--radius-sm);
+    font-size: 0.9375rem;
+    font-family: 'Roboto', sans-serif;
+    margin-bottom: var(--spacing-sm);
+    box-sizing: border-box;
+}
+
+.membre-list {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #eee;
+    border-radius: var(--radius-sm);
+    margin-bottom: var(--spacing-md);
+}
+
+.membre-list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-sm) var(--spacing-md);
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background var(--transition-fast);
+}
+
+.membre-list-item:last-child {
+    border-bottom: none;
+}
+
+.membre-list-item:hover {
+    background: var(--color-surface);
+}
+
+.membre-list-name {
+    font-weight: 500;
+    font-size: 0.9375rem;
+}
+
+.membre-list-email {
+    font-size: 0.8rem;
+    color: #666;
+}
+
 /* =========================================
    Story 5.2 — Champs Google readonly & gel collecteur
    ========================================= */

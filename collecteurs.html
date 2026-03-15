@@ -41,6 +41,19 @@
             <p>Aucun collecteur enregistré</p>
         </div>
 
+        <!-- Modal sélection membre -->
+        <div id="membre-select-overlay" class="user-modal-overlay" style="display:none">
+            <div class="user-modal" style="max-width:500px">
+                <h3 class="user-modal-title"><i class="fa-solid fa-users"></i> Sélectionner un membre</h3>
+                <input type="text" id="membre-search-input" class="membre-search-input" placeholder="Rechercher par nom, prénom ou email..." autocomplete="off">
+                <div id="membre-list" class="membre-list"></div>
+                <div class="user-modal-actions">
+                    <button type="button" id="membre-select-clear" class="user-modal-btn">Effacer</button>
+                    <button type="button" id="membre-select-cancel" class="user-modal-btn">Fermer</button>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js" integrity="sha384-v3Z/Xdw1sCeo6M/geW7sn1Lt9obIm7MhAk8laVV+rvYFmzuWDELOiygx7dVte2dX" crossorigin="anonymous"></script>
