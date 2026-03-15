@@ -462,6 +462,7 @@ function showMore() {
                 (item.Cp || '') + ' ' + (item.Ville || '') + '<br />' +
                 (item.NomBillet || '') +
                 '</div>' +
+                buildVersionBadgesHtml(item) +
                 (function() {
                     var parts = [];
                     if (item.Collecteur) parts.push('Par ' + item.Collecteur);
@@ -623,6 +624,30 @@ function badgePaiementCatalogue(statut, montant) {
         return '<span class="badge-paiement badge-declare">En attente de confirmation</span>';
     }
     return '<span class="badge-paiement badge-non-paye">Non payé — ' + montant.toFixed(2) + ' €</span>';
+}
+
+// --- Génération des badges version (normale / variante) ---
+function buildVersionBadgesHtml(item) {
+    var versionNormaleExiste = item.VersionNormaleExiste !== false;
+    var varianteVal = item.HasVariante || '';
+    var varianteActive = varianteVal && varianteVal !== 'N';
+    var varianteLabel = '';
+    if (varianteVal === 'anniversary') varianteLabel = 'Anniversaire';
+    else if (varianteVal === 'doré') varianteLabel = 'Doré';
+
+    var html = '<div class="version-badges">';
+    if (!versionNormaleExiste) {
+        html += '<span class="version-badge version-badge--warning"><i class="fa-solid fa-triangle-exclamation"></i> Pas de version normale</span>';
+    } else {
+        html += '<span class="version-badge version-badge--normal"><i class="fa-solid fa-check"></i> Normale</span>';
+    }
+    if (varianteActive && varianteLabel) {
+        html += '<span class="version-badge version-badge--variante"><i class="fa-solid fa-star"></i> ' + varianteLabel + '</span>';
+    } else if (varianteVal === 'N') {
+        html += '<span class="version-badge version-badge--no-variante">Pas de variante</span>';
+    }
+    html += '</div>';
+    return html;
 }
 
 // --- Génération du HTML d'inscription pour une carte ---

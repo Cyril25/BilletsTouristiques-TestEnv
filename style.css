@@ -2288,6 +2288,75 @@ body.login-page {
     font-weight: 500;
 }
 
+/* Avertissement "Pas de version normale" sur cartes admin */
+.admin-card-version-warning {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    background-color: #FFF3CD;
+    color: #856404;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border: 1px solid #FFEEBA;
+}
+
+/* Badges version sur les cartes billets-new */
+.version-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 8px 0;
+}
+
+.version-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.version-badge--normal {
+    background-color: #E8F5E9;
+    color: #2E7D32;
+}
+
+.version-badge--variante {
+    background-color: #F3E5F5;
+    color: #7B1FA2;
+}
+
+.version-badge--no-variante {
+    background-color: #F5F5F5;
+    color: #9E9E9E;
+}
+
+.version-badge--warning {
+    background-color: #FFF3CD;
+    color: #856404;
+    font-weight: 600;
+    border: 1px solid #FFEEBA;
+    animation: pulse-warning 2s ease-in-out infinite;
+}
+
+@keyframes pulse-warning {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* Message de gel des champs type de billet */
+.type-frozen-hint {
+    display: block;
+    margin-top: 8px;
+    font-size: 0.75rem;
+    color: #E65100;
+    font-style: italic;
+}
+
 /* Status chips */
 .admin-status-chips {
     display: flex;

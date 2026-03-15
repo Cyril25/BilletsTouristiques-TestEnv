@@ -364,18 +364,25 @@ function renderAdminCards() {
                     (billet.Millesime ? ' - ' + escapeHtml(billet.Millesime) + (billet.Version ? '-' + escapeHtml(billet.Version) : '') : '') +
                 '</span>' +
             '</div>' +
-            // Story 4.5 — Badge variante
+            // Story 4.5 — Badges version (normale + variante)
             (function() {
+                var html = '';
+                // Avertissement si la version normale n'existe pas
+                if (billet.VersionNormaleExiste === false) {
+                    html += '<span class="admin-card-version-warning">' +
+                        '<i class="fa-solid fa-triangle-exclamation"></i> Pas de version normale' +
+                        '</span>';
+                }
                 var v = billet.HasVariante || '';
                 var label = '';
                 if (v === 'anniversary') label = 'Anniversaire';
                 else if (v === 'doré') label = 'Doré';
                 if (label) {
-                    return '<span class="admin-card-variante-badge">' +
+                    html += '<span class="admin-card-variante-badge">' +
                         '<i class="fa-solid fa-star"></i> ' + escapeHtml(label) +
                         '</span>';
                 }
-                return '';
+                return html;
             })() +
             // Story 2.3/2.4 — Boutons d'action
             '<div class="admin-card-actions">' +
@@ -774,18 +781,41 @@ function openBilletPanel(billetData, docId) {
             }
         });
 
-        // Story 5.2 — Gel du collecteur si des inscriptions existent
+        // Story 5.2 — Gel du collecteur + type de billet si des inscriptions existent
         var collecteurSelect = document.getElementById('field-collecteur');
         var collecteurValue = billetData.Collecteur || '';
-        if (collecteurSelect && collecteurValue && docId) {
+        if (docId) {
             hasInscriptions(docId).then(function(frozen) {
                 if (frozen) {
-                    collecteurSelect.disabled = true;
-                    collecteurSelect.classList.add('admin-field-frozen');
-                    var hint = document.createElement('small');
-                    hint.className = 'collecteur-frozen-hint';
-                    hint.textContent = 'Collecteur figé — des inscriptions existent pour ce billet';
-                    collecteurSelect.parentNode.appendChild(hint);
+                    // Gel du collecteur
+                    if (collecteurSelect && collecteurValue) {
+                        collecteurSelect.disabled = true;
+                        collecteurSelect.classList.add('admin-field-frozen');
+                        var hint = document.createElement('small');
+                        hint.className = 'collecteur-frozen-hint';
+                        hint.textContent = 'Collecteur figé — des inscriptions existent pour ce billet';
+                        collecteurSelect.parentNode.appendChild(hint);
+                    }
+                    // Gel de VersionNormaleExiste
+                    var cbNormale = document.getElementById('field-version-normale');
+                    if (cbNormale) {
+                        cbNormale.disabled = true;
+                        cbNormale.classList.add('admin-field-frozen');
+                    }
+                    // Gel de HasVariante
+                    var hasVarianteEl = document.getElementById('field-has-variante');
+                    if (hasVarianteEl) {
+                        hasVarianteEl.disabled = true;
+                        hasVarianteEl.classList.add('admin-field-frozen');
+                    }
+                    // Message d'avertissement sur la section Type
+                    var typeLegend = cbNormale && cbNormale.closest('fieldset');
+                    if (typeLegend && !typeLegend.querySelector('.type-frozen-hint')) {
+                        var typeHint = document.createElement('small');
+                        typeHint.className = 'type-frozen-hint';
+                        typeHint.textContent = 'Type figé — des inscriptions existent pour ce billet';
+                        typeLegend.appendChild(typeHint);
+                    }
                 }
             });
         }
@@ -1995,4 +2025,18 @@ function resetCollecteurFreeze() {
         var hint = collecteurSelect.parentNode.querySelector('.collecteur-frozen-hint');
         if (hint) hint.remove();
     }
+    // Reset gel des champs type de billet
+    var cbNormale = document.getElementById('field-version-normale');
+    if (cbNormale) {
+        cbNormale.disabled = false;
+        cbNormale.classList.remove('admin-field-frozen');
+    }
+    var hasVarianteEl = document.getElementById('field-has-variante');
+    if (hasVarianteEl) {
+        hasVarianteEl.disabled = false;
+        hasVarianteEl.classList.remove('admin-field-frozen');
+    }
+    // Retirer le message d'avertissement type
+    var typeHints = document.querySelectorAll('.type-frozen-hint');
+    typeHints.forEach(function(h) { h.remove(); });
 }
