@@ -29,7 +29,7 @@
             <button onclick="changeView('galerie')" class="btn-mode" title="Mode Galerie"><i class="fa-solid fa-images"></i> Galerie</button>
         </div>
 
-        <div class="filters-container">
+        <div class="filters-row">
             <div class="filter-group" style="flex-grow: 2;">
                 <label for="search-input">Recherche</label>
                 <input type="text" id="search-input" placeholder="Ville, Nom, Réf..." onkeyup="applyFilters()">
@@ -46,7 +46,9 @@
                     <input type="date" id="date-end" aria-label="Date de fin" onchange="manualDateChange()">
                 </div>
             </div>
+        </div>
 
+        <div class="filters-row">
             <div class="filter-group"><label for="sel-coll">Collecteur</label><select id="sel-coll" onchange="applyFilters()"><option value="">Tout</option></select></div>
             <div class="filter-group"><label for="sel-pays">Pays</label><select id="sel-pays" onchange="applyFilters()"><option value="">Tout</option></select></div>
             <div class="filter-group"><label for="sel-year">Millésime</label><select id="sel-year" onchange="applyFilters()"><option value="">Tout</option></select></div>

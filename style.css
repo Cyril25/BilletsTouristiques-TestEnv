@@ -674,6 +674,14 @@ header {
     align-items: flex-end;
 }
 
+.filters-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: flex-end;
+    margin-bottom: 10px;
+}
+
 .filter-group {
     display: flex;
     flex-direction: column;
