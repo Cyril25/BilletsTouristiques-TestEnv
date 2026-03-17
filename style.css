@@ -4212,6 +4212,24 @@ body.login-page {
     opacity: 0.85;
 }
 
+.btn-annuler-envoi {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #e74c3c;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.btn-annuler-envoi:hover {
+    opacity: 0.85;
+}
+
 .btn-secondary {
     background: transparent;
     color: #666;

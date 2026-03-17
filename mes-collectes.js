@@ -305,10 +305,28 @@ function renderCollecteDetail(billetId, inscriptions) {
     }
     html += '</div>';
 
+    // Message si FDP non demandé — entre la barre d'actions et le tableau
+    if (billet.PayerFDP !== 'oui') {
+        html += '<div class="message-gerer-envoi">'
+            + '<i class="fa-solid fa-info-circle"></i> '
+            + 'Veuillez gérer l\'envoi de ce billet via l\'onglet <strong><a href="#" onclick="showTab(\'envois\');return false;">Préparation des envois</a></strong>.'
+            + '</div>';
+    }
+
     // Inscriptions table
     if (inscriptions.length === 0) {
         html += '<p class="collectes-empty"><i class="fa-solid fa-users-slash"></i> Aucun inscrit pour cette collecte.</p>';
     } else {
+        // Tri par prénom puis nom
+        inscriptions.sort(function(a, b) {
+            var sa = a.adresse_snapshot || {}, sb = b.adresse_snapshot || {};
+            var pa = (sa.prenom || '').toLowerCase(), pb = (sb.prenom || '').toLowerCase();
+            if (pa < pb) return -1; if (pa > pb) return 1;
+            var na = (sa.nom || '').toLowerCase(), nb = (sb.nom || '').toLowerCase();
+            if (na < nb) return -1; if (na > nb) return 1;
+            return 0;
+        });
+
         html += '<div class="collecte-table-wrap">';
         html += '<table class="collecte-table">';
         html += '<thead><tr>';
@@ -363,14 +381,6 @@ function renderCollecteDetail(billetId, inscriptions) {
 
         html += '</tbody></table>';
         html += '</div>';
-
-        // Message si FDP non demandé
-        if (billet.PayerFDP !== 'oui') {
-            html += '<div class="message-gerer-envoi">'
-                + '<i class="fa-solid fa-info-circle"></i> '
-                + 'Veuillez gérer l\'envoi de ce billet via l\'onglet <strong><a href="#" onclick="showTab(\'envois\');return false;">Préparation des envois</a></strong>.'
-                + '</div>';
-        }
     }
 
     container.innerHTML = html;
@@ -786,22 +796,39 @@ function renderEnveloppesListe(enveloppes, inscriptions, billetsMap) {
         inscByMembre[ins.membre_email].push(ins);
     });
 
+    // Pré-calculer le nom pour le tri
+    var enveloppesMeta = [];
+    for (var e = 0; e < enveloppes.length; e++) {
+        var env = enveloppes[e];
+        var membreInscs = inscByMembre[env.membre_email] || [];
+        var adr = {};
+        for (var a = 0; a < membreInscs.length; a++) {
+            if (membreInscs[a].adresse_snapshot && (membreInscs[a].adresse_snapshot.nom || membreInscs[a].adresse_snapshot.prenom)) {
+                adr = membreInscs[a].adresse_snapshot;
+                break;
+            }
+        }
+        enveloppesMeta.push({ env: env, adr: adr });
+    }
+    // Tri par prénom puis nom
+    enveloppesMeta.sort(function(a, b) {
+        var pa = (a.adr.prenom || '').toLowerCase(), pb = (b.adr.prenom || '').toLowerCase();
+        if (pa < pb) return -1; if (pa > pb) return 1;
+        var na = (a.adr.nom || '').toLowerCase(), nb = (b.adr.nom || '').toLowerCase();
+        if (na < nb) return -1; if (na > nb) return 1;
+        return 0;
+    });
+
     var html = '';
 
-    for (var e = 0; e < enveloppes.length; e++) {
-            var env = enveloppes[e];
+    for (var e = 0; e < enveloppesMeta.length; e++) {
+            var env = enveloppesMeta[e].env;
             var membreInscs = inscByMembre[env.membre_email] || [];
             var dansEnveloppe = membreInscs.filter(function(i) { return i.statut_livraison === 'pret_a_envoyer' && i.enveloppe_id === env.id; });
             var aRepartir = membreInscs.filter(function(i) { return i.statut_livraison === 'non_reparti'; });
             var totalBillets = dansEnveloppe.length;
 
-            var adr = {};
-            for (var a = 0; a < membreInscs.length; a++) {
-                if (membreInscs[a].adresse_snapshot && (membreInscs[a].adresse_snapshot.nom || membreInscs[a].adresse_snapshot.prenom)) {
-                    adr = membreInscs[a].adresse_snapshot;
-                    break;
-                }
-            }
+            var adr = enveloppesMeta[e].adr;
             var nom = ((adr.prenom || '') + ' ' + (adr.nom || '')).trim() || env.membre_email;
             var adresseStr = [adr.rue, adr.code_postal, adr.ville, adr.pays].filter(Boolean).join(', ');
 
@@ -898,6 +925,12 @@ function renderEnveloppePasseeDetail(env, inscriptions, billetsMap) {
         html += '<span class="badge-pas-retour">Pas de retour</span>';
     }
     html += '</div>';
+    // Bouton annuler l'envoi (seulement si pas encore reçue)
+    if (env.statut !== 'recue') {
+        html += '<div style="margin-top:10px">';
+        html += '<button class="btn-annuler-envoi" onclick="annulerEnvoi(' + env.id + ')"><i class="fa-solid fa-rotate-left"></i> Annuler cet envoi</button>';
+        html += '</div>';
+    }
     html += '</div>';
 
     // Liste des billets dans l'enveloppe
@@ -1365,6 +1398,59 @@ function creerNouvelleEnveloppe(ancienneEnveloppeId) {
         });
 }
 
+function annulerEnvoi(enveloppeId) {
+    if (!confirm('Annuler cet envoi ? Les billets repasseront dans la préparation des envois.')) return;
+
+    // 1. Récupérer l'enveloppe pour connaitre collecteur_alias + membre_email
+    supabaseFetch('/rest/v1/enveloppes?id=eq.' + enveloppeId + '&select=*')
+        .then(function(enveloppes) {
+            if (!enveloppes || enveloppes.length === 0) return;
+            var env = enveloppes[0];
+
+            // 2. Remettre les inscriptions en pret_a_envoyer
+            return supabaseFetch('/rest/v1/inscriptions?enveloppe_id=eq.' + enveloppeId + '&statut_livraison=eq.expedie', {
+                method: 'PATCH',
+                body: JSON.stringify({ statut_livraison: 'pret_a_envoyer', envoye: false })
+            })
+            .then(function() {
+                // 3. Vérifier s'il existe une enveloppe en_cours pour ce couple
+                return supabaseFetch('/rest/v1/enveloppes?collecteur_alias=eq.' + encodeURIComponent(env.collecteur_alias) + '&membre_email=eq.' + encodeURIComponent(env.membre_email) + '&statut=eq.en_cours&select=id');
+            })
+            .then(function(existantes) {
+                if (existantes && existantes.length > 0) {
+                    // Rattacher les inscriptions à l'enveloppe en_cours existante
+                    return supabaseFetch('/rest/v1/inscriptions?enveloppe_id=eq.' + enveloppeId + '&statut_livraison=eq.pret_a_envoyer', {
+                        method: 'PATCH',
+                        body: JSON.stringify({ enveloppe_id: existantes[0].id })
+                    })
+                    .then(function() {
+                        // Supprimer l'enveloppe expédiée annulée
+                        return supabaseFetch('/rest/v1/enveloppes?id=eq.' + enveloppeId, { method: 'DELETE' });
+                    });
+                } else {
+                    // Remettre l'enveloppe en en_cours
+                    return supabaseFetch('/rest/v1/enveloppes?id=eq.' + enveloppeId, {
+                        method: 'PATCH',
+                        body: JSON.stringify({
+                            statut: 'en_cours',
+                            mode_envoi_reel: null,
+                            numero_suivi: null,
+                            date_expedition: null
+                        })
+                    });
+                }
+            });
+        })
+        .then(function() {
+            showToast('Envoi annulé — billets replacés dans la préparation');
+            loadHistoriqueGlobal();
+        })
+        .catch(function(error) {
+            console.error('Erreur annulation envoi:', error);
+            showToast('Erreur lors de l\'annulation', 'error');
+        });
+}
+
 // ============================================================
 // 9b. GESTION STATUT PAIEMENT COLLECTEUR
 // ============================================================
@@ -1499,6 +1585,15 @@ function renderVerificationPaiement(inscriptions, billetsMap) {
 
     var html = '<div class="paiement-total-attente">En attente de paiement : <strong>' + totalEnAttente.toFixed(2) + ' €</strong></div>';
     var emails = Object.keys(groupes);
+    // Tri par prénom puis nom
+    emails.sort(function(a, b) {
+        var ga = groupes[a].adresse || {}, gb = groupes[b].adresse || {};
+        var pa = (ga.prenom || '').toLowerCase(), pb = (gb.prenom || '').toLowerCase();
+        if (pa < pb) return -1; if (pa > pb) return 1;
+        var na = (ga.nom || '').toLowerCase(), nb = (gb.nom || '').toLowerCase();
+        if (na < nb) return -1; if (na > nb) return 1;
+        return 0;
+    });
     for (var g = 0; g < emails.length; g++) {
         var email = emails[g];
         var groupe = groupes[email];
@@ -2011,6 +2106,10 @@ function soumettreNouvelleInscription() {
         body: JSON.stringify(body)
     })
     .then(function() {
+        // Créer l'enveloppe en_cours si elle n'existe pas encore
+        return creerEnveloppeSiAbsente(monCollecteur.alias, email);
+    })
+    .then(function() {
         showToast('Membre inscrit avec succès !');
         fermerModalInscription();
         openCollecteDetail(currentBilletId);
@@ -2023,6 +2122,21 @@ function soumettreNouvelleInscription() {
             showToast('Erreur lors de l\'inscription', 'error');
         }
     });
+}
+
+function creerEnveloppeSiAbsente(collecteurAlias, membreEmail) {
+    return supabaseFetch('/rest/v1/enveloppes?collecteur_alias=eq.' + encodeURIComponent(collecteurAlias) + '&membre_email=eq.' + encodeURIComponent(membreEmail) + '&statut=eq.en_cours&select=id')
+        .then(function(enveloppes) {
+            if (enveloppes && enveloppes.length > 0) return; // Déjà existante
+            return supabaseFetch('/rest/v1/enveloppes', {
+                method: 'POST',
+                body: JSON.stringify({
+                    collecteur_alias: collecteurAlias,
+                    membre_email: membreEmail,
+                    statut: 'en_cours'
+                })
+            });
+        });
 }
 
 // ============================================================
