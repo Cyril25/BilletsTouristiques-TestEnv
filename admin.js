@@ -85,6 +85,36 @@ var adminFilteredBillets = [];
 // Story 4.3 — Cache liste des pays
 var paysListe = [];
 
+// Mapping nom de pays → code ISO 2 lettres
+var paysIsoMap = {
+    'Allemagne': 'DE', 'Andorre': 'AD', 'Autriche': 'AT', 'Belgique': 'BE',
+    'Bulgarie': 'BG', 'Chypre': 'CY', 'Croatie': 'HR', 'Danemark': 'DK',
+    'Espagne': 'ES', 'Estonie': 'EE', 'Finlande': 'FI', 'France': 'FR',
+    'Grèce': 'GR', 'Hongrie': 'HU', 'Irlande': 'IE', 'Islande': 'IS',
+    'Italie': 'IT', 'Lettonie': 'LV', 'Liechtenstein': 'LI',
+    'Lituanie': 'LT', 'Luxembourg': 'LU', 'Malte': 'MT', 'Monaco': 'MC',
+    'Norvège': 'NO', 'Pays-Bas': 'NL', 'Pologne': 'PL', 'Portugal': 'PT',
+    'République tchèque': 'CZ', 'Roumanie': 'RO', 'Royaume-Uni': 'GB',
+    'Slovaquie': 'SK', 'Slovénie': 'SI', 'Suède': 'SE', 'Suisse': 'CH',
+    'Tchéquie': 'CZ', 'Vatican': 'VA', 'Serbie': 'RS',
+    'Bosnie-Herzégovine': 'BA', 'Monténégro': 'ME', 'Macédoine du Nord': 'MK',
+    'Albanie': 'AL', 'Turquie': 'TR', 'Russie': 'RU', 'Ukraine': 'UA',
+    'Moldavie': 'MD', 'Biélorussie': 'BY', 'Géorgie': 'GE',
+    'Arménie': 'AM', 'Azerbaïdjan': 'AZ', 'Kazakhstan': 'KZ',
+    'Israël': 'IL', 'Liban': 'LB', 'Arabie saoudite': 'SA',
+    'Émirats arabes unis': 'AE', 'Qatar': 'QA', 'Koweït': 'KW',
+    'Bahreïn': 'BH', 'Oman': 'OM', 'Jordanie': 'JO',
+    'États-Unis': 'US', 'Canada': 'CA', 'Mexique': 'MX',
+    'Brésil': 'BR', 'Argentine': 'AR', 'Chili': 'CL', 'Colombie': 'CO',
+    'Chine': 'CN', 'Japon': 'JP', 'Corée du Sud': 'KR', 'Inde': 'IN',
+    'Australie': 'AU', 'Nouvelle-Zélande': 'NZ',
+    'Maroc': 'MA', 'Tunisie': 'TN', 'Algérie': 'DZ',
+    'Égypte': 'EG', 'Afrique du Sud': 'ZA', 'Sénégal': 'SN',
+    'Côte d\'Ivoire': 'CI', 'Cameroun': 'CM', 'Thaïlande': 'TH',
+    'Vietnam': 'VN', 'Indonésie': 'ID', 'Malaisie': 'MY',
+    'Singapour': 'SG', 'Philippines': 'PH', 'Taïwan': 'TW'
+};
+
 // Story 4.6 — Cache liste des collecteurs
 var collecteursList = [];
 
@@ -765,6 +795,23 @@ function initPanel() {
         categorieSelect.addEventListener('change', function() {
             updateDateFieldsState(categorieSelect.value);
             togglePrixFields();
+        });
+    }
+
+    // Auto-remplir le département avec le code ISO du pays sélectionné
+    var paysSelect = document.getElementById('field-pays');
+    if (paysSelect) {
+        paysSelect.addEventListener('change', function() {
+            var depField = document.getElementById('field-dep');
+            if (!depField) return;
+            var paysNom = paysSelect.value;
+            var iso = paysIsoMap[paysNom];
+            if (iso) {
+                depField.value = iso + '-';
+                depField.focus();
+                // Placer le curseur après le tiret
+                depField.setSelectionRange(depField.value.length, depField.value.length);
+            }
         });
     }
 
