@@ -4225,6 +4225,45 @@ body.login-page {
     background: var(--color-surface);
 }
 
+/* --- Message gérer envoi via onglet --- */
+.message-gerer-envoi {
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: #FFF3CD;
+    color: #856404;
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+}
+
+.message-gerer-envoi a {
+    color: var(--color-primary);
+    text-decoration: underline;
+}
+
+/* --- Formulaire expédition inline (dans tableau collecte) --- */
+.expedition-form-inline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    border: none;
+    margin: 0;
+}
+
+.expedition-form-inline select,
+.expedition-form-inline input {
+    padding: 4px 8px;
+    border: 1px solid #ccc;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+}
+
+.expedition-form-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
 /* --- Story 5.10/5.11 : Vue Mes envois (membre) --- */
 .envois-section {
     margin-bottom: var(--spacing-lg);
