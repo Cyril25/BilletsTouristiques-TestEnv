@@ -253,6 +253,24 @@ function updateDateFieldsState(categorie) {
     }
 }
 
+// Story 9.3 — Auto-remplit la date du jour dans le champ correspondant au statut
+function autoFillDateForStatus(categorie) {
+    var today = new Date().toISOString().split('T')[0];
+    var datePre = document.getElementById('field-date-pre');
+    var dateColl = document.getElementById('field-date-coll');
+    var dateFin = document.getElementById('field-date-fin');
+
+    if (categorie === 'Pré collecte' && datePre && !datePre.value) {
+        datePre.value = today;
+    }
+    if (categorie === 'Collecte' && dateColl && !dateColl.value) {
+        dateColl.value = today;
+    }
+    if (categorie === 'Terminé' && dateFin && !dateFin.value) {
+        dateFin.value = today;
+    }
+}
+
 // ============================================================
 // 2b. UPLOAD IMAGE CLOUDINARY
 // ============================================================
@@ -866,7 +884,9 @@ function initPanel() {
     var categorieSelect = document.getElementById('field-categorie');
     if (categorieSelect) {
         categorieSelect.addEventListener('change', function() {
-            updateDateFieldsState(categorieSelect.value);
+            var newCat = categorieSelect.value;
+            updateDateFieldsState(newCat);
+            autoFillDateForStatus(newCat);
             togglePrixFields();
         });
     }
@@ -1146,6 +1166,9 @@ function openBilletPanel(billetData, docId) {
         // Statut par defaut
         var categorieField = document.getElementById('field-categorie');
         if (categorieField) categorieField.value = CATEGORIE_DEFAULT;
+
+        // Auto-remplir la date de pré-collecte pour un nouveau billet
+        autoFillDateForStatus(CATEGORIE_DEFAULT);
 
         // Story 9.6 — Bloquer les champs prix selon le statut par défaut
         togglePrixFields();
