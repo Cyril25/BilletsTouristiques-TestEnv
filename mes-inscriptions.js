@@ -7,6 +7,25 @@ var mesInscriptions = [];
 var billetsMap = {};
 var collecteursMap = {};
 
+function escapeHtml(text) {
+    if (!text) return '';
+    return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function showToast(message, type) {
+    var toast = document.createElement('div');
+    toast.className = 'toast toast-' + (type || 'success');
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    if (type === 'error') {
+        toast.onclick = function() { toast.remove(); };
+    } else {
+        setTimeout(function() {
+            if (toast.parentNode) toast.remove();
+        }, 4000);
+    }
+}
+
 // ============================================================
 // 1. CHARGEMENT DES DONNÉES
 // ============================================================
@@ -188,12 +207,214 @@ function declarerPaiement(inscriptionId) {
 }
 
 // ============================================================
-// 4. INITIALISATION
+// 4. MES ENVOIS — VUE MEMBRE (Story 5.10 + 5.11)
+// ============================================================
+
+function loadMesEnvois() {
+    var user = firebase.auth().currentUser;
+    if (!user) return;
+    var email = user.email;
+
+    supabaseFetch('/rest/v1/enveloppes?membre_email=eq.' + encodeURIComponent(email) + '&select=*&order=date_creation.desc')
+        .then(function(enveloppes) {
+            if (!enveloppes || enveloppes.length === 0) {
+                renderMesEnvois([], [], {});
+                return;
+            }
+
+            var enCours = enveloppes.filter(function(e) { return e.statut === 'en_cours'; });
+            var passees = enveloppes.filter(function(e) { return e.statut === 'expediee' || e.statut === 'recue'; });
+
+            var enCoursIds = enCours.map(function(e) { return e.id; });
+            var passeesIds = passees.map(function(e) { return e.id; });
+            var allIds = enCoursIds.concat(passeesIds);
+
+            if (allIds.length === 0) {
+                renderMesEnvois(enCours, passees, {});
+                return;
+            }
+
+            var idsParam = 'enveloppe_id=in.(' + allIds.join(',') + ')';
+            return supabaseFetch('/rest/v1/inscriptions?' + idsParam + '&select=*')
+                .then(function(inscriptions) {
+                    inscriptions = inscriptions || [];
+
+                    var inscByEnv = {};
+                    inscriptions.forEach(function(insc) {
+                        if (!inscByEnv[insc.enveloppe_id]) inscByEnv[insc.enveloppe_id] = [];
+                        inscByEnv[insc.enveloppe_id].push(insc);
+                    });
+
+                    var billetIdsEnvois = inscriptions.map(function(i) { return i.billet_id; });
+                    var uniqueBilletIds = billetIdsEnvois.filter(function(id, idx) { return billetIdsEnvois.indexOf(id) === idx; });
+
+                    if (uniqueBilletIds.length === 0) {
+                        renderMesEnvois(enCours, passees, inscByEnv);
+                        return;
+                    }
+
+                    return supabaseFetch('/rest/v1/billets?id=in.(' + uniqueBilletIds.join(',') + ')&select=id,"NomBillet"')
+                        .then(function(billets) {
+                            var billetsEnvoisMap = {};
+                            (billets || []).forEach(function(b) { billetsEnvoisMap[b.id] = b; });
+                            renderMesEnvois(enCours, passees, inscByEnv, billetsEnvoisMap);
+                        });
+                });
+        })
+        .catch(function(error) {
+            console.error('Erreur chargement envois:', error);
+        });
+}
+
+function renderMesEnvois(enCours, passees, inscByEnv, billetsEnvoisMap) {
+    var container = document.getElementById('mes-envois-section');
+    if (!container) return;
+
+    billetsEnvoisMap = billetsEnvoisMap || {};
+
+    // Filtrer enveloppes en cours avec billets prêts (FR57 : pas de non_reparti)
+    var enCoursAvecBillets = enCours.filter(function(env) {
+        var inscs = inscByEnv[env.id] || [];
+        return inscs.some(function(i) { return i.statut_livraison === 'pret_a_envoyer'; });
+    });
+
+    if (enCoursAvecBillets.length === 0 && passees.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    var html = '';
+
+    // Section "Chez le collecteur"
+    if (enCoursAvecBillets.length > 0) {
+        html += '<div class="envois-section">'
+            + '<h3><i class="fa-solid fa-envelope"></i> Chez le collecteur</h3>';
+
+        enCoursAvecBillets.forEach(function(env) {
+            var inscs = (inscByEnv[env.id] || []).filter(function(i) {
+                return i.statut_livraison === 'pret_a_envoyer';
+            });
+            var nbBillets = inscs.reduce(function(sum, i) {
+                return sum + (i.nb_normaux || 0) + (i.nb_variantes || 0);
+            }, 0);
+
+            html += '<div class="envoi-carte">'
+                + '<div class="envoi-carte-header">'
+                + '<span><i class="fa-solid fa-user"></i> ' + escapeHtml(env.collecteur_alias || '') + '</span>'
+                + '<span class="envoi-nb-billets">' + nbBillets + ' billet(s) prêt(s)</span>'
+                + '</div>';
+
+            if (env.demande_envoi) {
+                var dateStr = env.date_demande_envoi ? new Date(env.date_demande_envoi).toLocaleDateString('fr-FR') : '';
+                html += '<span class="demande-envoyee"><i class="fa-solid fa-check"></i> Demande envoyée le ' + dateStr + '</span>';
+            } else {
+                html += '<button onclick="demanderEnvoi(' + env.id + ')" class="btn-demande-envoi">'
+                    + '<i class="fa-solid fa-paper-plane"></i> Je souhaite recevoir mes billets'
+                    + '</button>';
+            }
+
+            html += '</div>';
+        });
+
+        html += '</div>';
+    }
+
+    // Section "Envois passés"
+    if (passees.length > 0) {
+        html += '<div class="envois-section">'
+            + '<h3><i class="fa-solid fa-clock-rotate-left"></i> Envois passés</h3>';
+
+        passees.forEach(function(env) {
+            var inscs = inscByEnv[env.id] || [];
+            var nbBillets = inscs.reduce(function(sum, i) {
+                return sum + (i.nb_normaux || 0) + (i.nb_variantes || 0);
+            }, 0);
+            var nomsBillets = inscs.map(function(i) {
+                var b = billetsEnvoisMap[i.billet_id];
+                return b ? b.NomBillet : 'Billet';
+            }).join(', ');
+
+            var dateExp = env.date_expedition ? new Date(env.date_expedition).toLocaleDateString('fr-FR') : '';
+            var modeEnvoi = env.mode_envoi_reel || 'normal';
+            var modeLabel = { normal: 'Normal', suivi: 'Suivi', recommande: 'Recommandé' }[modeEnvoi] || modeEnvoi;
+
+            html += '<div class="envoi-carte envoi-carte-passe">'
+                + '<div class="envoi-carte-header">'
+                + '<span><i class="fa-solid fa-user"></i> ' + escapeHtml(env.collecteur_alias || '') + '</span>'
+                + '<span class="envoi-date"><i class="fa-solid fa-calendar"></i> ' + dateExp + '</span>'
+                + '</div>'
+                + '<div class="envoi-carte-details">'
+                + '<span>' + nbBillets + ' billet(s) : ' + escapeHtml(nomsBillets) + '</span>'
+                + '<span><i class="fa-solid fa-truck"></i> ' + modeLabel + '</span>';
+
+            if (env.numero_suivi) {
+                html += '<span><i class="fa-solid fa-barcode"></i> N° suivi : ' + escapeHtml(env.numero_suivi) + '</span>';
+            }
+
+            html += '</div>';
+
+            if (env.statut === 'recue') {
+                var dateRec = env.date_reception ? new Date(env.date_reception).toLocaleDateString('fr-FR') : '';
+                html += '<span class="envoi-recu"><i class="fa-solid fa-circle-check"></i> Reçue ✓ le ' + dateRec + '</span>';
+            } else {
+                html += '<button onclick="confirmerReception(' + env.id + ')" class="btn-confirmer-reception">'
+                    + '<i class="fa-solid fa-box-open"></i> J\'ai bien reçu'
+                    + '</button>';
+            }
+
+            html += '</div>';
+        });
+
+        html += '</div>';
+    }
+
+    container.innerHTML = html;
+}
+
+function demanderEnvoi(enveloppeId) {
+    supabaseFetch('/rest/v1/enveloppes?id=eq.' + enveloppeId, {
+        method: 'PATCH',
+        body: JSON.stringify({
+            demande_envoi: true,
+            date_demande_envoi: new Date().toISOString()
+        })
+    })
+    .then(function() {
+        showToast('Votre demande a été transmise au collecteur');
+        loadMesEnvois();
+    })
+    .catch(function(error) {
+        console.error('Erreur demande envoi:', error);
+        showToast('Erreur lors de la demande', 'error');
+    });
+}
+
+function confirmerReception(enveloppeId) {
+    supabaseFetch('/rest/v1/enveloppes?id=eq.' + enveloppeId, {
+        method: 'PATCH',
+        body: JSON.stringify({
+            statut: 'recue',
+            date_reception: new Date().toISOString()
+        })
+    })
+    .then(function() {
+        showToast('Réception confirmée — merci !');
+        loadMesEnvois();
+    })
+    .catch(function(error) {
+        console.error('Erreur confirmation réception:', error);
+        showToast('Erreur lors de la confirmation', 'error');
+    });
+}
+
+// ============================================================
+// 5. INITIALISATION
 // ============================================================
 
 document.addEventListener('DOMContentLoaded', function() {
     firebase.auth().onAuthStateChanged(function(user) {
         if (user) {
+            loadMesEnvois();
             loadMesInscriptions();
         }
     });

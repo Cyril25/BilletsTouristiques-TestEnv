@@ -11,6 +11,9 @@ var BATCH_SIZE = 50;
 var mesInscriptions = {};
 var collecteursMap = {};
 
+// Story 5.12 : Compteurs BT automatiques
+var compteurInscriptionsMap = {};
+
 // Filtre par catégorie actif
 var billetsActiveStatusFilter = 'tous';
 
@@ -82,6 +85,7 @@ if (typeof firebase !== 'undefined') {
             fetchData();
             loadMesInscriptions();
             loadCollecteursForCatalogue();
+            loadCompteursInscriptions();
         }
     });
 }
@@ -526,7 +530,7 @@ function showMore() {
                 '</center>' +
                 '</div>' +
                 '<div class="more">' +
-                '<center>' + (item.CompteurBT || '') + '</center>' +
+                '<center>' + getCompteurBT(item) + '</center>' +
                 '</div>' +
                 '<div class="more action-icons">' +
                 (item.Sondage
@@ -654,6 +658,28 @@ function loadCollecteursForCatalogue() {
         });
 }
 
+// --- Story 5.12 : Compteurs BT automatiques ---
+function loadCompteursInscriptions() {
+    supabaseFetch('/rest/v1/rpc/compteurs_inscriptions')
+        .then(function(compteurs) {
+            compteurInscriptionsMap = {};
+            (compteurs || []).forEach(function(c) {
+                compteurInscriptionsMap[c.billet_id] = c.total;
+            });
+        })
+        .catch(function(error) {
+            console.warn('Compteurs inscriptions non disponibles:', error);
+        });
+}
+
+function getCompteurBT(item) {
+    var isInscriptionSite = !item.LinkSheet && !item.Sondage;
+    if (isInscriptionSite && compteurInscriptionsMap[item.id] !== undefined) {
+        return compteurInscriptionsMap[item.id];
+    }
+    return item.CompteurBT || '';
+}
+
 // --- Badge paiement pour le catalogue ---
 function badgePaiementCatalogue(statut, montant) {
     statut = statut || 'non_paye';
@@ -715,10 +741,13 @@ function buildInscriptionHtml(item) {
             + '</div>';
     } else if (collecteOuverte) {
         // Non inscrit, collecte ouverte
+        var isInscriptionSite = !item.LinkSheet && !item.Sondage;
         html = '<div class="inscription-badges">'
             + '<span class="badge-non-inscrit">Non inscrit</span>'
-            + '<button onclick="ouvrirInscription(' + item.id + ')" class="btn-sinscrire">S\'inscrire</button>'
-            + '<button onclick="marquerPasInteresse(' + item.id + ')" class="btn-pas-interesse">Pas intéressé</button>'
+            + (isInscriptionSite
+                ? '<button onclick="ouvrirInscription(' + item.id + ')" class="btn-sinscrire">S\'inscrire</button>'
+                  + '<button onclick="marquerPasInteresse(' + item.id + ')" class="btn-pas-interesse">Pas intéressé</button>'
+                : '')
             + '</div>';
     }
     return html;

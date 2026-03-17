@@ -481,8 +481,11 @@ function desinscrireMembre(inscriptionId, membrePrenom) {
 }
 
 // ============================================================
-// 9. VUE TRANSVERSALE — PREPARATION ENVOIS (Story 5.7)
+// 9. ENVELOPPES — CASIER PERMANENT COLLECTEUR/MEMBRE (Story 5.7b)
 // ============================================================
+
+var currentEnveloppeId = null;
+var currentEnveloppeData = null;
 
 function showTab(tabName) {
     var collectesView = document.getElementById('collectes-list');
@@ -508,114 +511,478 @@ function showTab(tabName) {
     } else if (tabName === 'envois') {
         if (envoisView) envoisView.style.display = '';
         if (tabs[2]) tabs[2].classList.add('active');
-        loadPreparationEnvois();
+        loadEnveloppes();
     } else {
         if (collectesView) collectesView.style.display = '';
         if (tabs[0]) tabs[0].classList.add('active');
     }
 }
 
-function loadPreparationEnvois() {
-    if (!monCollecteur || mesBillets.length === 0) {
-        renderEnvoisVide();
+function loadEnveloppes() {
+    if (!monCollecteur) {
+        renderEnveloppesVide();
         return;
     }
-    // Récupérer les inscriptions via les billet_ids du collecteur (pas via collecteur_alias)
-    var billetIds = mesBillets.map(function(b) { return b.id; });
-    supabaseFetch('/rest/v1/inscriptions?billet_id=in.(' + billetIds.join(',') + ')&envoye=eq.false&pas_interesse=eq.false&select=*&order=membre_email.asc')
-        .then(function(inscriptions) {
-            if (!inscriptions || inscriptions.length === 0) {
-                renderEnvoisVide();
+    var alias = monCollecteur.alias;
+    // Charger les enveloppes en_cours du collecteur
+    supabaseFetch('/rest/v1/enveloppes?collecteur_alias=eq.' + encodeURIComponent(alias) + '&statut=eq.en_cours&select=*&order=membre_email.asc')
+        .then(function(enveloppes) {
+            if (!enveloppes || enveloppes.length === 0) {
+                renderEnveloppesVide();
                 return;
             }
-            // Enrichir les snapshots avec les noms actuels des membres
-            var emails = [];
-            inscriptions.forEach(function(ins) {
-                if (ins.membre_email && emails.indexOf(ins.membre_email) === -1) emails.push(ins.membre_email);
-            });
-            var emailFilter = emails.map(function(e) { return encodeURIComponent(e); }).join(',');
-            return supabaseFetch('/rest/v1/membres?email=in.(' + emailFilter + ')&select=email,nom,prenom')
-                .then(function(membres) {
-                    var membresMap = {};
-                    if (membres) {
-                        membres.forEach(function(m) { membresMap[m.email] = m; });
-                    }
+            // Charger toutes les inscriptions non-expédiées du collecteur (non_reparti + pret_a_envoyer)
+            var billetIds = mesBillets.map(function(b) { return b.id; });
+            if (billetIds.length === 0) {
+                renderEnveloppesListe(enveloppes, [], {});
+                return;
+            }
+            return supabaseFetch('/rest/v1/inscriptions?billet_id=in.(' + billetIds.join(',') + ')&pas_interesse=eq.false&statut_livraison=in.(non_reparti,pret_a_envoyer)&select=*')
+                .then(function(inscriptions) {
+                    inscriptions = inscriptions || [];
+                    // Enrichir les snapshots avec les noms des membres
+                    var emails = [];
                     inscriptions.forEach(function(ins) {
-                        var membre = membresMap[ins.membre_email];
-                        if (membre && ins.adresse_snapshot) {
-                            if (!ins.adresse_snapshot.nom && membre.nom) ins.adresse_snapshot.nom = membre.nom;
-                            if (!ins.adresse_snapshot.prenom && membre.prenom) ins.adresse_snapshot.prenom = membre.prenom;
-                        }
+                        if (ins.membre_email && emails.indexOf(ins.membre_email) === -1) emails.push(ins.membre_email);
                     });
-                    var billetsMap = {};
-                    mesBillets.forEach(function(b) { billetsMap[b.id] = b; });
-                    renderPreparationEnvois(inscriptions, billetsMap);
+                    if (emails.length === 0) {
+                        var billetsMap = {};
+                        mesBillets.forEach(function(b) { billetsMap[b.id] = b; });
+                        renderEnveloppesListe(enveloppes, inscriptions, billetsMap);
+                        return;
+                    }
+                    var emailFilter = emails.map(function(e) { return encodeURIComponent(e); }).join(',');
+                    return supabaseFetch('/rest/v1/membres?email=in.(' + emailFilter + ')&select=email,nom,prenom')
+                        .then(function(membres) {
+                            var membresMap = {};
+                            if (membres) {
+                                membres.forEach(function(m) { membresMap[m.email] = m; });
+                            }
+                            inscriptions.forEach(function(ins) {
+                                var membre = membresMap[ins.membre_email];
+                                if (membre && ins.adresse_snapshot) {
+                                    if (!ins.adresse_snapshot.nom && membre.nom) ins.adresse_snapshot.nom = membre.nom;
+                                    if (!ins.adresse_snapshot.prenom && membre.prenom) ins.adresse_snapshot.prenom = membre.prenom;
+                                }
+                            });
+                            var billetsMap = {};
+                            mesBillets.forEach(function(b) { billetsMap[b.id] = b; });
+                            renderEnveloppesListe(enveloppes, inscriptions, billetsMap);
+                        });
                 });
         })
         .catch(function(error) {
-            console.error('Erreur chargement envois:', error);
+            console.error('Erreur chargement enveloppes:', error);
         });
 }
 
-function renderPreparationEnvois(inscriptions, billetsMap) {
-    var groupes = {};
-    inscriptions.forEach(function(insc) {
-        var key = insc.membre_email;
-        if (!groupes[key]) {
-            groupes[key] = {
-                email: key,
-                adresse: insc.adresse_snapshot || {},
-                inscriptions: []
-            };
-        }
-        groupes[key].inscriptions.push(insc);
-    });
-
+function renderEnveloppesListe(enveloppes, inscriptions, billetsMap) {
     var container = document.getElementById('envois-view');
     if (!container) return;
 
+    // Grouper les inscriptions par membre_email
+    var inscByMembre = {};
+    inscriptions.forEach(function(ins) {
+        if (!inscByMembre[ins.membre_email]) inscByMembre[ins.membre_email] = [];
+        inscByMembre[ins.membre_email].push(ins);
+    });
+
     var html = '';
-    var emails = Object.keys(groupes);
-    for (var g = 0; g < emails.length; g++) {
-        var email = emails[g];
-        var groupe = groupes[email];
-        var adr = groupe.adresse;
-        var nom = ((adr.prenom || '') + ' ' + (adr.nom || '')).trim() || email;
+    for (var e = 0; e < enveloppes.length; e++) {
+        var env = enveloppes[e];
+        var membreInscs = inscByMembre[env.membre_email] || [];
+        var dansEnveloppe = membreInscs.filter(function(i) { return i.statut_livraison === 'pret_a_envoyer' && i.enveloppe_id === env.id; });
+        var aRepartir = membreInscs.filter(function(i) { return i.statut_livraison === 'non_reparti'; });
+        var totalBillets = dansEnveloppe.length;
+
+        // Trouver le nom/prénom depuis la première inscription avec adresse_snapshot
+        var adr = {};
+        for (var a = 0; a < membreInscs.length; a++) {
+            if (membreInscs[a].adresse_snapshot && (membreInscs[a].adresse_snapshot.nom || membreInscs[a].adresse_snapshot.prenom)) {
+                adr = membreInscs[a].adresse_snapshot;
+                break;
+            }
+        }
+        var nom = ((adr.prenom || '') + ' ' + (adr.nom || '')).trim() || env.membre_email;
         var adresseStr = [adr.rue, adr.code_postal, adr.ville, adr.pays].filter(Boolean).join(', ');
 
-        var lignes = '';
-        for (var l = 0; l < groupe.inscriptions.length; l++) {
-            var insc = groupe.inscriptions[l];
-            var billet = billetsMap[insc.billet_id] || {};
-            var envVne = billet.VersionNormaleExiste !== false;
-            var envQty = envVne ? 'N:' + (insc.nb_normaux || 0) + (insc.nb_variantes > 0 ? ' V:' + insc.nb_variantes : '') : 'V:' + (insc.nb_variantes || 0);
-            var envRefParts = [];
-            if (billet.Reference) envRefParts.push(billet.Reference);
-            var envMilVersion = '';
-            if (billet.Millesime) envMilVersion += billet.Millesime;
-            if (billet.Version) envMilVersion += '-' + billet.Version;
-            if (envMilVersion) envRefParts.push(envMilVersion);
-            var envRefPrefix = envRefParts.length > 0 ? envRefParts.join(' - ') + ' ' : '';
-            lignes += '<div class="envoi-ligne">'
-                + '<span class="envoi-billet">' + envRefPrefix + (billet.NomBillet || '?') + '</span>'
-                + '<span class="envoi-qty">' + envQty + '</span>'
-                + badgePaiementEnvoi(insc.statut_paiement)
-                + '<span class="badge-' + (insc.fdp_regles ? 'paye' : 'non-paye') + '">' + (insc.fdp_regles ? 'FDP OK' : 'FDP —') + '</span>'
-                + '<button onclick="marquerEnvoye(' + insc.id + ')" class="btn-marquer-envoye" title="Marquer envoyé"><i class="fa-solid fa-check"></i></button>'
-                + '</div>';
+        // Indicateur demande d'envoi
+        var demandeHtml = '';
+        if (env.demande_envoi) {
+            var dateStr = env.date_demande_envoi ? new Date(env.date_demande_envoi).toLocaleDateString('fr-FR') : '';
+            demandeHtml = '<span class="badge-demande-envoi">⚡ Demande d\'envoi (' + dateStr + ')</span>';
         }
 
-        html += '<div class="envoi-groupe">'
+        html += '<div class="envoi-groupe" onclick="openEnveloppeDetail(' + env.id + ')" style="cursor:pointer">'
             + '<div class="envoi-groupe-header">'
-            + '<strong>' + nom + '</strong>'
-            + '<span class="envoi-adresse">' + (adresseStr || 'Adresse non renseignée') + '</span>'
-            + '<span class="envoi-count">' + groupe.inscriptions.length + ' billet(s)</span>'
+            + '<strong>' + escapeHtmlMC(nom) + '</strong>'
+            + '<span class="envoi-adresse">' + escapeHtmlMC(adresseStr || 'Adresse non renseignée') + '</span>'
+            + '<span class="envoi-count">' + totalBillets + ' dans l\'enveloppe, ' + aRepartir.length + ' à répartir</span>'
+            + demandeHtml
             + '</div>'
-            + '<div class="envoi-groupe-lignes">' + lignes + '</div>'
             + '</div>';
     }
 
+    if (html === '') {
+        renderEnveloppesVide();
+        return;
+    }
+
     container.innerHTML = html;
+}
+
+function renderEnveloppesVide() {
+    var container = document.getElementById('envois-view');
+    if (container) {
+        container.innerHTML = '<div class="envois-empty"><i class="fa-solid fa-check-circle"></i><p>Aucune enveloppe en cours</p></div>';
+    }
+}
+
+function openEnveloppeDetail(enveloppeId) {
+    currentEnveloppeId = enveloppeId;
+    // Charger l'enveloppe + ses inscriptions
+    supabaseFetch('/rest/v1/enveloppes?id=eq.' + enveloppeId + '&select=*')
+        .then(function(enveloppes) {
+            if (!enveloppes || enveloppes.length === 0) return;
+            currentEnveloppeData = enveloppes[0];
+            var billetIds = mesBillets.map(function(b) { return b.id; });
+            if (billetIds.length === 0) {
+                renderEnveloppeDetail([], {});
+                return;
+            }
+            // Inscriptions : dans l'enveloppe (pret_a_envoyer + enveloppe_id) OU à répartir (non_reparti + même membre)
+            var membreEmail = encodeURIComponent(currentEnveloppeData.membre_email);
+            return supabaseFetch('/rest/v1/inscriptions?billet_id=in.(' + billetIds.join(',') + ')&membre_email=eq.' + membreEmail + '&pas_interesse=eq.false&statut_livraison=in.(non_reparti,pret_a_envoyer)&select=*')
+                .then(function(inscriptions) {
+                    inscriptions = inscriptions || [];
+                    var billetsMap = {};
+                    mesBillets.forEach(function(b) { billetsMap[b.id] = b; });
+                    renderEnveloppeDetail(inscriptions, billetsMap);
+                });
+        })
+        .catch(function(error) {
+            console.error('Erreur chargement enveloppe:', error);
+            showToast('Erreur lors du chargement', 'error');
+        });
+}
+
+function renderEnveloppeDetail(inscriptions, billetsMap) {
+    var container = document.getElementById('envois-view');
+    if (!container || !currentEnveloppeData) return;
+
+    var env = currentEnveloppeData;
+    var dansEnveloppe = inscriptions.filter(function(i) { return i.statut_livraison === 'pret_a_envoyer' && i.enveloppe_id === env.id; });
+    var aRepartir = inscriptions.filter(function(i) { return i.statut_livraison === 'non_reparti'; });
+
+    // Nom du membre
+    var adr = {};
+    for (var a = 0; a < inscriptions.length; a++) {
+        if (inscriptions[a].adresse_snapshot && (inscriptions[a].adresse_snapshot.nom || inscriptions[a].adresse_snapshot.prenom)) {
+            adr = inscriptions[a].adresse_snapshot;
+            break;
+        }
+    }
+    var nom = ((adr.prenom || '') + ' ' + (adr.nom || '')).trim() || env.membre_email;
+    var adresseStr = [adr.rue, adr.code_postal, adr.ville, adr.pays].filter(Boolean).join(', ');
+
+    var html = '';
+    html += '<button class="btn-retour-liste" onclick="retourEnveloppes()"><i class="fa-solid fa-arrow-left"></i> Retour aux enveloppes</button>';
+
+    html += '<div class="enveloppe-detail-header">';
+    html += '<h2><i class="fa-solid fa-envelope"></i> ' + escapeHtmlMC(nom) + '</h2>';
+    html += '<span class="envoi-adresse">' + escapeHtmlMC(adresseStr || 'Adresse non renseignée') + '</span>';
+    if (env.demande_envoi) {
+        var dateStr = env.date_demande_envoi ? new Date(env.date_demande_envoi).toLocaleDateString('fr-FR') : '';
+        html += '<span class="badge-demande-envoi">⚡ Demande d\'envoi (' + dateStr + ')</span>';
+    }
+    html += '</div>';
+
+    // Section : Dans l'enveloppe (prêts à envoyer)
+    html += '<div class="enveloppe-section">';
+    html += '<h3><i class="fa-solid fa-box"></i> Dans l\'enveloppe (' + dansEnveloppe.length + ')</h3>';
+    if (dansEnveloppe.length === 0) {
+        html += '<p class="enveloppe-vide">Aucun billet dans l\'enveloppe</p>';
+    } else {
+        for (var d = 0; d < dansEnveloppe.length; d++) {
+            var insc = dansEnveloppe[d];
+            var billet = billetsMap[insc.billet_id] || {};
+            html += renderEnveloppeLigne(insc, billet, 'retirer');
+        }
+    }
+    // Bouton Expédier (Story 5.9) — visible uniquement si billets prêts
+    if (dansEnveloppe.length > 0) {
+        html += '<button onclick="ouvrirFormulaireExpedition(' + env.id + ')" class="btn-expedier"><i class="fa-solid fa-paper-plane"></i> Expédier cette enveloppe (' + dansEnveloppe.length + ' billet(s))</button>';
+    }
+    html += '</div>';
+
+    // Formulaire d'expédition (caché par défaut, affiché par ouvrirFormulaireExpedition)
+    html += '<div id="expedition-form-container" style="display:none"></div>';
+
+    // Section : À répartir (non répartis)
+    if (aRepartir.length > 0) {
+        html += '<div class="enveloppe-section">';
+        html += '<h3><i class="fa-solid fa-inbox"></i> À répartir (' + aRepartir.length + ')</h3>';
+        for (var r = 0; r < aRepartir.length; r++) {
+            var inscR = aRepartir[r];
+            var billetR = billetsMap[inscR.billet_id] || {};
+            html += renderEnveloppeLigne(inscR, billetR, 'ajouter');
+        }
+        html += '</div>';
+    }
+
+    // Bouton historique
+    html += '<div class="enveloppe-section">';
+    html += '<button class="btn-historique-enveloppes" onclick="loadHistoriqueEnveloppes()"><i class="fa-solid fa-clock-rotate-left"></i> Historique des envois</button>';
+    html += '<div id="historique-enveloppes"></div>';
+    html += '</div>';
+
+    container.innerHTML = html;
+}
+
+function renderEnveloppeLigne(insc, billet, action) {
+    var envVne = billet.VersionNormaleExiste !== false;
+    var envQty = envVne ? 'N:' + (insc.nb_normaux || 0) + (insc.nb_variantes > 0 ? ' V:' + insc.nb_variantes : '') : 'V:' + (insc.nb_variantes || 0);
+    var envRefParts = [];
+    if (billet.Reference) envRefParts.push(billet.Reference);
+    var envMilVersion = '';
+    if (billet.Millesime) envMilVersion += billet.Millesime;
+    if (billet.Version) envMilVersion += '-' + billet.Version;
+    if (envMilVersion) envRefParts.push(envMilVersion);
+    var envRefPrefix = envRefParts.length > 0 ? envRefParts.join(' - ') + ' ' : '';
+
+    var actionBtn = '';
+    if (action === 'ajouter') {
+        actionBtn = '<button onclick="ajouterAEnveloppe(' + insc.id + ', ' + currentEnveloppeId + ')" class="btn-ajouter-enveloppe" title="Ajouter à l\'enveloppe"><i class="fa-solid fa-plus"></i></button>';
+    } else if (action === 'retirer') {
+        actionBtn = '<button onclick="retirerDeEnveloppe(' + insc.id + ')" class="btn-retirer-enveloppe" title="Retirer de l\'enveloppe"><i class="fa-solid fa-minus"></i></button>';
+    }
+
+    return '<div class="envoi-ligne">'
+        + '<span class="envoi-billet">' + envRefPrefix + escapeHtmlMC(billet.NomBillet || '?') + '</span>'
+        + '<span class="envoi-qty">' + envQty + '</span>'
+        + badgePaiementEnvoi(insc.statut_paiement)
+        + '<span class="badge-' + (insc.fdp_regles ? 'paye' : 'non-paye') + '">' + (insc.fdp_regles ? 'FDP OK' : 'FDP —') + '</span>'
+        + actionBtn
+        + '</div>';
+}
+
+function ajouterAEnveloppe(inscriptionId, enveloppeId) {
+    supabaseFetch('/rest/v1/inscriptions?id=eq.' + inscriptionId, {
+        method: 'PATCH',
+        body: JSON.stringify({ statut_livraison: 'pret_a_envoyer', enveloppe_id: enveloppeId })
+    })
+    .then(function() {
+        showToast('Billet ajouté à l\'enveloppe');
+        openEnveloppeDetail(enveloppeId);
+    })
+    .catch(function(error) {
+        console.error('Erreur ajout enveloppe:', error);
+        showToast('Erreur', 'error');
+    });
+}
+
+function retirerDeEnveloppe(inscriptionId) {
+    supabaseFetch('/rest/v1/inscriptions?id=eq.' + inscriptionId, {
+        method: 'PATCH',
+        body: JSON.stringify({ statut_livraison: 'non_reparti', enveloppe_id: null })
+    })
+    .then(function() {
+        showToast('Billet retiré de l\'enveloppe');
+        openEnveloppeDetail(currentEnveloppeId);
+    })
+    .catch(function(error) {
+        console.error('Erreur retrait enveloppe:', error);
+        showToast('Erreur', 'error');
+    });
+}
+
+function retourEnveloppes() {
+    currentEnveloppeId = null;
+    currentEnveloppeData = null;
+    loadEnveloppes();
+}
+
+function loadHistoriqueEnveloppes() {
+    if (!currentEnveloppeData) return;
+    var alias = encodeURIComponent(currentEnveloppeData.collecteur_alias);
+    var email = encodeURIComponent(currentEnveloppeData.membre_email);
+    supabaseFetch('/rest/v1/enveloppes?collecteur_alias=eq.' + alias + '&membre_email=eq.' + email + '&statut=in.(expediee,recue)&select=*&order=date_expedition.desc')
+        .then(function(enveloppes) {
+            var histContainer = document.getElementById('historique-enveloppes');
+            if (!histContainer) return;
+            if (!enveloppes || enveloppes.length === 0) {
+                histContainer.innerHTML = '<p class="enveloppe-vide">Aucun envoi passé</p>';
+                return;
+            }
+            // Charger les inscriptions de ces enveloppes pour les détails
+            var envIds = enveloppes.map(function(e) { return e.id; });
+            return supabaseFetch('/rest/v1/inscriptions?enveloppe_id=in.(' + envIds.join(',') + ')&select=*')
+                .then(function(inscriptions) {
+                    inscriptions = inscriptions || [];
+                    var inscByEnv = {};
+                    inscriptions.forEach(function(ins) {
+                        if (!inscByEnv[ins.enveloppe_id]) inscByEnv[ins.enveloppe_id] = [];
+                        inscByEnv[ins.enveloppe_id].push(ins);
+                    });
+                    var billetsMap = {};
+                    mesBillets.forEach(function(b) { billetsMap[b.id] = b; });
+                    renderHistoriqueEnveloppes(enveloppes, inscByEnv, billetsMap, histContainer);
+                });
+        })
+        .catch(function(error) {
+            console.error('Erreur chargement historique:', error);
+        });
+}
+
+function renderHistoriqueEnveloppes(enveloppes, inscByEnv, billetsMap, container) {
+    var html = '';
+    for (var h = 0; h < enveloppes.length; h++) {
+        var env = enveloppes[h];
+        var inscs = inscByEnv[env.id] || [];
+        var dateExp = env.date_expedition ? new Date(env.date_expedition).toLocaleDateString('fr-FR') : '—';
+        var modeLabel = { normal: 'Normal', suivi: 'Suivi', recommande: 'Recommandé' }[env.mode_envoi_reel] || env.mode_envoi_reel || '—';
+
+        var statutHtml = '';
+        if (env.statut === 'recue') {
+            var dateRec = env.date_reception ? new Date(env.date_reception).toLocaleDateString('fr-FR') : '';
+            statutHtml = '<span class="badge-recue"><i class="fa-solid fa-circle-check"></i> Reçue ✓ ' + dateRec + '</span>';
+        } else {
+            statutHtml = '<span class="badge-pas-retour">Pas de retour</span>';
+        }
+
+        var billetsList = inscs.map(function(ins) {
+            var b = billetsMap[ins.billet_id];
+            return b ? b.NomBillet : 'Billet';
+        }).join(', ');
+
+        html += '<div class="historique-envoi">'
+            + '<div class="historique-envoi-header">'
+            + '<span><i class="fa-solid fa-calendar"></i> ' + dateExp + '</span>'
+            + '<span><i class="fa-solid fa-truck"></i> ' + modeLabel + '</span>'
+            + (env.numero_suivi ? '<span><i class="fa-solid fa-barcode"></i> ' + escapeHtmlMC(env.numero_suivi) + '</span>' : '')
+            + '<span>' + inscs.length + ' billet(s)</span>'
+            + statutHtml
+            + '</div>'
+            + '<div class="historique-envoi-billets">' + escapeHtmlMC(billetsList) + '</div>'
+            + '</div>';
+    }
+    container.innerHTML = html;
+}
+
+// ============================================================
+// 9c. EXPEDITION D'ENVELOPPE (Story 5.9)
+// ============================================================
+
+function getModeEnvoiPlusExigeant(inscriptions) {
+    var priorite = { Normal: 1, Suivi: 2, 'Recommandé': 3 };
+    var max = 'Normal';
+    for (var i = 0; i < inscriptions.length; i++) {
+        var mode = inscriptions[i].mode_envoi || 'Normal';
+        if ((priorite[mode] || 0) > (priorite[max] || 0)) {
+            max = mode;
+        }
+    }
+    return max;
+}
+
+function ouvrirFormulaireExpedition(enveloppeId) {
+    var container = document.getElementById('expedition-form-container');
+    if (!container) return;
+
+    // Récupérer les inscriptions dans l'enveloppe pour le mode pré-rempli
+    var billetIds = mesBillets.map(function(b) { return b.id; });
+    if (!currentEnveloppeData || billetIds.length === 0) return;
+
+    var membreEmail = encodeURIComponent(currentEnveloppeData.membre_email);
+    supabaseFetch('/rest/v1/inscriptions?enveloppe_id=eq.' + enveloppeId + '&statut_livraison=eq.pret_a_envoyer&select=mode_envoi')
+        .then(function(inscriptions) {
+            inscriptions = inscriptions || [];
+            var modeSuggere = getModeEnvoiPlusExigeant(inscriptions);
+            var modeMap = { Normal: 'normal', Suivi: 'suivi', 'Recommandé': 'recommande' };
+            var modeVal = modeMap[modeSuggere] || 'normal';
+
+            var html = '<div class="expedition-form">'
+                + '<h3><i class="fa-solid fa-paper-plane"></i> Expédier l\'enveloppe</h3>'
+                + '<div class="insc-form-field"><label>Mode d\'envoi réel</label>'
+                + '<select id="mode-envoi-reel">'
+                + '<option value="normal"' + (modeVal === 'normal' ? ' selected' : '') + '>Normal</option>'
+                + '<option value="suivi"' + (modeVal === 'suivi' ? ' selected' : '') + '>Suivi</option>'
+                + '<option value="recommande"' + (modeVal === 'recommande' ? ' selected' : '') + '>Recommandé</option>'
+                + '</select></div>'
+                + '<div class="insc-form-field"><label>Numéro de suivi (optionnel)</label>'
+                + '<input type="text" id="numero-suivi" placeholder="Ex: 1Z999AA..."></div>'
+                + '<div class="expedition-actions">'
+                + '<button onclick="annulerExpedition()" class="btn-secondary">Annuler</button>'
+                + '<button onclick="confirmerExpedition(' + enveloppeId + ')" class="btn-confirmer-expedition"><i class="fa-solid fa-check"></i> Confirmer l\'expédition</button>'
+                + '</div>'
+                + '</div>';
+            container.innerHTML = html;
+            container.style.display = '';
+        })
+        .catch(function(error) {
+            console.error('Erreur chargement modes:', error);
+        });
+}
+
+function annulerExpedition() {
+    var container = document.getElementById('expedition-form-container');
+    if (container) {
+        container.style.display = 'none';
+        container.innerHTML = '';
+    }
+}
+
+function confirmerExpedition(enveloppeId) {
+    var modeEnvoi = document.getElementById('mode-envoi-reel').value;
+    var numeroSuivi = document.getElementById('numero-suivi').value.trim() || null;
+
+    // 1. Mettre à jour l'enveloppe → expédiée
+    supabaseFetch('/rest/v1/enveloppes?id=eq.' + enveloppeId, {
+        method: 'PATCH',
+        body: JSON.stringify({
+            statut: 'expediee',
+            mode_envoi_reel: modeEnvoi,
+            numero_suivi: numeroSuivi,
+            date_expedition: new Date().toISOString()
+        })
+    })
+    .then(function() {
+        // 2. Mettre à jour les inscriptions rattachées → expédié
+        return supabaseFetch('/rest/v1/inscriptions?enveloppe_id=eq.' + enveloppeId + '&statut_livraison=eq.pret_a_envoyer', {
+            method: 'PATCH',
+            body: JSON.stringify({ statut_livraison: 'expedie', envoye: true })
+        });
+    })
+    .then(function() {
+        // 3. Créer une nouvelle enveloppe en_cours pour le même couple
+        return creerNouvelleEnveloppe(enveloppeId);
+    })
+    .then(function() {
+        showToast('Enveloppe expédiée avec succès');
+        currentEnveloppeId = null;
+        currentEnveloppeData = null;
+        loadEnveloppes();
+    })
+    .catch(function(error) {
+        console.error('Erreur expédition:', error);
+        showToast('Erreur lors de l\'expédition', 'error');
+    });
+}
+
+function creerNouvelleEnveloppe(ancienneEnveloppeId) {
+    return supabaseFetch('/rest/v1/enveloppes?id=eq.' + ancienneEnveloppeId + '&select=collecteur_alias,membre_email')
+        .then(function(enveloppes) {
+            if (!enveloppes || enveloppes.length === 0) return;
+            var env = enveloppes[0];
+            return supabaseFetch('/rest/v1/enveloppes', {
+                method: 'POST',
+                body: JSON.stringify({
+                    collecteur_alias: env.collecteur_alias,
+                    membre_email: env.membre_email,
+                    statut: 'en_cours'
+                })
+            });
+        });
 }
 
 // ============================================================
@@ -665,26 +1032,20 @@ function changerStatutPaiement(inscriptionId, nouveauStatut) {
     });
 }
 
+// marquerEnvoye conservée pour rétrocompatibilité (ancien système)
 function marquerEnvoye(inscriptionId) {
     supabaseFetch('/rest/v1/inscriptions?id=eq.' + inscriptionId, {
         method: 'PATCH',
-        body: JSON.stringify({ envoye: true })
+        body: JSON.stringify({ envoye: true, statut_livraison: 'expedie' })
     })
     .then(function() {
         showToast('Marqué comme envoyé');
-        loadPreparationEnvois();
+        loadEnveloppes();
     })
     .catch(function(error) {
         console.error('Erreur marquage envoyé:', error);
         showToast('Erreur', 'error');
     });
-}
-
-function renderEnvoisVide() {
-    var container = document.getElementById('envois-view');
-    if (container) {
-        container.innerHTML = '<div class="envois-empty"><i class="fa-solid fa-check-circle"></i><p>Tous les envois sont à jour !</p></div>';
-    }
 }
 
 // ============================================================

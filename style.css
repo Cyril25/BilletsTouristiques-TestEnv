@@ -4010,6 +4010,297 @@ body.login-page {
     }
 }
 
+/* --- Story 5.7b : Enveloppe detail --- */
+.enveloppe-detail-header {
+    margin-bottom: var(--spacing-md);
+}
+
+.enveloppe-detail-header h2 {
+    margin: 0 0 var(--spacing-xs) 0;
+    color: var(--color-primary);
+}
+
+.enveloppe-section {
+    margin-bottom: var(--spacing-lg);
+}
+
+.enveloppe-section h3 {
+    margin: 0 0 var(--spacing-sm) 0;
+    color: var(--color-secondary);
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.enveloppe-vide {
+    color: #999;
+    font-style: italic;
+    padding: var(--spacing-sm);
+}
+
+.btn-ajouter-enveloppe,
+.btn-retirer-enveloppe {
+    border: none;
+    border-radius: var(--radius-sm);
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+.btn-ajouter-enveloppe {
+    background: var(--color-success, #4CAF50);
+    color: white;
+}
+
+.btn-ajouter-enveloppe:hover {
+    opacity: 0.85;
+}
+
+.btn-retirer-enveloppe {
+    background: var(--color-danger);
+    color: white;
+}
+
+.btn-retirer-enveloppe:hover {
+    opacity: 0.85;
+}
+
+.badge-demande-envoi {
+    display: inline-block;
+    background: #FFF3CD;
+    color: #856404;
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.btn-historique-enveloppes {
+    background: transparent;
+    color: var(--color-primary);
+    border: 1px solid var(--color-primary);
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-historique-enveloppes:hover {
+    background: var(--color-surface);
+}
+
+.historique-envoi {
+    border: 1px solid var(--color-surface);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-sm);
+    margin-top: var(--spacing-sm);
+}
+
+.historique-envoi-header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    align-items: center;
+    font-size: 0.85rem;
+}
+
+.historique-envoi-billets {
+    font-size: 0.8rem;
+    color: #666;
+    margin-top: var(--spacing-xs);
+}
+
+.badge-recue {
+    color: var(--color-success, #4CAF50);
+    font-weight: 500;
+}
+
+.badge-pas-retour {
+    color: #999;
+    font-size: 0.8rem;
+}
+
+/* --- Story 5.9 : Formulaire d'expédition --- */
+.expedition-form {
+    background: var(--color-surface);
+    border: 2px solid var(--color-primary);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    margin-top: var(--spacing-md);
+}
+
+.expedition-form h3 {
+    margin: 0 0 var(--spacing-md) 0;
+    color: var(--color-primary);
+}
+
+.expedition-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-md);
+    justify-content: flex-end;
+}
+
+.btn-expedier {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: var(--spacing-sm);
+    padding: 8px 16px;
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.btn-expedier:hover {
+    opacity: 0.85;
+}
+
+.btn-confirmer-expedition {
+    background: var(--color-success, #4CAF50);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 8px 16px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 500;
+}
+
+.btn-confirmer-expedition:hover {
+    opacity: 0.85;
+}
+
+.btn-secondary {
+    background: transparent;
+    color: #666;
+    border: 1px solid #ccc;
+    border-radius: var(--radius-sm);
+    padding: 8px 16px;
+    cursor: pointer;
+}
+
+.btn-secondary:hover {
+    background: var(--color-surface);
+}
+
+/* --- Story 5.10/5.11 : Vue Mes envois (membre) --- */
+.envois-section {
+    margin-bottom: var(--spacing-lg);
+}
+
+.envois-section h3 {
+    margin: 0 0 var(--spacing-sm) 0;
+    color: var(--color-secondary);
+    font-size: 1.05rem;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.envoi-carte {
+    background: white;
+    border: 1px solid var(--color-surface);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+}
+
+.envoi-carte-passe {
+    background: var(--color-surface);
+}
+
+.envoi-carte-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-xs);
+    font-size: 0.9rem;
+}
+
+.envoi-nb-billets {
+    font-weight: 500;
+    color: var(--color-primary);
+}
+
+.envoi-carte-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    font-size: 0.85rem;
+    color: #666;
+    margin-bottom: var(--spacing-sm);
+}
+
+.envoi-date {
+    color: #888;
+}
+
+.btn-demande-envoi {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: var(--color-accent, var(--color-primary));
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 0.85rem;
+    margin-top: var(--spacing-xs);
+}
+
+.btn-demande-envoi:hover {
+    opacity: 0.85;
+}
+
+.demande-envoyee {
+    display: inline-block;
+    color: var(--color-success, #4CAF50);
+    font-size: 0.85rem;
+    margin-top: var(--spacing-xs);
+}
+
+.btn-confirmer-reception {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: var(--color-success, #4CAF50);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 0.85rem;
+    margin-top: var(--spacing-xs);
+}
+
+.btn-confirmer-reception:hover {
+    opacity: 0.85;
+}
+
+.envoi-recu {
+    display: inline-block;
+    color: var(--color-success, #4CAF50);
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin-top: var(--spacing-xs);
+}
+
 /* --- Responsive envois --- */
 @media (max-width: 768px) {
     .envoi-groupe-header {
@@ -4025,6 +4316,11 @@ body.login-page {
 
     .envoi-billet {
         width: 100%;
+    }
+
+    .historique-envoi-header {
+        flex-direction: column;
+        align-items: flex-start;
     }
 }
 
