@@ -35,6 +35,10 @@ var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
  */
 function supabaseFetch(path, options) {
     if (!options) options = {};
+    // SEC-10 — Verifier que l'utilisateur est connecte avant d'appeler getIdToken
+    if (!firebase.auth().currentUser) {
+        return Promise.reject(new Error('Non authentifie'));
+    }
     return firebase.auth().currentUser.getIdToken(false)
         .then(function(token) {
             var headers = {
@@ -56,7 +60,9 @@ function supabaseFetch(path, options) {
             return fetch(SUPABASE_URL + path, fetchOptions);
         })
         .then(function(response) {
-            if (response.status === 204 || response.status === 201) return null;
+            // SEC-15 — 204 n'a pas de body, 201 peut en avoir
+            if (response.status === 204) return null;
+            if (response.status === 201) return response.json().catch(function() { return null; });
             if (!response.ok) {
                 return response.text().then(function(text) {
                     var msg = 'Erreur Supabase ' + response.status;
@@ -132,6 +138,16 @@ document.addEventListener("DOMContentLoaded", function() {
             })
             .catch(function(error) {
                 console.error("Erreur lors de la vérification membres :", error);
+                // SEC-09 — Afficher un message d'erreur au lieu d'une page blanche
+                var appContent = document.getElementById('app-content');
+                if (appContent) {
+                    appContent.style.display = 'block';
+                    appContent.innerHTML = '<div style="text-align:center;padding:40px;color:#CC4444;">' +
+                        '<i class="fa-solid fa-circle-exclamation" style="font-size:2em;margin-bottom:12px;display:block;"></i>' +
+                        '<strong>Erreur de connexion au serveur.</strong><br>' +
+                        '<span style="color:#666;">Veuillez rafraichir la page ou reessayer plus tard.</span>' +
+                        '</div>';
+                }
             });
 
         } else {
@@ -210,7 +226,7 @@ function loadMenu() {
 
 function highlightActiveLink() {
     let page = window.location.pathname.split("/").pop();
-    if(page === "") page = index.html;
+    if(page === "") page = "index.html";
 
     setTimeout(() => {
         const links = document.querySelectorAll(".nav-links a");

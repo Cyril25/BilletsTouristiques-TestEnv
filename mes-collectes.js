@@ -3,6 +3,16 @@
 // Story 5.5
 // ============================================================
 
+// SEC-03 — Fonctions d'echappement pour empecher les XSS
+function escapeHtmlMC(text) {
+    var div = document.createElement('div');
+    div.appendChild(document.createTextNode(text));
+    return div.innerHTML;
+}
+function escapeAttrMC(text) {
+    return String(text).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 var monCollecteur = null;
 var mesBillets = [];
 var currentBilletId = null;
@@ -131,9 +141,9 @@ function renderCollectesList() {
         var attenuee = b.attenuee === true;
         html += '<div class="collecte-card' + (attenuee ? ' collecte-card-attenuee' : '') + '" onclick="openCollecteDetail(' + b.id + ')">';
         html += '<div class="collecte-card-header">';
-        if (refPrefix) html += '<span class="collecte-ref">' + refPrefix + '</span>';
-        html += '<h3>' + (b.NomBillet || '') + '</h3>';
-        html += '<span class="collecte-status ' + statusClass + '">' + statusLabel + '</span>';
+        if (refPrefix) html += '<span class="collecte-ref">' + escapeHtmlMC(refPrefix) + '</span>';
+        html += '<h3>' + escapeHtmlMC(b.NomBillet || '') + '</h3>';
+        html += '<span class="collecte-status ' + statusClass + '">' + escapeHtmlMC(statusLabel) + '</span>';
         html += '</div>';
         var bVne = b.VersionNormaleExiste !== false;
         var bVarActive = b.HasVariante && b.HasVariante !== 'N';
@@ -254,8 +264,8 @@ function renderCollecteDetail(billetId, inscriptions) {
 
     // Header
     html += '<div class="collecte-detail-header">';
-    html += '<h2>' + ((billet && billet.NomBillet) || '') + '</h2>';
-    if (billet && billet.Ville) html += '<span class="collecte-detail-ville"><i class="fa-solid fa-location-dot"></i> ' + billet.Ville + '</span>';
+    html += '<h2>' + escapeHtmlMC((billet && billet.NomBillet) || '') + '</h2>';
+    if (billet && billet.Ville) html += '<span class="collecte-detail-ville"><i class="fa-solid fa-location-dot"></i> ' + escapeHtmlMC(billet.Ville) + '</span>';
     html += '</div>';
 
     // Counters
@@ -325,24 +335,24 @@ function renderCollecteDetail(billetId, inscriptions) {
             var commentaire = ins.commentaire || '';
 
             html += '<tr>';
-            html += '<td data-label="Nom">' + nomPrenom + '</td>';
-            html += '<td data-label="Adresse" class="td-adresse">' + adresse + '</td>';
+            html += '<td data-label="Nom">' + escapeHtmlMC(nomPrenom) + '</td>';
+            html += '<td data-label="Adresse" class="td-adresse">' + escapeHtmlMC(adresse) + '</td>';
             if (vne) html += '<td data-label="Normaux">' + (ins.nb_normaux || 0) + '</td>';
             html += '<td data-label="Variantes">' + (ins.nb_variantes || 0) + '</td>';
-            html += '<td data-label="Paiement">' + (ins.mode_paiement || '') + '</td>';
-            html += '<td data-label="Envoi">' + (ins.mode_envoi || '') + '</td>';
+            html += '<td data-label="Paiement">' + escapeHtmlMC(ins.mode_paiement || '') + '</td>';
+            html += '<td data-label="Envoi">' + escapeHtmlMC(ins.mode_envoi || '') + '</td>';
             html += '<td data-label="Montant">' + montant + ' €</td>';
             html += '<td data-label="Payé">' + badgePaiementCollecteur(ins) + '</td>';
             html += '<td data-label="Envoyé"><input type="checkbox" id="chk-envoye-' + ins.id + '" ' + (ins.envoye ? 'checked' : '') + ' onchange="toggleInscriptionField(' + ins.id + ', \'envoye\', this.checked)"></td>';
             html += '<td data-label="FDP"><input type="checkbox" id="chk-fdp_regles-' + ins.id + '" ' + (ins.fdp_regles ? 'checked' : '') + ' onchange="toggleInscriptionField(' + ins.id + ', \'fdp_regles\', this.checked)"></td>';
             html += '<td data-label="Actions">'
                 + '<button class="btn-modifier-inscription" onclick="ouvrirModalModification(' + ins.id + ')" title="Modifier l\'inscription"><i class="fa-solid fa-pen"></i></button>'
-                + '<button class="btn-desinscrire" onclick="desinscrireMembre(' + ins.id + ', \'' + nomPrenom.replace(/'/g, "\\'") + '\')"><i class="fa-solid fa-user-minus"></i></button>'
+                + '<button class="btn-desinscrire" data-ins-id="' + ins.id + '" data-membre-name="' + escapeAttrMC(nomPrenom) + '"><i class="fa-solid fa-user-minus"></i></button>'
                 + '</td>';
             html += '</tr>';
 
             if (commentaire) {
-                html += '<tr class="tr-commentaire"><td colspan="' + (vne ? 11 : 10) + '"><i class="fa-solid fa-comment"></i> ' + commentaire + '</td></tr>';
+                html += '<tr class="tr-commentaire"><td colspan="' + (vne ? 11 : 10) + '"><i class="fa-solid fa-comment"></i> ' + escapeHtmlMC(commentaire) + '</td></tr>';
             }
         }
 
@@ -351,6 +361,13 @@ function renderCollecteDetail(billetId, inscriptions) {
     }
 
     container.innerHTML = html;
+
+    // SEC-03 — Event delegation pour les boutons desinscrire (remplace onclick inline)
+    container.querySelectorAll('.btn-desinscrire[data-ins-id]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            desinscrireMembre(parseInt(btn.getAttribute('data-ins-id')), btn.getAttribute('data-membre-name'));
+        });
+    });
 }
 
 function formatAdresse(snap) {
@@ -376,6 +393,8 @@ function retourListe() {
 // 6. CASES A COCHER (Task 6)
 // ============================================================
 function toggleInscriptionField(inscriptionId, field, newValue) {
+    // SEC-05 — Whitelist des champs modifiables via checkbox
+    if (['envoye', 'fdp_regles'].indexOf(field) === -1) return;
     var body = {};
     body[field] = newValue;
     supabaseFetch('/rest/v1/inscriptions?id=eq.' + inscriptionId, {

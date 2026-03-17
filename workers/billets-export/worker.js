@@ -15,16 +15,10 @@ export default {
     const url = new URL(request.url);
 
     // --- CORS preflight ---
+    // SEC-04 — Pas de CORS necessaire : le Apps Script appelle en mode serveur (UrlFetchApp)
+    // Si un domaine frontend specifique doit appeler, le whitelister ici.
     if (request.method === 'OPTIONS') {
-      return new Response(null, {
-        status: 204,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, OPTIONS',
-          'Access-Control-Allow-Headers': 'X-Api-Key, Content-Type',
-          'Access-Control-Max-Age': '86400',
-        },
-      });
+      return new Response(null, { status: 204 });
     }
 
     // --- Route : GET /billets-export ---
@@ -49,8 +43,9 @@ export default {
         );
 
         if (!supabaseRes.ok) {
-          const err = await supabaseRes.text();
-          return jsonResponse({ error: 'Erreur Supabase', details: err }, 502);
+          // SEC-07 — Ne pas exposer les details d'erreur Supabase au client
+          console.error('Erreur Supabase:', await supabaseRes.text());
+          return jsonResponse({ error: 'Erreur serveur' }, 502);
         }
 
         const billets = await supabaseRes.json();
@@ -58,7 +53,9 @@ export default {
         return jsonResponse({ billets, count: billets.length }, 200);
 
       } catch (e) {
-        return jsonResponse({ error: 'Erreur interne', message: e.message }, 500);
+        // SEC-07 — Ne pas exposer les details d'erreur internes
+        console.error('Erreur interne worker:', e.message);
+        return jsonResponse({ error: 'Erreur interne' }, 500);
       }
     }
 
@@ -72,7 +69,6 @@ function jsonResponse(data, status) {
     status,
     headers: {
       'Content-Type': 'application/json; charset=utf-8',
-      'Access-Control-Allow-Origin': '*',
       'Cache-Control': 'no-store',
     },
   });
