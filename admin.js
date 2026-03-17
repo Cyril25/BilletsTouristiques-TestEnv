@@ -2149,8 +2149,6 @@ function showCollecteQuickForm(docId, billetData) {
           '</div>'
         : '';
 
-    var existingPayerFDP = billetData.PayerFDP === 'oui';
-
     var formHtml =
         '<div class="quick-collecte-form" id="quick-collecte-form-' + docId + '">' +
             '<p class="quick-collecte-form__title">Infos requises pour passer en Collecte</p>' +
@@ -2163,7 +2161,7 @@ function showCollecteQuickForm(docId, billetData) {
             prixNormalHtml +
             prixVarianteHtml +
             '<div class="quick-collecte-form__field quick-collecte-form__field--checkbox">' +
-                '<label><input type="checkbox" id="quick-payer-fdp-' + docId + '"' + (existingPayerFDP ? ' checked' : '') + '> Payer les frais de port</label>' +
+                '<label class="quick-collecte-form__checkbox-label"><input type="checkbox" id="quick-payer-fdp-' + docId + '"> Payer les frais de port</label>' +
             '</div>' +
             '<div class="quick-collecte-form__actions">' +
                 '<button type="button" class="quick-collecte-form__btn quick-collecte-form__btn--cancel" onclick="cancelQuickCollecte(\'' + docId + '\')">Annuler</button>' +

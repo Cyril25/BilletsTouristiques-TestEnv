@@ -2743,6 +2743,18 @@ body.login-page {
     color: #333;
 }
 
+.quick-collecte-form__checkbox-label {
+    display: flex !important;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem !important;
+    cursor: pointer;
+}
+
+.quick-collecte-form__field--checkbox {
+    text-align: left;
+}
+
 .quick-collecte-form__select,
 .quick-collecte-form__input {
     width: 100%;
