@@ -4308,6 +4308,23 @@ body.login-page {
     background: var(--color-surface);
 }
 
+.envoi-carte-expedition {
+    border-left: 3px solid var(--color-primary);
+}
+
+.envoi-carte-recue {
+    border-left: 3px solid var(--color-success, #4CAF50);
+    opacity: 0.85;
+}
+
+.envoi-info-fdp {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--color-text-light, #666);
+    margin-top: var(--spacing-xs);
+    font-style: italic;
+}
+
 .envoi-carte-header {
     display: flex;
     justify-content: space-between;

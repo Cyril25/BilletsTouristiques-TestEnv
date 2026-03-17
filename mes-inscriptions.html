@@ -18,19 +18,24 @@
                 <h1><i class="fa-solid fa-clipboard-list"></i> Mes inscriptions</h1>
             </div>
 
-            <div id="mes-envois-section"></div>
+            <div class="tabs-bar" id="inscriptions-tabs">
+                <button class="tab-btn active" onclick="showInscriptionsTab('inscriptions')"><i class="fa-solid fa-clipboard-list"></i> Mes inscriptions</button>
+                <button class="tab-btn" onclick="showInscriptionsTab('envois')"><i class="fa-solid fa-envelope"></i> Mes envois</button>
+            </div>
 
-            <div id="inscriptions-summary"></div>
-
-            <div id="inscriptions-list"></div>
-
-            <div id="inscriptions-empty" style="display:none">
-                <div class="inscriptions-empty-state">
-                    <i class="fa-solid fa-circle-info"></i>
-                    <p>Vous n'êtes inscrit à aucune collecte.</p>
-                    <a href="billets.html" class="btn-voir-catalogue">Voir le catalogue</a>
+            <div id="inscriptions-view">
+                <div id="inscriptions-summary"></div>
+                <div id="inscriptions-list"></div>
+                <div id="inscriptions-empty" style="display:none">
+                    <div class="inscriptions-empty-state">
+                        <i class="fa-solid fa-circle-info"></i>
+                        <p>Vous n'êtes inscrit à aucune collecte.</p>
+                        <a href="billets.html" class="btn-voir-catalogue">Voir le catalogue</a>
+                    </div>
                 </div>
             </div>
+
+            <div id="envois-view" style="display:none"></div>
         </div>
 
     </div>
