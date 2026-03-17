@@ -1401,45 +1401,33 @@ function creerNouvelleEnveloppe(ancienneEnveloppeId) {
 function annulerEnvoi(enveloppeId) {
     if (!confirm('Annuler cet envoi ? Les billets repasseront dans la préparation des envois.')) return;
 
-    // 1. Récupérer l'enveloppe pour connaitre collecteur_alias + membre_email
+    var envData;
+
+    // 1. Récupérer l'enveloppe
     supabaseFetch('/rest/v1/enveloppes?id=eq.' + enveloppeId + '&select=*')
         .then(function(enveloppes) {
-            if (!enveloppes || enveloppes.length === 0) return;
-            var env = enveloppes[0];
+            if (!enveloppes || enveloppes.length === 0) throw new Error('Enveloppe introuvable');
+            envData = enveloppes[0];
 
-            // 2. Remettre les inscriptions en pret_a_envoyer
+            // 2. S'assurer qu'une enveloppe en_cours existe pour ce couple
+            return creerEnveloppeSiAbsente(envData.collecteur_alias, envData.membre_email);
+        })
+        .then(function() {
+            // 3. Récupérer l'id de l'enveloppe en_cours cible
+            return supabaseFetch('/rest/v1/enveloppes?collecteur_alias=eq.' + encodeURIComponent(envData.collecteur_alias) + '&membre_email=eq.' + encodeURIComponent(envData.membre_email) + '&statut=eq.en_cours&select=id');
+        })
+        .then(function(enCours) {
+            var cibleId = enCours[0].id;
+
+            // 4. Rattacher les inscriptions à l'enveloppe en_cours et remettre en pret_a_envoyer
             return supabaseFetch('/rest/v1/inscriptions?enveloppe_id=eq.' + enveloppeId + '&statut_livraison=eq.expedie', {
                 method: 'PATCH',
-                body: JSON.stringify({ statut_livraison: 'pret_a_envoyer', envoye: false })
-            })
-            .then(function() {
-                // 3. Vérifier s'il existe une enveloppe en_cours pour ce couple
-                return supabaseFetch('/rest/v1/enveloppes?collecteur_alias=eq.' + encodeURIComponent(env.collecteur_alias) + '&membre_email=eq.' + encodeURIComponent(env.membre_email) + '&statut=eq.en_cours&select=id');
-            })
-            .then(function(existantes) {
-                if (existantes && existantes.length > 0) {
-                    // Rattacher les inscriptions à l'enveloppe en_cours existante
-                    return supabaseFetch('/rest/v1/inscriptions?enveloppe_id=eq.' + enveloppeId + '&statut_livraison=eq.pret_a_envoyer', {
-                        method: 'PATCH',
-                        body: JSON.stringify({ enveloppe_id: existantes[0].id })
-                    })
-                    .then(function() {
-                        // Supprimer l'enveloppe expédiée annulée
-                        return supabaseFetch('/rest/v1/enveloppes?id=eq.' + enveloppeId, { method: 'DELETE' });
-                    });
-                } else {
-                    // Remettre l'enveloppe en en_cours
-                    return supabaseFetch('/rest/v1/enveloppes?id=eq.' + enveloppeId, {
-                        method: 'PATCH',
-                        body: JSON.stringify({
-                            statut: 'en_cours',
-                            mode_envoi_reel: null,
-                            numero_suivi: null,
-                            date_expedition: null
-                        })
-                    });
-                }
+                body: JSON.stringify({ enveloppe_id: cibleId, statut_livraison: 'pret_a_envoyer', envoye: false })
             });
+        })
+        .then(function() {
+            // 5. Supprimer l'enveloppe expédiée
+            return supabaseFetch('/rest/v1/enveloppes?id=eq.' + enveloppeId, { method: 'DELETE' });
         })
         .then(function() {
             showToast('Envoi annulé — billets replacés dans la préparation');
