@@ -883,7 +883,8 @@ function renderEnveloppesListe(enveloppes, inscriptions, billetsMap) {
             var demandeHtml = '';
             if (env.demande_envoi) {
                 var dateStr = env.date_demande_envoi ? new Date(env.date_demande_envoi).toLocaleDateString('fr-FR') : '';
-                demandeHtml = '<span class="badge-demande-envoi">⚡ Demande d\'envoi (' + dateStr + ')</span>';
+                var modeLabel = { normal: 'Normal', suivi: 'Suivi', recommande_r1: 'R1', recommande_r2: 'R2', recommande_r3: 'R3' }[env.mode_envoi] || '';
+                demandeHtml = '<span class="badge-demande-envoi">⚡ Demande d\'envoi le ' + dateStr + (modeLabel ? ' — ' + modeLabel : '') + '</span>';
             }
 
             html += '<div class="envoi-groupe" onclick="openEnveloppeDetail(' + env.id + ')" style="cursor:pointer">'
@@ -1147,7 +1148,8 @@ function renderEnveloppeDetail(inscriptions, billetsMap) {
     html += '<span class="envoi-adresse">' + escapeHtmlMC(adresseStr || 'Adresse non renseignée') + '</span>';
     if (env.demande_envoi) {
         var dateStr = env.date_demande_envoi ? new Date(env.date_demande_envoi).toLocaleDateString('fr-FR') : '';
-        html += '<span class="badge-demande-envoi">⚡ Demande d\'envoi (' + dateStr + ')</span>';
+        var modeLabelDetail = { normal: 'Normal', suivi: 'Suivi', recommande_r1: 'Recommandé R1', recommande_r2: 'Recommandé R2', recommande_r3: 'Recommandé R3' }[env.mode_envoi] || '';
+        html += '<span class="badge-demande-envoi">⚡ Demande d\'envoi le ' + dateStr + (modeLabelDetail ? ' — envoi ' + modeLabelDetail : '') + '</span>';
     }
     html += '</div>';
 
