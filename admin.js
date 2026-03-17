@@ -468,11 +468,17 @@ function loadAdminBillets() {
 // 4a-bis. CHARGEMENT DES COMPTEURS D'INSCRIPTIONS
 // ============================================================
 function loadAdminInscriptionCounts() {
-    supabaseFetch('/rest/v1/inscriptions?select=billet_id&pas_interesse=eq.false')
+    supabaseFetch('/rest/v1/inscriptions?select=billet_id,nb_normaux,nb_variantes&pas_interesse=eq.false')
         .then(function(data) {
             adminInscriptionCounts = {};
             (data || []).forEach(function(row) {
-                adminInscriptionCounts[row.billet_id] = (adminInscriptionCounts[row.billet_id] || 0) + 1;
+                if (!adminInscriptionCounts[row.billet_id]) {
+                    adminInscriptionCounts[row.billet_id] = { count: 0, normaux: 0, variantes: 0 };
+                }
+                var c = adminInscriptionCounts[row.billet_id];
+                c.count++;
+                c.normaux += (row.nb_normaux || 0);
+                c.variantes += (row.nb_variantes || 0);
             });
             // Re-render si les billets sont déjà chargés
             if (adminBillets.length > 0) renderAdminCards();
@@ -680,9 +686,22 @@ function renderAdminCards() {
             })() +
             // Badge compteur inscriptions
             (function() {
-                var count = adminInscriptionCounts[docId] || 0;
+                var data = adminInscriptionCounts[docId] || { count: 0, normaux: 0, variantes: 0 };
+                var count = data.count;
+                var detail = '';
+                if (count > 0) {
+                    var parts = [];
+                    if (data.normaux > 0) parts.push(data.normaux + ' billet' + (data.normaux > 1 ? 's' : '') + ' normaux');
+                    if (data.variantes > 0) {
+                        var varLabel = billet.HasVariante || 'variante';
+                        if (varLabel === 'anniversary') varLabel = 'anniv';
+                        else if (varLabel === 'doré') varLabel = 'dorés';
+                        parts.push(data.variantes + ' billet' + (data.variantes > 1 ? 's' : '') + ' ' + varLabel);
+                    }
+                    if (parts.length > 0) detail = ' (' + parts.join(', ') + ')';
+                }
                 return '<button class="admin-card-inscriptions-badge" onclick="openInscriptionsModal(' + docId + ')" title="Voir les inscriptions">' +
-                    '<i class="fa-solid fa-users"></i> ' + count + ' inscription' + (count !== 1 ? 's' : '') +
+                    '<i class="fa-solid fa-users"></i> ' + count + ' inscription' + (count !== 1 ? 's' : '') + detail +
                     '</button>';
             })() +
             // Story 2.3/2.4 — Boutons d'action
@@ -2130,6 +2149,8 @@ function showCollecteQuickForm(docId, billetData) {
           '</div>'
         : '';
 
+    var existingPayerFDP = billetData.PayerFDP === 'oui';
+
     var formHtml =
         '<div class="quick-collecte-form" id="quick-collecte-form-' + docId + '">' +
             '<p class="quick-collecte-form__title">Infos requises pour passer en Collecte</p>' +
@@ -2141,6 +2162,9 @@ function showCollecteQuickForm(docId, billetData) {
             '</div>' +
             prixNormalHtml +
             prixVarianteHtml +
+            '<div class="quick-collecte-form__field quick-collecte-form__field--checkbox">' +
+                '<label><input type="checkbox" id="quick-payer-fdp-' + docId + '"' + (existingPayerFDP ? ' checked' : '') + '> Payer les frais de port</label>' +
+            '</div>' +
             '<div class="quick-collecte-form__actions">' +
                 '<button type="button" class="quick-collecte-form__btn quick-collecte-form__btn--cancel" onclick="cancelQuickCollecte(\'' + docId + '\')">Annuler</button>' +
                 '<button type="button" class="quick-collecte-form__btn quick-collecte-form__btn--confirm" onclick="confirmQuickCollecte(\'' + docId + '\')">Valider</button>' +
@@ -2175,11 +2199,13 @@ function confirmQuickCollecte(docId) {
     var collecteurSelect = document.getElementById('quick-collecteur-' + docId);
     var prixInput = document.getElementById('quick-prix-' + docId);
     var prixVarianteInput = document.getElementById('quick-prix-variante-' + docId);
+    var payerFdpCheckbox = document.getElementById('quick-payer-fdp-' + docId);
     if (!collecteurSelect) return;
 
     var collecteur = collecteurSelect.value;
     var prix = prixInput ? prixInput.value : '';
     var prixVariante = prixVarianteInput ? prixVarianteInput.value : '';
+    var payerFDP = payerFdpCheckbox && payerFdpCheckbox.checked ? 'oui' : '';
 
     // Validation
     var errors = [];
@@ -2208,7 +2234,7 @@ function confirmQuickCollecte(docId) {
         DateFin: billetData ? billetData.DateFin : null
     };
     var dateUpdates = getDateUpdatesForStatusChange(previousStatus, newStatus, existingDates);
-    var patchBody = Object.assign({ Categorie: newStatus, Collecteur: collecteur }, dateUpdates);
+    var patchBody = Object.assign({ Categorie: newStatus, Collecteur: collecteur, PayerFDP: payerFDP }, dateUpdates);
     if (prixInput) patchBody.Prix = parseFloat(prix);
     if (prixVarianteInput) patchBody.PrixVariante = parseFloat(prixVariante);
 
@@ -2224,6 +2250,7 @@ function confirmQuickCollecte(docId) {
             updateInMemoryStatus(docId, newStatus);
             if (billetData) {
                 billetData.Collecteur = collecteur;
+                billetData.PayerFDP = payerFDP;
                 if (prixInput) billetData.Prix = parseFloat(prix);
                 if (prixVarianteInput) billetData.PrixVariante = parseFloat(prixVariante);
                 for (var dateKey in dateUpdates) {
