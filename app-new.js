@@ -45,6 +45,27 @@ function getTextColorForBg(hex) {
     return (r * 0.299 + g * 0.587 + b * 0.114) > 150 ? '#000' : '#fff';
 }
 
+// Resolution image — priorite ImageUrl (Cloudinary) > ImageId (Google Drive)
+function resolveImageUrl(item, size) {
+    if (item.ImageUrl) {
+        return item.ImageUrl.replace('/upload/', '/upload/f_auto,q_auto,w_' + (size || 800) + '/');
+    }
+    if (item.ImageId) {
+        return 'https://drive.google.com/thumbnail?id=' + item.ImageId + '&sz=w' + (size || 800);
+    }
+    return '';
+}
+
+function resolveDownloadUrl(item) {
+    if (item.ImageUrl) {
+        return item.ImageUrl;
+    }
+    if (item.ImageId) {
+        return 'https://drive.usercontent.google.com/download?id=' + item.ImageId;
+    }
+    return '#';
+}
+
 // Référence au slider (div vide dans le HTML)
 var dateSlider = document.getElementById('date-slider');
 
@@ -429,16 +450,16 @@ function showMore() {
 
     var html = "";
     batch.forEach(function(item) {
-        // Image HD
-        var imgUrl = item.ImageId ? 'https://drive.google.com/thumbnail?id=' + item.ImageId + '&sz=w800' : '';
-        var downloadLink = item.ImageId ? 'https://drive.usercontent.google.com/download?id=' + item.ImageId : '#';
+        // Image — priorité ImageUrl (Cloudinary) > ImageId (Google Drive)
+        var imgUrl = resolveImageUrl(item, 800);
+        var downloadLink = resolveDownloadUrl(item);
         var couleur = getCategorieColor(item.Categorie);
 
         if (isGalleryMode) {
             // RENDU MODE GALERIE
             html +=
                 '<div class="galerie-item" onclick="openModal(\'' + imgUrl + '\')">' +
-                (item.ImageId
+                (imgUrl
                     ? '<img src="' + imgUrl + '" class="galerie-image" alt="' + (item.NomBillet || 'Billet') + '">'
                     : '<div style="text-align:center; color:#999; font-size:0.8em; padding:10px;">Image manquante<br>' + (item.Reference || '') + '</div>'
                 ) +
@@ -517,7 +538,7 @@ function showMore() {
                 (item.LinkFB
                     ? '<a href="' + item.LinkFB + '" target="_blank" class="icon-btn ico-fb" title="Voir sur Facebook"><i class="fa-brands fa-facebook"></i></a>'
                     : '') +
-                (item.ImageId
+                (imgUrl
                     ? '<a href="' + downloadLink + '" target="_blank" class="icon-btn ico-dl" title="Télécharger l\'image HD"><i class="fa-solid fa-download"></i></a>'
                     : '') +
                 '<span style="font-size:10px; color:#ccc; align-self:center;">(n°' + (item.id || '') + ')</span>' +
@@ -563,8 +584,12 @@ function openModal(imgUrl) {
 
     modal.classList.remove('hidden');
 
-    // Utiliser une taille d'image plus grande pour le zoom
-    modalImg.src = imgUrl.replace('sz=w800', 'sz=w1600');
+    // Zoom : résolution plus grande selon la source
+    if (imgUrl.indexOf('cloudinary.com') !== -1) {
+        modalImg.src = imgUrl.replace('/w_800/', '/w_1600/');
+    } else {
+        modalImg.src = imgUrl.replace('sz=w800', 'sz=w1600');
+    }
 
     // Empêche le scroll de la page derrière
     document.body.style.overflow = 'hidden';
