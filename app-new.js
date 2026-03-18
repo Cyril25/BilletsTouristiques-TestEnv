@@ -2,6 +2,24 @@
 // CONFIGURATION — Version Supabase (Story 4.7)
 // ============================================================
 
+// SEC-02 — Fonctions d'echappement pour empecher les XSS
+function escapeHtml(text) {
+    var div = document.createElement('div');
+    div.appendChild(document.createTextNode(text));
+    return div.innerHTML;
+}
+
+function escapeAttr(text) {
+    return String(text).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function sanitizeUrl(url) {
+    if (!url) return '';
+    var trimmed = url.trim();
+    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+    return '';
+}
+
 var allData = [];
 var currentData = [];
 var displayedCount = 0;
@@ -58,7 +76,7 @@ function resolveImageUrl(item, size) {
         return item.ImageUrl.replace('/upload/', '/upload/f_auto,q_auto,w_' + (size || 800) + '/');
     }
     if (item.ImageId) {
-        return 'https://drive.google.com/thumbnail?id=' + item.ImageId + '&sz=w' + (size || 800);
+        return 'https://drive.google.com/thumbnail?id=' + encodeURIComponent(item.ImageId) + '&sz=w' + (size || 800);
     }
     return '';
 }
@@ -68,7 +86,7 @@ function resolveDownloadUrl(item) {
         return item.ImageUrl;
     }
     if (item.ImageId) {
-        return 'https://drive.usercontent.google.com/download?id=' + item.ImageId;
+        return 'https://drive.usercontent.google.com/download?id=' + encodeURIComponent(item.ImageId);
     }
     return '#';
 }
@@ -151,7 +169,7 @@ function fetchData() {
                     '<div style="grid-column:1/-1; text-align:center; padding:40px; color:#CC4444;">' +
                     '<i class="fa-solid fa-circle-exclamation" style="font-size:2em; margin-bottom:12px; display:block;"></i>' +
                     '<strong>Impossible de charger les billets.</strong><br>' +
-                    '<span style="color:#666; font-size:0.9em;">' + (err.message || 'Erreur réseau') + ' — Réessaye dans quelques instants.</span>' +
+                    '<span style="color:#666; font-size:0.9em;">' + escapeHtml(err.message || 'Erreur réseau') + ' — Réessaye dans quelques instants.</span>' +
                     '</div>';
             }
         });
@@ -276,7 +294,7 @@ function populateFilters() {
             }
         });
         unique.sort().forEach(function(val) {
-            h += '<option value="' + val + '"' + (val === currentVal ? ' selected' : '') + '>' + val + '</option>';
+            h += '<option value="' + escapeAttr(val) + '"' + (val === currentVal ? ' selected' : '') + '>' + escapeHtml(val) + '</option>';
         });
         select.innerHTML = h;
     });
@@ -319,7 +337,7 @@ function renderBilletsStatusCounters(filteredData) {
             (isActive ? 'true' : 'false') +
             '" style="border-left-color: ' + color + ';">' +
             '<span class="admin-status-counter__count">' + counts[statut] + '</span>' +
-            '<span class="admin-status-counter__label">' + statut + '</span></button>';
+            '<span class="admin-status-counter__label">' + escapeHtml(statut) + '</span></button>';
     });
 
     container.innerHTML = html;
@@ -425,13 +443,13 @@ function renderListTable() {
         html +=
             '<tr>' +
             '<td>' + (item.id || '') + '</td>' +
-            '<td>' + (item.Millesime || 'XXXX') + '-' + (item.Version || 'X') + '</td>' +
-            '<td>' + (item.Dep || '') + '</td>' +
-            '<td class="col-ref">' + (item.Reference || '') + '</td>' +
-            '<td>' + (item.Ville || '') + '</td>' +
-            '<td>' + (item.NomBillet || '') + '</td>' +
-            '<td>' + (item.Collecteur || '') + '</td>' +
-            '<td class="col-comment">' + (item.Commentaire || '') + '</td>' +
+            '<td>' + escapeHtml((item.Millesime || 'XXXX') + '-' + (item.Version || 'X')) + '</td>' +
+            '<td>' + escapeHtml(item.Dep || '') + '</td>' +
+            '<td class="col-ref">' + escapeHtml(item.Reference || '') + '</td>' +
+            '<td>' + escapeHtml(item.Ville || '') + '</td>' +
+            '<td>' + escapeHtml(item.NomBillet || '') + '</td>' +
+            '<td>' + escapeHtml(item.Collecteur || '') + '</td>' +
+            '<td class="col-comment">' + escapeHtml(item.Commentaire || '') + '</td>' +
             '</tr>';
     });
 
@@ -467,10 +485,10 @@ function showMore() {
         if (isGalleryMode) {
             // RENDU MODE GALERIE
             html +=
-                '<div class="galerie-item" onclick="openModal(\'' + imgUrl + '\')">' +
+                '<div class="galerie-item" onclick="openModal(\'' + escapeAttr(imgUrl) + '\')">' +
                 (imgUrl
-                    ? '<img src="' + imgUrl + '" class="galerie-image" alt="' + (item.NomBillet || 'Billet') + '">'
-                    : '<div style="text-align:center; color:#999; font-size:0.8em; padding:10px;">Image manquante<br>' + (item.Reference || '') + '</div>'
+                    ? '<img src="' + escapeAttr(imgUrl) + '" class="galerie-image" alt="' + escapeAttr(item.NomBillet || 'Billet') + '">'
+                    : '<div style="text-align:center; color:#999; font-size:0.8em; padding:10px;">Image manquante<br>' + escapeHtml(item.Reference || '') + '</div>'
                 ) +
                 '</div>';
 
@@ -481,24 +499,24 @@ function showMore() {
             html +=
                 '<div class="global-container' + (pasInteresse ? ' carte-pas-interesse' : '') + '" data-billet-id="' + item.id + '" style="border-top: 8px solid ' + couleur + ';">' +
                 '<div class="header-container">' +
-                '<div class="image-bg" style="background: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.6) 100%), url(' + imgUrl + ') no-repeat;"></div>' +
+                '<div class="image-bg" style="background: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.6) 100%), url(' + escapeAttr(imgUrl) + ') no-repeat;"></div>' +
                 '<div class="category" style="background-color: ' + couleur + '; color: ' + (item.Categorie === 'Pré collecte' ? '#9e9e9eff' : 'white') + ';">' +
-                (item.Categorie || '') +
+                escapeHtml(item.Categorie || '') +
                 '</div>' +
                 '</div>' +
                 '<div class="city-strip" style="color: ' + couleur + '; background-color: color-mix(in srgb, ' + couleur + ', #e0e0e0 70%);">' +
-                (item.Ville || '') +
+                escapeHtml(item.Ville || '') +
                 '</div>' +
                 '<div class="content">' +
                 '<div class="description">' +
-                (item.Dep || '') + ' ' + (item.Reference || '') + ' ' + (item.Millesime || '') + '-' + (item.Version || '') + '<br />' +
-                (item.Cp || '') + ' ' + (item.Ville || '') + '<br />' +
-                (item.NomBillet || '') +
+                escapeHtml(item.Dep || '') + ' ' + escapeHtml(item.Reference || '') + ' ' + escapeHtml(item.Millesime || '') + '-' + escapeHtml(item.Version || '') + '<br />' +
+                escapeHtml(item.Cp || '') + ' ' + escapeHtml(item.Ville || '') + '<br />' +
+                escapeHtml(item.NomBillet || '') +
                 '</div>' +
                 buildVersionBadgesHtml(item) +
                 (function() {
                     var parts = [];
-                    if (item.Collecteur) parts.push('Par ' + item.Collecteur);
+                    if (item.Collecteur) parts.push('Par ' + escapeHtml(item.Collecteur));
 
                     var versionNormaleExiste = item.VersionNormaleExiste !== false;
                     var varianteVal = item.HasVariante || '';
@@ -527,18 +545,18 @@ function showMore() {
                     }
 
                     if (parts.length === 0) return '';
-                    return '<div>' + parts.join(' ') + ' ' + (item.FDP_Com || '') + '</div>';
+                    return '<div>' + parts.join(' ') + ' ' + escapeHtml(item.FDP_Com || '') + '</div>';
                 })() +
                 '<div style="margin-top:15px;">' +
-                'Commentaire : ' + (item.Commentaire || '') +
+                'Commentaire : ' + escapeHtml(item.Commentaire || '') +
                 '</div>' +
                 '</div>' +
                 '<div class="more">' +
                 '<center>' +
                 '<table class="dates">' +
-                '<tr><td>Pré Collecte :</td><td><b>' + (item.DatePre || '') + '</b></td></tr>' +
-                '<tr><td>Collecte :</td><td><b>' + (item.DateColl || '') + '</b></td></tr>' +
-                '<tr><td>Terminé :</td><td><b>' + (item.DateFin || '') + '</b></td></tr>' +
+                '<tr><td>Pré Collecte :</td><td><b>' + escapeHtml(item.DatePre || '') + '</b></td></tr>' +
+                '<tr><td>Collecte :</td><td><b>' + escapeHtml(item.DateColl || '') + '</b></td></tr>' +
+                '<tr><td>Terminé :</td><td><b>' + escapeHtml(item.DateFin || '') + '</b></td></tr>' +
                 '</table>' +
                 '</center>' +
                 '</div>' +
@@ -546,17 +564,17 @@ function showMore() {
                 '<center>' + getCompteurBT(item) + '</center>' +
                 '</div>' +
                 '<div class="more action-icons">' +
-                (item.Sondage
-                    ? '<a href="' + item.Sondage + '" target="_blank" class="icon-btn ico-form" title="Répondre au sondage"><i class="fa-solid fa-clipboard-question"></i></a>'
+                (sanitizeUrl(item.Sondage)
+                    ? '<a href="' + escapeAttr(sanitizeUrl(item.Sondage)) + '" target="_blank" class="icon-btn ico-form" title="Répondre au sondage"><i class="fa-solid fa-clipboard-question"></i></a>'
                     : '') +
-                (item.LinkSheet
-                    ? '<a href="' + item.LinkSheet + '" target="_blank" class="icon-btn ico-sheet" title="Voir le fichier Excel"><i class="fa-solid fa-file-csv"></i></a>'
+                (sanitizeUrl(item.LinkSheet)
+                    ? '<a href="' + escapeAttr(sanitizeUrl(item.LinkSheet)) + '" target="_blank" class="icon-btn ico-sheet" title="Voir le fichier Excel"><i class="fa-solid fa-file-csv"></i></a>'
                     : '') +
-                (item.LinkFB
-                    ? '<a href="' + item.LinkFB + '" target="_blank" class="icon-btn ico-fb" title="Voir sur Facebook"><i class="fa-brands fa-facebook"></i></a>'
+                (sanitizeUrl(item.LinkFB)
+                    ? '<a href="' + escapeAttr(sanitizeUrl(item.LinkFB)) + '" target="_blank" class="icon-btn ico-fb" title="Voir sur Facebook"><i class="fa-brands fa-facebook"></i></a>'
                     : '') +
                 (imgUrl
-                    ? '<a href="' + downloadLink + '" target="_blank" class="icon-btn ico-dl" title="Télécharger l\'image HD"><i class="fa-solid fa-download"></i></a>'
+                    ? '<a href="' + escapeAttr(downloadLink) + '" target="_blank" class="icon-btn ico-dl" title="Télécharger l\'image HD"><i class="fa-solid fa-download"></i></a>'
                     : '') +
                 '<span style="font-size:10px; color:#ccc; align-self:center;">(n°' + (item.id || '') + ')</span>' +
                 '</div>' +
@@ -754,7 +772,7 @@ function buildVersionBadgesHtml(item) {
         html += '<span class="version-badge version-badge--warning"><i class="fa-solid fa-triangle-exclamation"></i> Pas de version normale</span>';
     }
     if (varianteActive) {
-        html += '<span class="version-badge version-badge--variante"><i class="fa-solid fa-star"></i> ' + varianteVal + '</span>';
+        html += '<span class="version-badge version-badge--variante"><i class="fa-solid fa-star"></i> ' + escapeHtml(varianteVal) + '</span>';
     } else if (varianteVal === 'N') {
         html += '<span class="version-badge version-badge--no-variante">Pas de variante</span>';
     }
@@ -783,7 +801,7 @@ function buildInscriptionHtml(item) {
         var collecteurInfo = collecteursMap[item.Collecteur] || {};
         var contactEmail = collecteurInfo.paypal_email || '';
         if (contactEmail) {
-            html += '<a href="mailto:' + contactEmail + '" class="btn-contacter-collecteur">Contacter le collecteur</a>';
+            html += '<a href="mailto:' + escapeAttr(contactEmail) + '" class="btn-contacter-collecteur">Contacter le collecteur</a>';
         }
     } else if (inscription && inscription.pas_interesse) {
         // Pas intéressé

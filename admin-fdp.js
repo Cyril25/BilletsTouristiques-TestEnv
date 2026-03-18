@@ -80,7 +80,11 @@ function fdpLoadYear() {
             fdpRender();
         })
         .catch(function(err) {
-            container.innerHTML = '<p style="text-align:center; padding:40px; color:#CC4444;">Erreur : ' + err.message + '</p>';
+            var errDiv = document.createElement('p');
+            errDiv.style.cssText = 'text-align:center; padding:40px; color:#CC4444;';
+            errDiv.textContent = 'Erreur : ' + (err.message || 'Erreur réseau');
+            container.innerHTML = '';
+            container.appendChild(errDiv);
         });
 }
 
@@ -285,7 +289,10 @@ function fdpShowNotification(message, type) {
 
     var div = document.createElement('div');
     div.className = 'fdp-notification fdp-notification--' + type;
-    div.innerHTML = '<i class="fa-solid ' + (type === 'success' ? 'fa-circle-check' : 'fa-circle-exclamation') + '"></i> ' + message;
+    var icon = document.createElement('i');
+    icon.className = 'fa-solid ' + (type === 'success' ? 'fa-circle-check' : 'fa-circle-exclamation');
+    div.appendChild(icon);
+    div.appendChild(document.createTextNode(' ' + message));
     document.getElementById('fdp-content').prepend(div);
 
     setTimeout(function() { div.remove(); }, 5000);

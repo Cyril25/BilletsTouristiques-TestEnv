@@ -1,6 +1,6 @@
 # Analyse de Securite — BilletsTouristiques
 
-**Date** : 2026-03-17
+**Date** : 2026-03-17 (mise a jour : 2026-03-18)
 **Contexte** : Audit pre-cutover (migration Google Sheet → Supabase)
 **Methode** : 3 revues independantes (code review, adversarial general, edge case hunter)
 
@@ -8,10 +8,13 @@
 
 ## Resume executif
 
-- **1 faille CRITIQUE** : escalade de privileges (membre → admin)
-- **4 failles ELEVEES** : XSS stocke, CORS wildcard, service_role key exposee, champ arbitraire dans PATCH
-- **6 failles MOYENNES** : garde admin client-side, fuite d'erreur, pas de rate limiting, race conditions
-- **5 failles BASSES** : bug JS, pas de CSP, credentials locaux, dropdown injection
+- ~~**1 faille CRITIQUE** : escalade de privileges (membre → admin)~~ → **FIXE** (deploye)
+- **4 failles ELEVEES** : ~~XSS stocke~~, ~~CORS wildcard~~, ~~service_role key exposee~~, ~~champ arbitraire dans PATCH~~ → **TOUTES FIXEES**
+- **6 failles MOYENNES** : garde admin client-side, ~~fuite d'erreur~~, pas de rate limiting, ~~race conditions~~ → 2 restantes
+- **5 failles BASSES** : ~~bug JS~~, pas de CSP, ~~credentials locaux~~, ~~dropdown injection~~ → 1 restante
+- **3 nouvelles failles identifiees (18 mars)** : XSS dans app-new.js, RLS enveloppes trop permissive, RLS collecteurs trop permissive → **TOUTES FIXEES**
+
+**Bilan final : 19 failles — 15 fixees/deployees, 2 risques acceptes, 2 faux positifs/N.A. Aucune faille ouverte.**
 
 ---
 
@@ -204,11 +207,45 @@ CREATE POLICY "membres_update_own_profile"
 
 ---
 
+## Nouvelles failles identifiees (18 mars 2026)
+
+### SEC-17 — XSS systematique dans app-new.js (annuaire Supabase)
+
+| | |
+|---|---|
+| **Fichiers** | `app-new.js` (filtres, mode liste, galerie, collecte, compteurs, badges) |
+| **Source** | Revue de code du 18 mars |
+| **Description** | Le fichier `app-new.js` n'avait aucune fonction d'echappement. Tous les champs utilisateur (NomBillet, Ville, Commentaire, Reference, Collecteur, etc.) etaient injectes bruts dans `innerHTML` dans les 3 modes d'affichage + filtres + compteurs. Les URLs (Sondage, LinkSheet, LinkFB) n'etaient pas validees. |
+| **Impact** | XSS stocke dans la nouvelle version de l'annuaire. |
+| **Fix** | Ajout de `escapeHtml()`, `escapeAttr()`, `sanitizeUrl()` + application systematique a toutes les interpolations. `encodeURIComponent()` pour les ImageId dans les URLs. |
+
+### SEC-18 — RLS enveloppes : membres peuvent modifier tous les champs
+
+| | |
+|---|---|
+| **Fichiers** | `scripts/migration-5-7b-enveloppes.sql:65-69` |
+| **Source** | Revue RLS du 18 mars |
+| **Description** | La policy `enveloppes_membre_update` permettait a un membre de modifier **tous les champs** de ses enveloppes via PATCH direct : `statut`, `mode_envoi_reel`, `numero_suivi`, `date_expedition`. |
+| **Impact** | Contournement du workflow d'expedition. Un membre peut marquer une enveloppe comme expediee, falsifier le numero de suivi ou la date d'expedition. |
+| **Fix** | Migration `scripts/migration-sec-enveloppes-restrict-member.sql` : le membre ne peut plus modifier que `demande_envoi`, `date_demande_envoi`, et passer `statut` a `'recue'` uniquement. |
+
+### SEC-19 — RLS collecteurs : modification de champs non autorises (billets + inscriptions)
+
+| | |
+|---|---|
+| **Fichiers** | `supabase-setup.sql:155-166, 249-264` |
+| **Source** | Revue RLS du 18 mars |
+| **Description** | Les policies `billets_update_collecteur` et `inscriptions_update_collecteur` ne restreignaient pas les colonnes. Un collecteur pouvait modifier les prix, la reference, le collecteur assigne (billets) ou le membre, les quantites (inscriptions) via PATCH direct. |
+| **Impact** | Modification non autorisee de donnees financieres et d'identite. |
+| **Fix** | Migration `scripts/migration-sec-collecteur-restrict-fields.sql` : verrouillage des champs sensibles (Prix, PrixVariante, Reference, Collecteur pour billets ; membre_email, nb_normaux, nb_variantes, billet_id pour inscriptions). |
+
+---
+
 ## Plan de remediation
 
 | Statut | Findings | Action |
 |--------|----------|--------|
-| FIXE (code) | SEC-01 | Migration SQL creee (`scripts/migration-sec-01-restrict-self-update.sql`) — **A EXECUTER sur Supabase Dashboard** |
+| **DEPLOYE** | SEC-01 | Migration SQL executee sur Supabase (restriction colonne `role`) |
 | FIXE | SEC-02 | Echappement HTML/URL dans `app.js` (escapeHtml, escapeAttr, sanitizeUrl) |
 | FIXE | SEC-03 | Echappement HTML dans `mes-collectes.js` + delegation d'evenements |
 | FIXE | SEC-04 | CORS wildcard supprime dans `worker.js` |
@@ -220,7 +257,11 @@ CREATE POLICY "membres_update_own_profile"
 | FIXE | SEC-14 | Echappement des valeurs de filtre dans `app.js` |
 | FIXE | SEC-15 | Reponse 201 geree correctement dans `supabaseFetch` |
 | N/A | SEC-11 | Deja encode via `encodeURIComponent` — faux positif |
-| A FAIRE | SEC-06 | Garde admin server-side (optionnel si SEC-01 fixe) |
-| A FAIRE | SEC-08 | Rate limiting (Cloudflare + Supabase) |
-| A FAIRE | SEC-13 | Content Security Policy headers |
-| A FAIRE | SEC-16 | Cleanup fichiers credentials dupliques |
+| **DEPLOYE** | SEC-17 | Echappement XSS complet dans `app-new.js` (escapeHtml, escapeAttr, sanitizeUrl) |
+| **DEPLOYE** | SEC-18 | RLS enveloppes restreinte (`migration-sec-enveloppes-restrict-member.sql`) |
+| **DEPLOYE** | SEC-19 | RLS collecteurs restreinte (`migration-sec-collecteur-restrict-fields.sql`) |
+| FIXE | admin-fdp | Echappement messages d'erreur dans `admin-fdp.js` (textContent au lieu d'innerHTML) |
+| ACCEPTE | SEC-06 | Garde admin client-side : risque accepte — SEC-01 deploye, RLS protege le backend, impact limite a voir l'interface sans pouvoir agir |
+| ACCEPTE | SEC-08 | Rate limiting : risque accepte — Supabase a un rate limiting natif, le Worker necessite une cle API |
+| **DEPLOYE** | SEC-13 | CSP meta tag ajoutee aux 16 pages HTML (script-src, style-src, connect-src, img-src, font-src, frame-src) |
+| **FIXE** | SEC-16 | Doublon credentials supprime (`asso-billet-site-firebase-adminsdk-fbsvc-*.json`), seul `service-account.json` conserve |
