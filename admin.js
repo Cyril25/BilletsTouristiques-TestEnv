@@ -1147,7 +1147,7 @@ function openBilletPanel(billetData, docId) {
                         var hint = document.createElement('small');
                         hint.className = 'collecteur-frozen-hint';
                         hint.textContent = 'Collecteur figé — des inscriptions existent pour ce billet';
-                        collecteurSelect.parentNode.appendChild(hint);
+                        if (collecteurSelect.parentNode) collecteurSelect.parentNode.appendChild(hint);
                     }
                     // Gel de VersionNormaleExiste
                     var cbNormale = document.getElementById('field-version-normale');
@@ -2457,7 +2457,11 @@ function handleAddBillet() {
  */
 function hasInscriptions(billetId) {
     return supabaseFetch('/rest/v1/inscriptions?billet_id=eq.' + billetId + '&pas_interesse=eq.false&select=id&limit=1')
-        .then(function(data) { return data && data.length > 0; });
+        .then(function(data) { return data && data.length > 0; })
+        .catch(function(error) {
+            console.warn('Erreur vérification inscriptions:', error);
+            return false;
+        });
 }
 
 // Reset des champs Google (retirer readonly, badges, afficher)

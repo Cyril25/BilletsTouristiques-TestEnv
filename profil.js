@@ -127,12 +127,19 @@ function saveProfil() {
     var user = firebase.auth().currentUser;
     if (!user) return;
 
-    var nom = document.getElementById('profil-nom').value.trim();
-    var prenom = document.getElementById('profil-prenom').value.trim();
-    var rue = document.getElementById('profil-rue').value.trim();
-    var codePostal = document.getElementById('profil-code-postal').value.trim();
-    var ville = document.getElementById('profil-ville').value.trim();
-    var pays = document.getElementById('profil-pays').value.trim();
+    var nomEl = document.getElementById('profil-nom');
+    var prenomEl = document.getElementById('profil-prenom');
+    var rueEl = document.getElementById('profil-rue');
+    var codePostalEl = document.getElementById('profil-code-postal');
+    var villeEl = document.getElementById('profil-ville');
+    var paysEl = document.getElementById('profil-pays');
+    if (!nomEl || !prenomEl || !rueEl || !codePostalEl || !villeEl || !paysEl) return;
+    var nom = nomEl.value.trim();
+    var prenom = prenomEl.value.trim();
+    var rue = rueEl.value.trim();
+    var codePostal = codePostalEl.value.trim();
+    var ville = villeEl.value.trim();
+    var pays = paysEl.value.trim();
 
     // Validation
     if (!nom || !prenom || !rue || !codePostal || !ville || !pays) {

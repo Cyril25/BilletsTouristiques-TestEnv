@@ -146,9 +146,9 @@ function renderInscriptions() {
         var paypalLink = '';
         if (statut === 'non_paye' && insc.mode_paiement === 'PayPal' && billet.Categorie !== 'Pré collecte') {
             if (collecteur.paypal_me) {
-                paypalLink = '<a href="https://paypal.me/' + collecteur.paypal_me + '/' + montantAvecFdp.toFixed(2) + '" target="_blank" class="btn-payer"><i class="fa-brands fa-paypal"></i> Payer via PayPal</a>';
+                paypalLink = '<a href="https://paypal.me/' + encodeURIComponent(collecteur.paypal_me) + '/' + montantAvecFdp.toFixed(2) + '" target="_blank" class="btn-payer"><i class="fa-brands fa-paypal"></i> Payer via PayPal</a>';
             } else if (collecteur.paypal_email) {
-                paypalLink = '<a href="https://www.paypal.com/paypalme/' + collecteur.paypal_email + '" target="_blank" class="btn-payer"><i class="fa-brands fa-paypal"></i> Payer via PayPal</a>';
+                paypalLink = '<a href="https://www.paypal.com/paypalme/' + encodeURIComponent(collecteur.paypal_email) + '" target="_blank" class="btn-payer"><i class="fa-brands fa-paypal"></i> Payer via PayPal</a>';
             }
         }
 
@@ -157,11 +157,11 @@ function renderInscriptions() {
 
         return '<div class="inscription-card">'
             + '<div class="inscription-card-header">'
-            + '<strong>' + (billet.NomBillet || 'Billet inconnu') + '</strong>'
-            + '<span class="inscription-ville"><i class="fa-solid fa-location-dot"></i> ' + (billet.Ville || '') + '</span>'
+            + '<strong>' + escapeHtml(billet.NomBillet || 'Billet inconnu') + '</strong>'
+            + '<span class="inscription-ville"><i class="fa-solid fa-location-dot"></i> ' + escapeHtml(billet.Ville || '') + '</span>'
             + '</div>'
             + '<div class="inscription-card-details">'
-            + '<span><i class="fa-solid fa-user"></i> ' + (billet.Collecteur || '\u2014') + '</span>'
+            + '<span><i class="fa-solid fa-user"></i> ' + escapeHtml(billet.Collecteur || '\u2014') + '</span>'
             + '<span><i class="fa-solid fa-ticket"></i> ' + (billet.VersionNormaleExiste === false ? (nbVariantes + ' var.') : (nbNormaux + (nbVariantes > 0 ? ' + ' + nbVariantes + ' var.' : ''))) + '</span>'
             + (billet.Categorie === 'Pré collecte'
                 ? '<span class="montant-indefini"><i class="fa-solid fa-euro-sign"></i> En attente</span>'

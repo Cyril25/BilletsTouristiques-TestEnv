@@ -605,8 +605,11 @@ function demanderExpeditionDirecte(inscriptionId, checkbox) {
 }
 
 function confirmerExpeditionDirecte(inscriptionId) {
-    var modeEnvoi = document.getElementById('exp-direct-mode').value;
-    var numeroSuivi = document.getElementById('exp-direct-suivi').value.trim() || null;
+    var modeEnvoiEl = document.getElementById('exp-direct-mode');
+    var numeroSuiviEl = document.getElementById('exp-direct-suivi');
+    if (!modeEnvoiEl || !numeroSuiviEl) return;
+    var modeEnvoi = modeEnvoiEl.value;
+    var numeroSuivi = numeroSuiviEl.value.trim() || null;
 
     // Trouver l'inscription pour son membre_email
     var inscription = null;
@@ -1439,8 +1442,11 @@ function annulerExpedition() {
 }
 
 function confirmerExpedition(enveloppeId) {
-    var modeEnvoi = document.getElementById('mode-envoi-reel').value;
-    var numeroSuivi = document.getElementById('numero-suivi').value.trim() || null;
+    var modeEnvoiEl = document.getElementById('mode-envoi-reel');
+    var numeroSuiviEl = document.getElementById('numero-suivi');
+    if (!modeEnvoiEl || !numeroSuiviEl) return;
+    var modeEnvoi = modeEnvoiEl.value;
+    var numeroSuivi = numeroSuiviEl.value.trim() || null;
 
     // 1. Mettre à jour l'enveloppe → expédiée
     supabaseFetch('/rest/v1/enveloppes?id=eq.' + enveloppeId, {
@@ -1510,6 +1516,10 @@ function annulerEnvoi(enveloppeId) {
             return supabaseFetch('/rest/v1/enveloppes?collecteur_alias=eq.' + encodeURIComponent(envData.collecteur_alias) + '&membre_email=eq.' + encodeURIComponent(envData.membre_email) + '&statut=eq.en_cours&select=id');
         })
         .then(function(enCours) {
+            if (!enCours || enCours.length === 0) {
+                showToastMC('Erreur : enveloppe cible introuvable', 'error');
+                return Promise.reject('enveloppe cible introuvable');
+            }
             var cibleId = enCours[0].id;
 
             // 4. Rattacher les inscriptions à l'enveloppe en_cours et remettre en pret_a_envoyer
@@ -1701,7 +1711,7 @@ function renderVerificationPaiement(inscriptions, billetsMap) {
                 payDateStr = ' (' + payDate.toLocaleDateString('fr-FR') + ')';
             }
             lignes += '<div class="envoi-ligne">'
-                + '<span class="envoi-billet">' + payRefPrefix + (billet.NomBillet || '?') + payDateStr + '</span>'
+                + '<span class="envoi-billet">' + escapeHtmlMC(payRefPrefix + (billet.NomBillet || '?') + payDateStr) + '</span>'
                 + '<span class="envoi-montant">' + montant + ' €</span>'
                 + badgePaiementEnvoi(insc.statut_paiement)
                 + '<button onclick="validerPaiementVue(' + insc.id + ')" class="btn-marquer-envoye" title="Confirmer le paiement"><i class="fa-solid fa-check"></i></button>'
