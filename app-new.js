@@ -160,16 +160,16 @@ function fetchData() {
             console.error("Erreur chargement Supabase :", err);
             if (counter) {
                 counter.innerText = "Erreur !";
-                counter.style.backgroundColor = "#CC4444";
-                counter.style.color = "white";
+                counter.style.backgroundColor = "var(--color-danger, #CC4444)";
+                counter.style.color = "#fff";
             }
             var grid = document.getElementById('cards-grid');
             if (grid) {
                 grid.innerHTML =
-                    '<div style="grid-column:1/-1; text-align:center; padding:40px; color:#CC4444;">' +
+                    '<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--color-danger, #CC4444);">' +
                     '<i class="fa-solid fa-circle-exclamation" style="font-size:2em; margin-bottom:12px; display:block;"></i>' +
                     '<strong>Impossible de charger les billets.</strong><br>' +
-                    '<span style="color:#666; font-size:0.9em;">' + escapeHtml(err.message || 'Erreur réseau') + ' — Réessaye dans quelques instants.</span>' +
+                    '<span style="color:var(--color-text-light, #666); font-size:0.9em;">' + escapeHtml(err.message || 'Erreur réseau') + ' — Réessaye dans quelques instants.</span>' +
                     '</div>';
             }
         });
@@ -196,9 +196,10 @@ function initSlider() {
     var maxTimestamp = Math.max.apply(null, dates);
 
     // 3. Si le slider existe déjà (re-chargement), on le détruit proprement
-    if (dateSlider.noUiSlider) {
+    if (dateSlider && dateSlider.noUiSlider) {
         dateSlider.noUiSlider.destroy();
     }
+    if (!dateSlider) return;
 
     // 4. Création du slider
     noUiSlider.create(dateSlider, {
@@ -500,7 +501,7 @@ function showMore() {
                 '<div class="global-container' + (pasInteresse ? ' carte-pas-interesse' : '') + '" data-billet-id="' + item.id + '" style="border-top: 8px solid ' + couleur + ';">' +
                 '<div class="header-container">' +
                 '<div class="image-bg" style="background: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.6) 100%), url(' + escapeAttr(imgUrl) + ') no-repeat;"></div>' +
-                '<div class="category" style="background-color: ' + couleur + '; color: ' + (item.Categorie === 'Pré collecte' ? '#9e9e9eff' : 'white') + ';">' +
+                '<div class="category" style="background-color: ' + couleur + '; color: ' + (item.Categorie === 'Pré collecte' ? 'var(--color-text-light, #9e9e9e)' : '#fff') + ';">' +
                 escapeHtml(item.Categorie || '') +
                 '</div>' +
                 '</div>' +
@@ -535,13 +536,13 @@ function showMore() {
 
                     if (!versionNormaleExiste && varianteActive && prixVar) {
                         // Uniquement variante
-                        parts.push('au prix de ' + prixVar + ' euros' + fdpInfo + ' uniquement ' + varianteVal);
+                        parts.push('au prix de ' + prixVar.toFixed(2) + ' euros' + fdpInfo + ' uniquement ' + varianteVal);
                     } else if (versionNormaleExiste && varianteActive && prixNormal) {
                         // Normale + variante
-                        parts.push('au prix de ' + prixNormal + ' euros version normale & ' + prixVar + ' euros version ' + varianteVal + fdpInfo);
+                        parts.push('au prix de ' + prixNormal.toFixed(2) + ' euros version normale & ' + prixVar.toFixed(2) + ' euros version ' + varianteVal + fdpInfo);
                     } else if (prixNormal) {
                         // Normale seule
-                        parts.push('au prix de ' + prixNormal + ' euros' + fdpInfo);
+                        parts.push('au prix de ' + prixNormal.toFixed(2) + ' euros' + fdpInfo);
                     }
 
                     if (parts.length === 0) return '';

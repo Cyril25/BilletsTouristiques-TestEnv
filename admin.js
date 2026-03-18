@@ -2164,8 +2164,8 @@ function showCollecteQuickForm(docId, billetData) {
                 '<label class="quick-collecte-form__checkbox-label"><input type="checkbox" id="quick-payer-fdp-' + docId + '"> Payer les frais de port</label>' +
             '</div>' +
             '<div class="quick-collecte-form__actions">' +
-                '<button type="button" class="quick-collecte-form__btn quick-collecte-form__btn--cancel" onclick="cancelQuickCollecte(\'' + docId + '\')">Annuler</button>' +
-                '<button type="button" class="quick-collecte-form__btn quick-collecte-form__btn--confirm" onclick="confirmQuickCollecte(\'' + docId + '\')">Valider</button>' +
+                '<button type="button" class="quick-collecte-form__btn quick-collecte-form__btn--cancel" onclick="cancelQuickCollecte(\'' + escapeAttr(String(docId)) + '\')">Annuler</button>' +
+                '<button type="button" class="quick-collecte-form__btn quick-collecte-form__btn--confirm" onclick="confirmQuickCollecte(\'' + escapeAttr(String(docId)) + '\')">Valider</button>' +
             '</div>' +
         '</div>';
 

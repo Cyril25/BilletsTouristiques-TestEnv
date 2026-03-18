@@ -1904,6 +1904,10 @@ function fermerRelance() {
 
 function escapeCSV(val) {
     var s = String(val == null ? '' : val);
+    // Prévention injection formule Excel (=, +, -, @)
+    if (s.length > 0 && '=+-@'.indexOf(s[0]) >= 0) {
+        s = "'" + s;
+    }
     if (s.indexOf(';') >= 0 || s.indexOf('"') >= 0 || s.indexOf('\n') >= 0 || s.indexOf('\r') >= 0) {
         return '"' + s.replace(/"/g, '""') + '"';
     }
