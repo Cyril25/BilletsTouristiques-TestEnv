@@ -81,6 +81,9 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
     const url = new URL(event.request.url);
 
+    // Ignorer les schémas non-HTTP (extensions Chrome, etc.)
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
+
     // Network Only pour les données dynamiques
     const isNetworkOnly = NETWORK_ONLY_ORIGINS.some(origin => url.hostname.includes(origin));
     if (isNetworkOnly) {
