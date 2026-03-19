@@ -3195,22 +3195,129 @@ body.login-page {
     gap: var(--spacing-sm);
 }
 
-.profil-phone-row select {
-    flex: 0 0 auto;
-    width: 220px;
+.profil-phone-row input[type="tel"] {
+    flex: 1;
     min-width: 0;
 }
 
-.profil-phone-row input {
+/* Dropdown indicatif custom */
+.indicatif-dropdown {
+    position: relative;
+    flex: 0 0 auto;
+    width: 180px;
+}
+
+.indicatif-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    width: 100%;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background-color: var(--color-text-inverse);
+    font-size: 1rem;
+    font-family: 'Roboto', sans-serif;
+    cursor: pointer;
+    transition: border-color var(--transition-fast);
+}
+
+.indicatif-btn:hover,
+.indicatif-btn:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(93, 58, 126, 0.15);
+    outline: none;
+}
+
+.indicatif-placeholder {
+    color: #999;
+}
+
+.indicatif-btn .indicatif-flag {
+    width: 20px;
+    height: 14px;
+    object-fit: cover;
+    border-radius: 2px;
+}
+
+.indicatif-list {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 100;
+    width: 280px;
+    max-height: 300px;
+    margin-top: 4px;
+    background: var(--color-text-inverse);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+}
+
+.indicatif-list.open {
+    display: flex;
+    flex-direction: column;
+}
+
+.indicatif-search {
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: none;
+    border-bottom: 1px solid var(--color-border);
+    font-size: 0.9rem;
+    font-family: 'Roboto', sans-serif;
+    outline: none;
+}
+
+.indicatif-options {
+    overflow-y: auto;
     flex: 1;
-    min-width: 0;
+}
+
+.indicatif-option {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+}
+
+.indicatif-option:hover {
+    background-color: var(--color-surface);
+}
+
+.indicatif-option .indicatif-flag {
+    width: 20px;
+    height: 14px;
+    object-fit: cover;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.indicatif-option .indicatif-nom {
+    flex: 1;
+    font-size: 0.9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.indicatif-option .indicatif-dial {
+    font-size: 0.85rem;
+    color: var(--color-secondary);
+    flex-shrink: 0;
 }
 
 @media (max-width: 480px) {
     .profil-phone-row {
         flex-direction: column;
     }
-    .profil-phone-row select {
+    .indicatif-dropdown {
+        width: 100%;
+    }
+    .indicatif-list {
         width: 100%;
     }
 }

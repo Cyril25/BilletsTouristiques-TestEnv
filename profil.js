@@ -125,21 +125,94 @@ var indicatifsList = [
     { code: 'HT', dial: '+509', nom: 'Haïti' }
 ];
 
-// Convertir code ISO 2 lettres en emoji drapeau
-function isoToFlag(code) {
-    return code.toUpperCase().replace(/./g, function(c) {
-        return String.fromCodePoint(0x1F1E6 + c.charCodeAt(0) - 65);
-    });
+// URL drapeau via flagcdn.com (20px de large)
+function flagUrl(code) {
+    return 'https://flagcdn.com/w40/' + code.toLowerCase() + '.png';
 }
 
 function loadIndicatifsList() {
-    var select = document.getElementById('profil-indicatif');
-    if (!select) return;
+    var container = document.getElementById('indicatif-options');
+    var btn = document.getElementById('indicatif-btn');
+    var hiddenInput = document.getElementById('profil-indicatif');
+    var list = document.getElementById('indicatif-list');
+    var search = document.getElementById('indicatif-search');
+    if (!container || !btn || !hiddenInput) return;
+
+    // Générer les options
     indicatifsList.forEach(function(item) {
-        var option = document.createElement('option');
-        option.value = item.dial;
-        option.textContent = isoToFlag(item.code) + ' ' + item.nom + ' (' + item.dial + ')';
-        select.appendChild(option);
+        var div = document.createElement('div');
+        div.className = 'indicatif-option';
+        div.setAttribute('data-dial', item.dial);
+        div.setAttribute('data-nom', item.nom.toLowerCase());
+        div.setAttribute('data-code', item.code);
+        div.innerHTML = '<img src="' + flagUrl(item.code) + '" alt="' + item.code + '" class="indicatif-flag">'
+            + '<span class="indicatif-nom">' + item.nom + '</span>'
+            + '<span class="indicatif-dial">' + item.dial + '</span>';
+        div.addEventListener('click', function() {
+            selectIndicatif(item);
+        });
+        container.appendChild(div);
+    });
+
+    // Ouvrir/fermer le dropdown
+    btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var isOpen = list.classList.contains('open');
+        list.classList.toggle('open');
+        if (!isOpen && search) {
+            search.value = '';
+            filterIndicatifs('');
+            setTimeout(function() { search.focus(); }, 50);
+        }
+    });
+
+    // Recherche
+    if (search) {
+        search.addEventListener('input', function() {
+            filterIndicatifs(search.value.toLowerCase());
+        });
+        search.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+    }
+
+    // Fermer en cliquant ailleurs
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('#indicatif-dropdown')) {
+            list.classList.remove('open');
+        }
+    });
+}
+
+function selectIndicatif(item) {
+    var btn = document.getElementById('indicatif-btn');
+    var hiddenInput = document.getElementById('profil-indicatif');
+    var list = document.getElementById('indicatif-list');
+    if (!btn || !hiddenInput) return;
+
+    hiddenInput.value = item.dial;
+    btn.innerHTML = '<img src="' + flagUrl(item.code) + '" alt="' + item.code + '" class="indicatif-flag">'
+        + '<span>' + item.dial + '</span>';
+    list.classList.remove('open');
+}
+
+function setIndicatifByDial(dial) {
+    if (!dial) return;
+    for (var i = 0; i < indicatifsList.length; i++) {
+        if (indicatifsList[i].dial === dial) {
+            selectIndicatif(indicatifsList[i]);
+            return;
+        }
+    }
+}
+
+function filterIndicatifs(query) {
+    var options = document.querySelectorAll('.indicatif-option');
+    options.forEach(function(opt) {
+        var nom = opt.getAttribute('data-nom');
+        var dial = opt.getAttribute('data-dial');
+        var visible = !query || nom.indexOf(query) !== -1 || dial.indexOf(query) !== -1;
+        opt.style.display = visible ? '' : 'none';
     });
 }
 
@@ -231,13 +304,17 @@ function prefillProfil(data) {
         'profil-code-postal': 'code_postal',
         'profil-ville': 'ville',
         'profil-pays': 'pays',
-        'profil-indicatif': 'indicatif_tel',
         'profil-telephone': 'telephone'
     };
 
     for (var fieldId in fields) {
         var el = document.getElementById(fieldId);
         if (el) el.value = data[fields[fieldId]] || '';
+    }
+
+    // Pré-sélectionner l'indicatif (dropdown custom)
+    if (data.indicatif_tel) {
+        setIndicatifByDial(data.indicatif_tel);
     }
 }
 

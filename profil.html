@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://cdnjs.cloudflare.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https://drive.google.com https://drive.usercontent.google.com https://lh3.googleusercontent.com https://res.cloudinary.com; connect-src 'self' https://www.gstatic.com https://lhwcoybugdsggcclhtgb.supabase.co https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com https://accounts.google.com https://api.cloudinary.com https://airbnb-ical-proxy.cyril-samson41.workers.dev; frame-src 'self' https://asso-billet-site.firebaseapp.com https://apis.google.com https://accounts.google.com;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://cdnjs.cloudflare.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https://drive.google.com https://drive.usercontent.google.com https://lh3.googleusercontent.com https://res.cloudinary.com https://flagcdn.com; connect-src 'self' https://www.gstatic.com https://lhwcoybugdsggcclhtgb.supabase.co https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com https://accounts.google.com https://api.cloudinary.com https://airbnb-ical-proxy.cyril-samson41.workers.dev; frame-src 'self' https://asso-billet-site.firebaseapp.com https://apis.google.com https://accounts.google.com;">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Mon profil — adresse postale et informations personnelles.">
     <title>Mon profil - BilletsTouristiques</title>
@@ -66,9 +66,16 @@
                 <div class="profil-form-group">
                     <label>Téléphone</label>
                     <div class="profil-phone-row">
-                        <select id="profil-indicatif" autocomplete="tel-country-code">
-                            <option value="">Indicatif</option>
-                        </select>
+                        <div class="indicatif-dropdown" id="indicatif-dropdown">
+                            <input type="hidden" id="profil-indicatif" name="indicatif_tel">
+                            <button type="button" class="indicatif-btn" id="indicatif-btn">
+                                <span class="indicatif-placeholder">Indicatif</span>
+                            </button>
+                            <div class="indicatif-list" id="indicatif-list">
+                                <input type="text" class="indicatif-search" id="indicatif-search" placeholder="Rechercher un pays...">
+                                <div class="indicatif-options" id="indicatif-options"></div>
+                            </div>
+                        </div>
                         <input type="tel" id="profil-telephone" autocomplete="tel-national" placeholder="Numéro de téléphone">
                     </div>
                 </div>
