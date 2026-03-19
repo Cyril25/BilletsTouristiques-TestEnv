@@ -129,6 +129,11 @@ function renderCollectesList() {
     if (detailDiv) detailDiv.style.display = 'none';
     container.style.display = '';
 
+    // #12 — Compteurs sur l'onglet "Mes collectes"
+    var enCours = mesBillets.filter(function(b) { return b.Categorie === 'Collecte' || b.Categorie === 'Pré collecte'; });
+    var tabs = document.querySelectorAll('.collectes-tabs .tab-btn');
+    if (tabs[0]) tabs[0].innerHTML = 'Mes collectes <span class="tab-badge">' + mesBillets.length + '</span>';
+
     if (mesBillets.length === 0) {
         container.innerHTML = '<p class="collectes-empty"><i class="fa-solid fa-inbox"></i> Aucune collecte assignée.</p>';
         return;
@@ -918,6 +923,10 @@ function renderEnveloppesListe(enveloppes, inscriptions, billetsMap) {
     var container = document.getElementById('envois-view');
     if (!container) return;
 
+    // #12 — Compteur onglet envois
+    var tabs = document.querySelectorAll('.collectes-tabs .tab-btn');
+    if (tabs[2]) tabs[2].innerHTML = 'Préparation des envois' + (enveloppes.length > 0 ? ' <span class="tab-badge">' + enveloppes.length + '</span>' : '');
+
     // Grouper les inscriptions par membre_email
     var inscByMembre = {};
     inscriptions.forEach(function(ins) {
@@ -1703,6 +1712,10 @@ function loadVerificationPaiement() {
                     var billetsMap = {};
                     mesBillets.forEach(function(b) { billetsMap[b.id] = b; });
                     renderVerificationPaiement(inscriptions, billetsMap);
+                    // #12 — Compteur onglet paiements
+                    var declares = inscriptions.filter(function(i) { return i.statut_paiement === 'declare'; });
+                    var tabs = document.querySelectorAll('.collectes-tabs .tab-btn');
+                    if (tabs[1]) tabs[1].innerHTML = 'Vérification paiement' + (declares.length > 0 ? ' <span class="tab-badge tab-badge-warning">' + declares.length + '</span>' : '');
                 });
         })
         .catch(function(error) {

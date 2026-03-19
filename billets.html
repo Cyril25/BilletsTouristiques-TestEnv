@@ -30,7 +30,12 @@
             <button onclick="changeView('galerie')" class="btn-mode" title="Mode Galerie"><i class="fa-solid fa-images"></i> Galerie</button>
         </div>
 
-        <div class="filters-container">
+        <!-- #8 — Bouton toggle filtres (mobile) -->
+        <button class="filters-toggle" id="filters-toggle" onclick="toggleFilters()">
+            <i class="fa-solid fa-filter"></i> Filtres
+            <i class="fa-solid fa-chevron-down filters-toggle-icon" id="filters-toggle-icon"></i>
+        </button>
+        <div class="filters-container" id="filters-container">
             <div class="filter-group" style="flex-grow: 2;">
                 <label for="search-input">Recherche</label>
                 <input type="text" id="search-input" placeholder="Ville, Nom, Réf..." onkeyup="applyFilters()">
@@ -77,6 +82,24 @@
 
     <script src="global.js"></script>
     <script src="app.js"></script>
+    <script>
+    // #8 — Toggle filtres sur mobile
+    function toggleFilters() {
+        var c = document.getElementById('filters-container');
+        var icon = document.getElementById('filters-toggle-icon');
+        if (c) {
+            var isHidden = c.classList.toggle('filters-hidden');
+            if (icon) icon.style.transform = isHidden ? '' : 'rotate(180deg)';
+        }
+    }
+    // Masquer par défaut sur mobile au chargement
+    if (window.innerWidth < 768) {
+        document.addEventListener('DOMContentLoaded', function() {
+            var c = document.getElementById('filters-container');
+            if (c) c.classList.add('filters-hidden');
+        });
+    }
+    </script>
 
 </body>
 </html>

@@ -8,6 +8,7 @@ var billetsMap = {};
 var collecteursMap = {};
 var membrePays = '';
 var fraisPortData = [];
+var currentInscFilter = 'tous'; // #9 — filtre actif
 
 function escapeHtml(text) {
     if (!text) return '';
@@ -101,6 +102,20 @@ function findFdpPrice(nbBillets, destination, typeEnvoi) {
     return 0;
 }
 
+// #9 — Filtrage par statut de paiement
+function filterInscriptions(statut) {
+    currentInscFilter = statut;
+    // Mettre à jour les boutons actifs
+    var btns = document.querySelectorAll('.inscriptions-filter-btn');
+    for (var i = 0; i < btns.length; i++) {
+        btns[i].classList.remove('active');
+    }
+    // Trouver le bouton correspondant
+    var filterMap = { 'tous': 0, 'non_paye': 1, 'declare': 2, 'confirme': 3 };
+    if (btns[filterMap[statut]]) btns[filterMap[statut]].classList.add('active');
+    renderInscriptions();
+}
+
 function renderInscriptions() {
     var container = document.getElementById('inscriptions-list');
     var emptyState = document.getElementById('inscriptions-empty');
@@ -116,9 +131,31 @@ function renderInscriptions() {
     }
     if (emptyState) emptyState.style.display = 'none';
 
+    // #9 — Filtrer par statut
+    var filteredInscriptions = mesInscriptions;
+    if (currentInscFilter !== 'tous') {
+        filteredInscriptions = mesInscriptions.filter(function(insc) {
+            return (insc.statut_paiement || 'non_paye') === currentInscFilter;
+        });
+    }
+
     var totalDu = 0;
     var totalEnAttente = 0;
-    var html = mesInscriptions.map(function(insc) {
+
+    // #11 — Grouper par collecteur
+    var parCollecteur = {};
+    var ordreCollecteurs = [];
+    filteredInscriptions.forEach(function(insc) {
+        var billet = billetsMap[insc.billet_id] || {};
+        var collecteurAlias = billet.Collecteur || '\u2014';
+        if (!parCollecteur[collecteurAlias]) {
+            parCollecteur[collecteurAlias] = [];
+            ordreCollecteurs.push(collecteurAlias);
+        }
+        parCollecteur[collecteurAlias].push(insc);
+    });
+
+    function renderInscriptionCard(insc) {
         var billet = billetsMap[insc.billet_id] || {};
         var prix = parseFloat(billet.Prix || 0);
         var prixVar = (billet.PrixVariante !== null && billet.PrixVariante !== undefined && billet.PrixVariante !== '') ? parseFloat(billet.PrixVariante) : prix;
@@ -127,7 +164,6 @@ function renderInscriptions() {
         var montant = (prix * nbNormaux) + (prixVar * nbVariantes);
         var statut = insc.statut_paiement || 'non_paye';
 
-        // Calcul des frais de port si demandés pour ce billet
         var fdpMontant = 0;
         if (billet.PayerFDP === 'oui' && billet.Categorie !== 'Pré collecte') {
             var nbTotal = nbNormaux + nbVariantes;
@@ -161,7 +197,6 @@ function renderInscriptions() {
             + '<span class="inscription-ville"><i class="fa-solid fa-location-dot"></i> ' + escapeHtml(billet.Ville || '') + '</span>'
             + '</div>'
             + '<div class="inscription-card-details">'
-            + '<span><i class="fa-solid fa-user"></i> ' + escapeHtml(billet.Collecteur || '\u2014') + '</span>'
             + '<span><i class="fa-solid fa-ticket"></i> ' + (billet.VersionNormaleExiste === false ? (nbVariantes + ' var.') : (nbNormaux + (nbVariantes > 0 ? ' + ' + nbVariantes + ' var.' : ''))) + '</span>'
             + (billet.Categorie === 'Pré collecte'
                 ? '<span class="montant-indefini"><i class="fa-solid fa-euro-sign"></i> En attente</span>'
@@ -179,19 +214,62 @@ function renderInscriptions() {
             + paypalLink
             + '</div>'
             + '</div>';
-    }).join('');
+    }
+
+    // #11 — Rendu groupé par collecteur (header seulement si > 1 collecteur)
+    var html = '';
+    var multiCollecteurs = ordreCollecteurs.length > 1;
+    ordreCollecteurs.forEach(function(alias) {
+        var inscs = parCollecteur[alias];
+        if (multiCollecteurs) {
+            html += '<div class="inscription-group-header"><i class="fa-solid fa-user"></i> ' + escapeHtml(alias) + ' <span class="inscription-group-count">(' + inscs.length + ')</span></div>';
+        }
+        inscs.forEach(function(insc) {
+            html += renderInscriptionCard(insc);
+        });
+    });
+
+    if (filteredInscriptions.length === 0 && mesInscriptions.length > 0) {
+        html = '<div class="inscriptions-empty-state"><i class="fa-solid fa-filter"></i><p>Aucune inscription avec ce filtre.</p></div>';
+    }
 
     container.innerHTML = html;
 
-    // Résumé en haut
+    // Résumé en haut (calcul sur toutes les inscriptions, pas le filtre)
+    var totalDuGlobal = 0;
+    var totalEnAttenteGlobal = 0;
+    mesInscriptions.forEach(function(insc) {
+        var b = billetsMap[insc.billet_id] || {};
+        var p = parseFloat(b.Prix || 0);
+        var pv = (b.PrixVariante !== null && b.PrixVariante !== undefined && b.PrixVariante !== '') ? parseFloat(b.PrixVariante) : p;
+        var m = (p * (insc.nb_normaux || 0)) + (pv * (insc.nb_variantes || 0));
+        var fdp = 0;
+        if (b.PayerFDP === 'oui' && b.Categorie !== 'Pré collecte') {
+            var d = (membrePays === 'France') ? 'france' : 'international';
+            fdp = findFdpPrice((insc.nb_normaux || 0) + (insc.nb_variantes || 0), d, (insc.mode_envoi || 'Normal').toLowerCase());
+        }
+        var total = m + fdp;
+        var s = insc.statut_paiement || 'non_paye';
+        if (b.Categorie !== 'Pré collecte') {
+            if (s === 'non_paye') totalDuGlobal += total;
+            else if (s === 'declare') totalEnAttenteGlobal += total;
+        }
+    });
+
     if (summary) {
         summary.innerHTML = '<div class="inscriptions-resume">'
             + '<span>' + mesInscriptions.length + ' inscription(s)</span>'
             + '<span class="inscriptions-resume-montants">'
-            + '<span class="montant-non-paye"><strong>' + totalDu.toFixed(2) + ' \u20AC restant \u00E0 payer</strong></span>'
-            + (totalEnAttente > 0 ? '<span class="montant-en-attente"><strong>' + totalEnAttente.toFixed(2) + ' \u20AC en attente de validation par les collecteurs</strong></span>' : '')
+            + '<span class="montant-non-paye"><strong>' + totalDuGlobal.toFixed(2) + ' \u20AC restant \u00E0 payer</strong></span>'
+            + (totalEnAttenteGlobal > 0 ? '<span class="montant-en-attente"><strong>' + totalEnAttenteGlobal.toFixed(2) + ' \u20AC en attente de validation par les collecteurs</strong></span>' : '')
             + '</span>'
             + '</div>';
+    }
+
+    // #12 — Compteur sur l'onglet "Mes inscriptions"
+    var tabBtns = document.querySelectorAll('#inscriptions-tabs .tab-btn');
+    if (tabBtns[0]) {
+        tabBtns[0].innerHTML = '<i class="fa-solid fa-clipboard-list"></i> Mes inscriptions <span class="tab-badge">' + mesInscriptions.length + '</span>';
     }
 }
 

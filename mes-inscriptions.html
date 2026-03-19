@@ -26,6 +26,13 @@
 
             <div id="inscriptions-view">
                 <div id="inscriptions-summary"></div>
+                <!-- #9 — Filtres par statut de paiement -->
+                <div class="inscriptions-filters" id="inscriptions-filters">
+                    <button class="inscriptions-filter-btn active" onclick="filterInscriptions('tous')">Tous</button>
+                    <button class="inscriptions-filter-btn" onclick="filterInscriptions('non_paye')"><i class="fa-solid fa-circle-exclamation"></i> Non payé</button>
+                    <button class="inscriptions-filter-btn" onclick="filterInscriptions('declare')"><i class="fa-solid fa-clock"></i> En attente</button>
+                    <button class="inscriptions-filter-btn" onclick="filterInscriptions('confirme')"><i class="fa-solid fa-check"></i> Payé</button>
+                </div>
                 <div id="inscriptions-list"></div>
                 <div id="inscriptions-empty" style="display:none">
                     <div class="inscriptions-empty-state">
