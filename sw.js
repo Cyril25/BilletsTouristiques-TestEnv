@@ -1,12 +1,13 @@
 // ============================================================
 // Service Worker — BilletsTouristiques
 // Stratégie :
-//   - Cache First  : assets statiques (HTML, CSS, JS, fonts CDN)
-//   - Network Only : API données (workers.dev, drive.google.com)
-//                    Les données changent plusieurs fois par jour.
+//   - Network First : assets du site (HTML, CSS, JS)
+//                     → mise à jour immédiate, cache en fallback offline
+//   - Cache First   : CDN externes (fonts, icons)
+//   - Network Only  : API données (supabase, workers.dev, google)
 // ============================================================
 
-const CACHE_NAME = 'billets-v31';
+const CACHE_NAME = 'billets-v32';
 
 const STATIC_ASSETS = [
     './',
@@ -90,18 +91,37 @@ self.addEventListener('fetch', event => {
         return;
     }
 
-    // Cache First pour les assets statiques et CDN (fonts, icons)
+    // Assets du site → Network First (réseau d'abord, cache en fallback offline)
+    var isSiteAsset = STATIC_ASSETS.some(function(asset) {
+        return url.pathname.endsWith(asset) || url.pathname === '/' && asset === './';
+    });
+
+    if (isSiteAsset) {
+        event.respondWith(
+            fetch(event.request).then(function(response) {
+                if (event.request.method === 'GET' && response && response.status === 200) {
+                    var toCache = response.clone();
+                    caches.open(CACHE_NAME).then(function(cache) { cache.put(event.request, toCache); });
+                }
+                return response;
+            }).catch(function() {
+                return caches.match(event.request);
+            })
+        );
+        return;
+    }
+
+    // Cache First pour CDN externes (fonts, icons)
     event.respondWith(
-        caches.match(event.request).then(cached => {
+        caches.match(event.request).then(function(cached) {
             if (cached) return cached;
 
-            return fetch(event.request).then(response => {
-                // Ne met en cache que les réponses valides (GET uniquement)
+            return fetch(event.request).then(function(response) {
                 if (event.request.method !== 'GET' || !response || response.status !== 200) {
                     return response;
                 }
-                const toCache = response.clone();
-                caches.open(CACHE_NAME).then(cache => cache.put(event.request, toCache));
+                var toCache = response.clone();
+                caches.open(CACHE_NAME).then(function(cache) { cache.put(event.request, toCache); });
                 return response;
             });
         })
