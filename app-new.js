@@ -25,6 +25,32 @@ var currentData = [];
 var displayedCount = 0;
 var BATCH_SIZE = 50;
 
+// #14 — Onboarding catalogue billets
+function showCatalogueOnboarding() {
+    var key = 'bt_onboarding_catalogue_dismissed';
+    if (localStorage.getItem(key)) return;
+
+    var target = document.querySelector('header');
+    if (!target) return;
+
+    var html = '<div class="onboarding-banner onboarding-banner--compact" id="onboarding-catalogue">'
+        + '<button class="onboarding-close" onclick="dismissOnboardingCatalogue()" aria-label="Fermer"><i class="fa-solid fa-xmark"></i></button>'
+        + '<h3 class="onboarding-title"><i class="fa-solid fa-hand-point-up"></i> Comment s\'inscrire à une collecte ?</h3>'
+        + '<p class="onboarding-text">Parcourez les billets ci-dessous. Quand une collecte vous intéresse, '
+        + 'cliquez sur le bouton <strong>« S\'inscrire »</strong> sur la fiche du billet. '
+        + 'Choisissez la quantité souhaitée, puis validez. '
+        + 'Vous retrouverez ensuite toutes vos inscriptions dans <a href="mes-inscriptions.html"><strong>Mes inscriptions</strong></a>.</p>'
+        + '</div>';
+
+    target.insertAdjacentHTML('afterend', html);
+}
+
+function dismissOnboardingCatalogue() {
+    localStorage.setItem('bt_onboarding_catalogue_dismissed', '1');
+    var el = document.getElementById('onboarding-catalogue');
+    if (el) el.remove();
+}
+
 // Story 5.4 : Inscriptions du membre connecté et collecteurs
 var mesInscriptions = {};
 var collecteursMap = {};
@@ -104,6 +130,7 @@ document.addEventListener('DOMContentLoaded', function() {
 if (typeof firebase !== 'undefined') {
     firebase.auth().onAuthStateChanged(function(user) {
         if (user) {
+            showCatalogueOnboarding();
             fetchData();
             loadMesInscriptions();
             loadCollecteursForCatalogue();
