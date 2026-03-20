@@ -254,9 +254,9 @@ function preInscOpenForm(membreEmail) {
     html += '<div id="preinsc-etranger-details" style="' + (etrChecked ? '' : 'display:none;') + '">';
 
     // Toggle global / sélection fine
-    html += '<div class="preinsc-form-group">';
+    html += '<div class="preinsc-radio-group">';
     html += '<label><input type="radio" name="preinsc-etr-mode" value="global" onchange="preInscToggleEtrMode()"' + (!hasFineSelection ? ' checked' : '') + '> Tous les pays étrangers</label>';
-    html += '<label style="margin-left:16px;"><input type="radio" name="preinsc-etr-mode" value="fine" onchange="preInscToggleEtrMode()"' + (hasFineSelection ? ' checked' : '') + '> Sélection par pays</label>';
+    html += '<label><input type="radio" name="preinsc-etr-mode" value="fine" onchange="preInscToggleEtrMode()"' + (hasFineSelection ? ' checked' : '') + '> Sélection par pays</label>';
     html += '</div>';
 
     // Mode global

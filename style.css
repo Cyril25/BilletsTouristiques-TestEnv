@@ -6096,6 +6096,31 @@ body.login-page {
     font-weight: 500;
     padding: 0 var(--spacing-xs);
     color: var(--color-primary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.preinsc-fieldset legend input[type="checkbox"] {
+    margin: 0;
+}
+
+.preinsc-radio-group {
+    display: flex;
+    gap: var(--spacing-md);
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.preinsc-radio-group label {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+
+.preinsc-radio-group input[type="radio"] {
+    margin: 0;
 }
 
 .preinsc-country-grid {
@@ -6116,8 +6141,16 @@ body.login-page {
 }
 
 .preinsc-country-item label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     font-weight: 500;
     font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.preinsc-country-item label input[type="checkbox"] {
+    margin: 0;
 }
 
 .preinsc-pays-qte {
