@@ -41,6 +41,25 @@ function escapeAttr(text) {
 }
 
 // ============================================================
+// 2b. FORMATAGE DERNIERE ACTIVITE
+// ============================================================
+function formatLastActive(isoString) {
+    if (!isoString) return 'Jamais connecté';
+    var date = new Date(isoString);
+    var now = new Date();
+    var diffMs = now - date;
+    var diffMin = Math.floor(diffMs / 60000);
+    var diffH = Math.floor(diffMs / 3600000);
+    var diffJ = Math.floor(diffMs / 86400000);
+
+    if (diffMin < 1) return 'En ligne';
+    if (diffMin < 60) return 'Il y a ' + diffMin + ' min';
+    if (diffH < 24) return 'Il y a ' + diffH + 'h';
+    if (diffJ < 7) return 'Il y a ' + diffJ + ' jour' + (diffJ > 1 ? 's' : '');
+    return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+// ============================================================
 // 3. DONNEES EN MEMOIRE
 // ============================================================
 var usersList = [];
@@ -64,7 +83,7 @@ function loadUsers() {
     var grid = document.getElementById('user-cards-grid');
     if (!grid) return;
 
-    supabaseFetch('/rest/v1/membres?select=email,role,pseudo,nom,prenom&order=email.asc', { method: 'GET' })
+    supabaseFetch('/rest/v1/membres?select=email,role,pseudo,nom,prenom,last_active_at&order=email.asc', { method: 'GET' })
         .then(function(rows) {
             usersList = rows.map(function(row) {
                 row._id = row.email;
@@ -146,6 +165,7 @@ function renderUserCards(searchQuery) {
         var nom = user.nom || '';
         var prenom = user.prenom || '';
         var role = user.role || '';
+        var lastActive = user.last_active_at || '';
         var displayName = pseudo || ((prenom && nom) ? prenom + ' ' + nom : (prenom || nom)) || email;
         var isAdmin = role === 'admin';
         var badgeClass = isAdmin ? 'user-badge-role user-badge-admin' : 'user-badge-role user-badge-member';
@@ -162,6 +182,7 @@ function renderUserCards(searchQuery) {
             '<div class="user-card-details">' +
                 '<span class="user-card-email"><i class="fa-solid fa-envelope"></i> ' + escapeHtml(email) + '</span>' +
                 (pseudo ? '<span class="user-card-pseudo"><i class="fa-solid fa-at"></i> ' + escapeHtml(pseudo) + '</span>' : '') +
+                '<span class="user-card-last-active"><i class="fa-solid fa-clock"></i> ' + formatLastActive(lastActive) + '</span>' +
             '</div>' +
             '<div class="user-card-edit" data-doc-id="' + escapeAttr(email) + '" style="display:none">' +
                 '<div class="user-edit-field">' +

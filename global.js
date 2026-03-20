@@ -115,6 +115,12 @@ document.addEventListener("DOMContentLoaded", function() {
                     console.log("Accès autorisé pour : " + user.email);
                     window.userRole = rows[0].role || 'member';
 
+                    // Fire-and-forget : mettre à jour last_active_at
+                    supabaseFetch('/rest/v1/membres?email=eq.' + encodeURIComponent(user.email), {
+                        method: 'PATCH',
+                        body: JSON.stringify({ last_active_at: new Date().toISOString() })
+                    }).catch(function() {});
+
                     if (isLoginPage) {
                         window.location.href = "index.html";
                     } else {
@@ -197,7 +203,7 @@ function loadMenu() {
     var placeholder = document.getElementById("menu-placeholder");
     if (!placeholder) return;
 
-    fetch("menu.html?v=33")
+    fetch("menu.html?v=34")
         .then(function(response) { return response.text(); })
         .then(function(html) {
             // 1. On injecte le HTML

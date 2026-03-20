@@ -1789,6 +1789,11 @@ body.login-page {
     color: var(--color-secondary);
 }
 
+.user-card-last-active {
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+}
+
 /* --- Story 4.1 : Edition inline profil --- */
 .user-card-edit {
     padding: var(--spacing-sm) 0;
