@@ -11,8 +11,80 @@
     <link rel="stylesheet" href="style.css">
     
     <style>
-        .text-page { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; }
-        .construction-icon { font-size: 4em; color: #e74c3c; margin-bottom: 20px; }
+        .text-page {
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            max-width: 800px;
+            margin: 20px auto;
+            text-align: left;
+        }
+        .text-page h1 {
+            text-align: center;
+            color: var(--color-primary);
+            margin-bottom: 8px;
+        }
+        .text-page .subtitle {
+            text-align: center;
+            font-style: italic;
+            color: var(--color-text-muted);
+            margin-bottom: 32px;
+        }
+        .reglement-icon {
+            font-size: 3em;
+            color: var(--color-primary);
+            text-align: center;
+            display: block;
+            margin-bottom: 12px;
+        }
+        .rule {
+            display: flex;
+            gap: 14px;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            padding: 14px 16px;
+            background: var(--color-surface);
+            border-radius: var(--radius-md);
+            border-left: 4px solid var(--color-primary);
+        }
+        .rule-number {
+            font-weight: 700;
+            color: var(--color-primary);
+            font-size: 1.2em;
+            min-width: 28px;
+        }
+        .rule-icon {
+            color: var(--color-secondary);
+            font-size: 1.1em;
+            min-width: 22px;
+            padding-top: 2px;
+        }
+        .rule-text {
+            flex: 1;
+        }
+        .rule-text strong {
+            color: var(--color-primary);
+        }
+        .sanctions {
+            margin-top: 32px;
+            padding: 16px 20px;
+            background: #FFF3E0;
+            border-radius: var(--radius-md);
+            border-left: 4px solid var(--color-warning);
+        }
+        .sanctions h3 {
+            margin: 0 0 8px;
+            color: var(--color-warning);
+        }
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 32px;
+            color: var(--color-primary);
+            text-decoration: none;
+        }
+        .back-link:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -21,12 +93,70 @@
         <div id="menu-placeholder"></div>
 
         <div class="text-page">
-            <i class="fa-solid fa-scale-balanced construction-icon"></i>
-            <h1>Règlement Intérieur</h1>
-            <p>Cette page est en cours de rédaction.</p>
-            <p>Merci de consulter le groupe Facebook pour les règles en vigueur en attendant.</p>
-            <br>
-            <a href="index.html" style="color:#4285F4; text-decoration:none;">&larr; Retour à l'accueil</a>
+            <i class="fa-solid fa-scale-balanced reglement-icon"></i>
+            <h1>Règlement du Groupe</h1>
+            <p class="subtitle">En toute convivialité et toute confiance</p>
+
+            <div class="rule">
+                <span class="rule-number">1.</span>
+                <i class="fa-solid fa-heart rule-icon"></i>
+                <div class="rule-text">
+                    <strong>Respect et convivialité.</strong>
+                    Ce groupe repose sur l'entraide et la bonne humeur. Chaque membre s'engage à rester courtois, bienveillant et respectueux envers les autres. Aucune forme d'insulte, de moquerie ou de comportement toxique ne sera tolérée.
+                </div>
+            </div>
+
+            <div class="rule">
+                <span class="rule-number">2.</span>
+                <i class="fa-solid fa-ban rule-icon"></i>
+                <div class="rule-text">
+                    <strong>Revente interdite.</strong>
+                    Les billets obtenus via le groupe ne doivent en aucun cas être revendus à un prix supérieur. Le groupe existe pour les collectionneurs, pas pour le commerce. Ne pas respecter cette règle, c'est manquer de respect au travail des collecteurs qui se démènent pour dénicher les billets et les proposer à prix juste.
+                </div>
+            </div>
+
+            <div class="rule">
+                <span class="rule-number">3.</span>
+                <i class="fa-solid fa-coins rule-icon"></i>
+                <div class="rule-text">
+                    <strong>Prix juste.</strong>
+                    Les collecteurs proposent leurs billets à prix coûtant : prix d'achat (réparti sur le nombre de billets, frais de port inclus) auquel s'ajoutent quelques centimes pour les fournitures (enveloppe, scotch, etc.). Pas de marge, pas de bénéfice : juste un juste retour des frais engagés.
+                </div>
+            </div>
+
+            <div class="rule">
+                <span class="rule-number">4.</span>
+                <i class="fa-solid fa-arrows-rotate rule-icon"></i>
+                <div class="rule-text">
+                    <strong>Échanges bienvenus.</strong>
+                    Les échanges de billets entre membres sont encouragés. Chacun est libre de proposer ou d'accepter un échange selon ses envies. L'esprit du groupe est simple : quand on aide, on peut espérer être aidé en retour.
+                </div>
+            </div>
+
+            <div class="rule">
+                <span class="rule-number">5.</span>
+                <i class="fa-solid fa-handshake rule-icon"></i>
+                <div class="rule-text">
+                    <strong>Confiance et bonne foi.</strong>
+                    Chaque transaction repose sur la confiance. Si un souci survient (erreur, retard, colis perdu), on en discute calmement et on trouve une solution ensemble. La bonne foi est la base de tout.
+                </div>
+            </div>
+
+            <div class="rule">
+                <span class="rule-number">6.</span>
+                <i class="fa-solid fa-lock rule-icon"></i>
+                <div class="rule-text">
+                    <strong>Confidentialité.</strong>
+                    Les informations personnelles partagées dans le cadre du groupe (adresse postale, coordonnées) sont strictement réservées aux échanges entre membres. Il est interdit de les diffuser, de les utiliser à d'autres fins ou de les communiquer à des tiers.
+                </div>
+            </div>
+
+            <div class="sanctions">
+                <h3><i class="fa-solid fa-triangle-exclamation"></i> En cas de non-respect</h3>
+                <p>Tout manquement au règlement entraînera <strong>un avertissement</strong>. En cas de récidive ou de faute grave (revente, irrespect caractérisé), <strong>l'exclusion définitive</strong> du groupe sera prononcée, sans discussion.</p>
+            </div>
+
+            <a href="index.html" class="back-link"><i class="fa-solid fa-arrow-left"></i> Retour à l'accueil</a>
         </div>
     </div>
 
