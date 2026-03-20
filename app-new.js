@@ -840,13 +840,13 @@ function buildInscriptionHtml(item) {
     } else if (collecteOuverte) {
         // Non inscrit, collecte ouverte
         var isInscriptionSite = !item.LinkSheet && !item.Sondage;
-        html = '<div class="inscription-badges">'
-            + '<span class="badge-non-inscrit">Non inscrit</span>'
-            + (isInscriptionSite
-                ? '<button onclick="ouvrirInscription(' + item.id + ')" class="btn-sinscrire"><i class="fa-solid fa-pen-to-square"></i> S\'inscrire</button>'
-                  + '<button onclick="marquerPasInteresse(' + item.id + ')" class="btn-pas-interesse">Pas intéressé</button>'
-                : '')
-            + '</div>';
+        if (isInscriptionSite) {
+            html = '<div class="inscription-badges">'
+                + '<span class="badge-non-inscrit">Non inscrit</span>'
+                + '<button onclick="ouvrirInscription(' + item.id + ')" class="btn-sinscrire"><i class="fa-solid fa-pen-to-square"></i> S\'inscrire</button>'
+                + '<button onclick="marquerPasInteresse(' + item.id + ')" class="btn-pas-interesse">Pas intéressé</button>'
+                + '</div>';
+        }
     }
     return html;
 }
