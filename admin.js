@@ -2573,7 +2573,7 @@ function openShareModal(billetId) {
     }
 
     // Lien
-    var baseUrl = 'https://cyril25.github.io/BilletsTouristiques/billets-new.html';
+    var baseUrl = 'https://cyril25.github.io/BilletsTouristiques/billets.html';
     lines.push('');
     lines.push('👉 S\'inscrire : ' + baseUrl + '?billet=' + billetId);
 

@@ -32,7 +32,6 @@ const STATIC_ASSETS = [
     'mes-collectes.js',
     'mes-inscriptions.html',
     'mes-inscriptions.js',
-    'billets-new.html',
     'app-new.js',
 ];
 

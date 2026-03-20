@@ -8,10 +8,10 @@
     <title>Les Billets - Collection Billet Touristique</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous">
-    
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.css" integrity="sha512-qveKnGrvOChbSzAdtSs8p69eoLegyh+1hwOMbmpCViIwj7rn4oJjdmMvWOuyQlTOZgTlZA0N2PXA7iA8/2TUYA==" crossorigin="anonymous">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.js" integrity="sha512-UOJe4paV6hYWBnS0c9GnIRH8PLm2nFK22uhfAvsTIqd3uwnWsVri1OPn5fJYdLtGY3wB11LGHJ4yPU1WFJeBYQ==" crossorigin="anonymous"></script>
-    
+
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="view-collecte"> <div id="app-content">
@@ -30,12 +30,7 @@
             <button onclick="changeView('galerie')" class="btn-mode" title="Mode Galerie"><i class="fa-solid fa-images"></i> Galerie</button>
         </div>
 
-        <!-- #8 — Bouton toggle filtres (mobile) -->
-        <button class="filters-toggle" id="filters-toggle" onclick="toggleFilters()">
-            <i class="fa-solid fa-filter"></i> Filtres
-            <i class="fa-solid fa-chevron-down filters-toggle-icon" id="filters-toggle-icon"></i>
-        </button>
-        <div class="filters-container" id="filters-container">
+        <div class="filters-row">
             <div class="filter-group" style="flex-grow: 2;">
                 <label for="search-input">Recherche</label>
                 <input type="text" id="search-input" placeholder="Ville, Nom, Réf..." onkeyup="applyFilters()">
@@ -52,54 +47,40 @@
                     <input type="date" id="date-end" aria-label="Date de fin" onchange="manualDateChange()">
                 </div>
             </div>
+        </div>
 
-            <div class="filter-group"><label for="sel-cat">Catégorie</label><select id="sel-cat" onchange="applyFilters()"><option value="">Tout</option></select></div>
+        <div class="filters-row">
+            <div class="filter-group"><label for="sel-coll">Collecteur</label><select id="sel-coll" onchange="applyFilters()"><option value="">Tout</option></select></div>
             <div class="filter-group"><label for="sel-pays">Pays</label><select id="sel-pays" onchange="applyFilters()"><option value="">Tout</option></select></div>
             <div class="filter-group"><label for="sel-year">Millésime</label><select id="sel-year" onchange="applyFilters()"><option value="">Tout</option></select></div>
             <div class="filter-group"><label for="sel-theme">Thème</label><select id="sel-theme" onchange="applyFilters()"><option value="">Tout</option></select></div>
-            <div class="filter-group"><label for="sel-coll">Collecteur</label><select id="sel-coll" onchange="applyFilters()"><option value="">Tout</option></select></div>
         </div>
+
+        <!-- Filtres par catégorie (chips) -->
+        <div id="billets-status-counters" class="admin-status-counters"></div>
 
         <div id="cards-grid">
             <p style="text-align:center; padding:40px; color:#666; font-style:italic;">Chargement de la collection...</p>
         </div>
-        
+
         <div id="list-table-container" class="hidden">
             </div>
 
         <div style="text-align:center; margin: 40px 0;">
             <button id="btn-load-more" onclick="showMore()">Voir la suite</button>
         </div>
-        
+
     </div> <div id="image-modal" class="image-modal hidden" onclick="closeModal()">
         <span class="close-btn" role="button" aria-label="Fermer l'image" tabindex="0">&times;</span>
         <img class="modal-content" id="modal-image">
     </div>
 
-    
+
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js" integrity="sha384-v3Z/Xdw1sCeo6M/geW7sn1Lt9obIm7MhAk8laVV+rvYFmzuWDELOiygx7dVte2dX" crossorigin="anonymous"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js" integrity="sha384-p62xBRve8PdqGDGASZtZMuHgPsyPcT5VsFwgmz2p4zaFdEtt5ZzNqxK+CLzQS7xP" crossorigin="anonymous"></script>
 
     <script src="global.js"></script>
-    <script src="app.js"></script>
-    <script>
-    // #8 — Toggle filtres sur mobile
-    function toggleFilters() {
-        var c = document.getElementById('filters-container');
-        var icon = document.getElementById('filters-toggle-icon');
-        if (c) {
-            var isHidden = c.classList.toggle('filters-hidden');
-            if (icon) icon.style.transform = isHidden ? '' : 'rotate(180deg)';
-        }
-    }
-    // Masquer par défaut sur mobile au chargement
-    if (window.innerWidth < 768) {
-        document.addEventListener('DOMContentLoaded', function() {
-            var c = document.getElementById('filters-container');
-            if (c) c.classList.add('filters-hidden');
-        });
-    }
-    </script>
+    <script src="app-new.js"></script>
 
 </body>
 </html>
