@@ -136,6 +136,7 @@ if (typeof firebase !== 'undefined') {
             loadCollecteursForCatalogue();
             loadCompteursInscriptions();
             loadFraisPortCatalogue(user.email);
+            loadBlacklistMembre(user.email);
         }
     });
 }
@@ -717,6 +718,23 @@ function loadCollecteursForCatalogue() {
         });
 }
 
+// --- Chargement de la blacklist pour le membre connecté ---
+// Stocke les alias des collecteurs qui ont blacklisté ce membre
+var blacklistCollecteurs = {};
+
+function loadBlacklistMembre(email) {
+    supabaseFetch('/rest/v1/collecteur_blacklist?membre_email=eq.' + encodeURIComponent(email) + '&select=collecteur_alias')
+        .then(function(data) {
+            blacklistCollecteurs = {};
+            (data || []).forEach(function(e) {
+                blacklistCollecteurs[e.collecteur_alias] = true;
+            });
+        })
+        .catch(function(error) {
+            console.warn('Erreur chargement blacklist membre:', error);
+        });
+}
+
 // --- Story 5.12 : Compteurs BT automatiques ---
 function loadCompteursInscriptions() {
     supabaseFetch('/rest/v1/rpc/compteurs_inscriptions')
@@ -841,11 +859,20 @@ function buildInscriptionHtml(item) {
         // Non inscrit, collecte ouverte
         var isInscriptionSite = !item.LinkSheet && !item.Sondage;
         if (isInscriptionSite) {
-            html = '<div class="inscription-badges">'
-                + '<span class="badge-non-inscrit">Non inscrit</span>'
-                + '<button onclick="ouvrirInscription(' + item.id + ')" class="btn-sinscrire"><i class="fa-solid fa-pen-to-square"></i> S\'inscrire</button>'
-                + '<button onclick="marquerPasInteresse(' + item.id + ')" class="btn-pas-interesse">Pas intéressé</button>'
-                + '</div>';
+            // Vérifier si le membre est blacklisté par le collecteur de ce billet
+            var isBlackliste = item.Collecteur && blacklistCollecteurs[item.Collecteur];
+            if (isBlackliste) {
+                html = '<div class="inscription-badges">'
+                    + '<span class="badge-non-inscrit">Non inscrit</span>'
+                    + '<button class="btn-inscription-impossible" disabled><i class="fa-solid fa-ban"></i> Inscription impossible</button>'
+                    + '</div>';
+            } else {
+                html = '<div class="inscription-badges">'
+                    + '<span class="badge-non-inscrit">Non inscrit</span>'
+                    + '<button onclick="ouvrirInscription(' + item.id + ')" class="btn-sinscrire"><i class="fa-solid fa-pen-to-square"></i> S\'inscrire</button>'
+                    + '<button onclick="marquerPasInteresse(' + item.id + ')" class="btn-pas-interesse">Pas intéressé</button>'
+                    + '</div>';
+            }
         }
     }
     return html;

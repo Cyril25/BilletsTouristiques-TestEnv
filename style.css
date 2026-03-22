@@ -6210,3 +6210,149 @@ body.login-page {
         flex-direction: column;
     }
 }
+
+/* =========================================
+   LISTE NOIRE (blacklist collecteur)
+   ========================================= */
+
+.blacklist-section {
+    max-width: 800px;
+}
+
+.blacklist-section h2 {
+    margin: 0 0 var(--spacing-sm) 0;
+    font-size: 1.3rem;
+    color: var(--color-text);
+}
+
+.blacklist-desc {
+    color: var(--color-text-muted);
+    margin-bottom: var(--spacing-lg);
+    font-size: 0.9rem;
+}
+
+.blacklist-add-form {
+    background: var(--color-card-bg);
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+}
+
+.blacklist-search-row {
+    display: flex;
+    gap: var(--spacing-sm);
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.blacklist-search-input {
+    flex: 1;
+    min-width: 200px;
+    padding: 8px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+}
+
+.blacklist-membre-select {
+    flex: 1;
+    min-width: 200px;
+    padding: 8px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+}
+
+.btn-blacklist-add {
+    background-color: var(--color-danger);
+    color: var(--color-text-inverse);
+    border: none;
+    padding: 8px 16px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    white-space: nowrap;
+    transition: background-color var(--transition-fast);
+}
+
+.btn-blacklist-add:hover {
+    background-color: #AA3333;
+}
+
+.blacklist-empty {
+    color: var(--color-text-muted);
+    font-style: italic;
+    padding: var(--spacing-md);
+}
+
+.blacklist-table-wrap {
+    overflow-x: auto;
+}
+
+.blacklist-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.blacklist-table th {
+    background: var(--color-bg-subtle);
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 2px solid var(--color-border);
+    font-weight: 600;
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.blacklist-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+.blacklist-table tr:hover td {
+    background: var(--color-bg-subtle);
+}
+
+.btn-blacklist-remove {
+    background: none;
+    border: 1px solid var(--color-danger);
+    color: var(--color-danger);
+    padding: 4px 10px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all var(--transition-fast);
+}
+
+.btn-blacklist-remove:hover {
+    background-color: var(--color-danger);
+    color: var(--color-text-inverse);
+}
+
+/* Bouton Inscription impossible (catalogue) */
+.btn-inscription-impossible {
+    background-color: var(--color-border-disabled);
+    color: var(--color-text-muted);
+    border: none;
+    padding: 8px 20px;
+    border-radius: var(--radius-sm);
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+@media (max-width: 600px) {
+    .blacklist-search-row {
+        flex-direction: column;
+    }
+    .blacklist-search-input,
+    .blacklist-membre-select {
+        min-width: 100%;
+    }
+}

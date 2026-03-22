@@ -72,6 +72,7 @@ function checkCollecteur() {
             }
             monCollecteur = data[0];
             loadMesCollectes();
+            loadBlacklistCache();
         })
         .catch(function(error) {
             console.error('Erreur vérification collecteur:', error);
@@ -877,6 +878,7 @@ function showTab(tabName) {
     var envoisView = document.getElementById('envois-view');
     var paiementsView = document.getElementById('paiements-view');
     var historiqueView = document.getElementById('historique-view');
+    var blacklistView = document.getElementById('blacklist-view');
     var detailView = document.getElementById('collecte-detail');
     var tabs = document.querySelectorAll('.tab-btn');
 
@@ -889,6 +891,7 @@ function showTab(tabName) {
     if (envoisView) envoisView.style.display = 'none';
     if (paiementsView) paiementsView.style.display = 'none';
     if (historiqueView) historiqueView.style.display = 'none';
+    if (blacklistView) blacklistView.style.display = 'none';
     if (detailView) detailView.style.display = 'none';
 
     if (tabName === 'paiements') {
@@ -903,6 +906,10 @@ function showTab(tabName) {
         if (historiqueView) historiqueView.style.display = '';
         if (tabs[3]) tabs[3].classList.add('active');
         loadHistoriqueGlobal();
+    } else if (tabName === 'blacklist') {
+        if (blacklistView) blacklistView.style.display = '';
+        if (tabs[4]) tabs[4].classList.add('active');
+        loadBlacklist();
     } else {
         if (collectesView) collectesView.style.display = '';
         if (tabs[0]) tabs[0].classList.add('active');
@@ -2332,6 +2339,7 @@ function filtrerMembresModal() {
     var html = '<option value="">— Sélectionner un membre —</option>';
     membresCache.forEach(function(m) {
         if (emailsInscrits[m.email]) return;
+        if (blacklistEmails[m.email]) return;
         var label = ((m.prenom || '') + ' ' + (m.nom || '')).trim() || m.email;
         var searchable = (label + ' ' + m.email).toLowerCase();
         if (terme && searchable.indexOf(terme) === -1) return;
@@ -2491,5 +2499,190 @@ function soumettreModificationInscription(inscriptionId) {
     .catch(function(error) {
         console.error('Erreur modification inscription:', error);
         showToast('Erreur lors de la modification', 'error');
+    });
+}
+
+// ============================================================
+// 14. LISTE NOIRE (blacklist collecteur)
+// ============================================================
+
+var blacklistData = [];
+var blacklistEmails = {};
+
+function loadBlacklistCache() {
+    if (!monCollecteur) return;
+    supabaseFetch('/rest/v1/collecteur_blacklist?collecteur_alias=eq.' + encodeURIComponent(monCollecteur.alias) + '&select=membre_email')
+        .then(function(data) {
+            blacklistEmails = {};
+            (data || []).forEach(function(e) { blacklistEmails[e.membre_email] = true; });
+        })
+        .catch(function(error) {
+            console.warn('Erreur chargement cache blacklist:', error);
+        });
+}
+
+function loadBlacklist() {
+    if (!monCollecteur) {
+        renderBlacklistView([]);
+        return;
+    }
+    supabaseFetch('/rest/v1/collecteur_blacklist?collecteur_alias=eq.' + encodeURIComponent(monCollecteur.alias) + '&select=id,membre_email,date_ajout&order=date_ajout.desc')
+        .then(function(data) {
+            blacklistData = data || [];
+            // Refresh le cache emails
+            blacklistEmails = {};
+            blacklistData.forEach(function(e) { blacklistEmails[e.membre_email] = true; });
+            renderBlacklistView(blacklistData);
+        })
+        .catch(function(error) {
+            console.error('Erreur chargement liste noire:', error);
+            showToast('Erreur chargement liste noire', 'error');
+        });
+}
+
+function renderBlacklistView(entries) {
+    var container = document.getElementById('blacklist-view');
+    if (!container) return;
+
+    var html = '<div class="blacklist-section">';
+    html += '<h2><i class="fa-solid fa-ban"></i> Liste noire</h2>';
+    html += '<p class="blacklist-desc">Les membres ajoutés à votre liste noire ne pourront pas s\'inscrire à vos collectes.</p>';
+
+    // Formulaire d'ajout
+    html += '<div class="blacklist-add-form">';
+    html += '<div class="blacklist-search-row">';
+    html += '<input type="text" id="blacklist-search" placeholder="Rechercher un membre (nom, prénom ou email)..." oninput="filtrerMembresBlacklist()" class="blacklist-search-input">';
+    html += '<select id="blacklist-membre-select" class="blacklist-membre-select"><option value="">— Sélectionner un membre —</option></select>';
+    html += '<button onclick="ajouterBlacklist()" class="btn-blacklist-add"><i class="fa-solid fa-plus"></i> Ajouter</button>';
+    html += '</div></div>';
+
+    // Liste actuelle
+    if (entries.length === 0) {
+        html += '<p class="blacklist-empty"><i class="fa-solid fa-circle-check"></i> Votre liste noire est vide.</p>';
+    } else {
+        html += '<div class="blacklist-table-wrap"><table class="blacklist-table">';
+        html += '<thead><tr><th>Membre</th><th>Date d\'ajout</th><th>Action</th></tr></thead><tbody>';
+
+        // Enrichir avec les données membres si disponibles
+        for (var i = 0; i < entries.length; i++) {
+            var entry = entries[i];
+            var membreLabel = entry.membre_email;
+            if (membresCache) {
+                for (var j = 0; j < membresCache.length; j++) {
+                    if (membresCache[j].email === entry.membre_email) {
+                        var m = membresCache[j];
+                        membreLabel = ((m.prenom || '') + ' ' + (m.nom || '')).trim() + ' (' + m.email + ')';
+                        break;
+                    }
+                }
+            }
+            var dateAjout = entry.date_ajout ? new Date(entry.date_ajout).toLocaleDateString('fr-FR') : '';
+            html += '<tr>'
+                + '<td>' + escapeHtmlMC(membreLabel) + '</td>'
+                + '<td>' + escapeHtmlMC(dateAjout) + '</td>'
+                + '<td><button onclick="retirerBlacklist(' + entry.id + ')" class="btn-blacklist-remove" title="Retirer de la liste noire"><i class="fa-solid fa-trash-can"></i> Retirer</button></td>'
+                + '</tr>';
+        }
+        html += '</tbody></table></div>';
+    }
+
+    html += '</div>';
+    container.innerHTML = html;
+
+    // Charger les membres pour le sélecteur
+    chargerMembres().then(function() {
+        filtrerMembresBlacklist();
+    });
+}
+
+function filtrerMembresBlacklist() {
+    var searchInput = document.getElementById('blacklist-search');
+    var selectEl = document.getElementById('blacklist-membre-select');
+    if (!searchInput || !selectEl || !membresCache) return;
+
+    var terme = searchInput.value.toLowerCase().trim();
+
+    // Emails déjà dans la blacklist
+    var emailsBlacklistes = {};
+    for (var i = 0; i < blacklistData.length; i++) {
+        emailsBlacklistes[blacklistData[i].membre_email] = true;
+    }
+
+    var html = '<option value="">— Sélectionner un membre —</option>';
+    membresCache.forEach(function(m) {
+        if (emailsBlacklistes[m.email]) return;
+        var label = ((m.prenom || '') + ' ' + (m.nom || '')).trim() || m.email;
+        var searchable = (label + ' ' + m.email).toLowerCase();
+        if (terme && searchable.indexOf(terme) === -1) return;
+        html += '<option value="' + escapeAttrMC(m.email) + '">' + escapeHtmlMC(label + ' (' + m.email + ')') + '</option>';
+    });
+    selectEl.innerHTML = html;
+}
+
+function ajouterBlacklist() {
+    var selectEl = document.getElementById('blacklist-membre-select');
+    if (!selectEl || !selectEl.value) {
+        showToast('Veuillez sélectionner un membre', 'error');
+        return;
+    }
+    if (!monCollecteur) return;
+
+    var email = selectEl.value;
+    var alias = monCollecteur.alias;
+
+    supabaseFetch('/rest/v1/collecteur_blacklist', {
+        method: 'POST',
+        body: JSON.stringify({
+            collecteur_alias: alias,
+            membre_email: email
+        })
+    })
+    .then(function() {
+        showToast('Membre ajouté à la liste noire');
+        // Supprimer les inscriptions existantes de ce membre sur les collectes de ce collecteur
+        supprimerInscriptionsBlacklist(alias, email);
+        loadBlacklist();
+    })
+    .catch(function(error) {
+        console.error('Erreur ajout blacklist:', error);
+        showToast('Erreur lors de l\'ajout', 'error');
+    });
+}
+
+function supprimerInscriptionsBlacklist(collecteurAlias, membreEmail) {
+    // Trouver tous les billets du collecteur
+    var billetIds = mesBillets.map(function(b) { return b.id; });
+    if (billetIds.length === 0) return;
+
+    // Supprimer les inscriptions du membre sur ces billets
+    var filter = 'membre_email=eq.' + encodeURIComponent(membreEmail)
+        + '&billet_id=in.(' + billetIds.join(',') + ')';
+    supabaseFetch('/rest/v1/inscriptions?' + filter, {
+        method: 'DELETE'
+    })
+    .then(function() {
+        // Supprimer aussi les enveloppes en_cours associées
+        return supabaseFetch('/rest/v1/enveloppes?collecteur_alias=eq.' + encodeURIComponent(collecteurAlias)
+            + '&membre_email=eq.' + encodeURIComponent(membreEmail)
+            + '&statut=eq.en_cours', {
+            method: 'DELETE'
+        });
+    })
+    .catch(function(error) {
+        console.warn('Erreur suppression inscriptions blacklist:', error);
+    });
+}
+
+function retirerBlacklist(entryId) {
+    supabaseFetch('/rest/v1/collecteur_blacklist?id=eq.' + entryId, {
+        method: 'DELETE'
+    })
+    .then(function() {
+        showToast('Membre retiré de la liste noire');
+        loadBlacklist();
+    })
+    .catch(function(error) {
+        console.error('Erreur retrait blacklist:', error);
+        showToast('Erreur lors du retrait', 'error');
     });
 }

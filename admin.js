@@ -2439,11 +2439,32 @@ function confirmQuickCollecte(docId) {
             var toastPrix = prix ? prix + '€' : '';
             if (prixVariante) toastPrix += (toastPrix ? ' / Variante: ' : '') + prixVariante + '€';
             showToast('Statut mis a jour : ' + newStatus + ' (Collecteur: ' + collecteur + (toastPrix ? ', Prix: ' + toastPrix : '') + ')', 'success');
+
+            // Supprimer les inscriptions des membres blacklistés par ce collecteur
+            nettoyerInscriptionsBlacklist(collecteur, docId);
         })
         .catch(function(error) {
             console.error('Erreur changement statut:', error);
             updateBadgeUI(badge, previousStatus);
             showToast('Erreur : ' + error.message, 'error');
+        });
+}
+
+// Supprime les inscriptions de membres blacklistés quand un collecteur est assigné
+function nettoyerInscriptionsBlacklist(collecteurAlias, billetId) {
+    // Charger la blacklist du collecteur
+    supabaseFetch('/rest/v1/collecteur_blacklist?collecteur_alias=eq.' + encodeURIComponent(collecteurAlias) + '&select=membre_email')
+        .then(function(blacklist) {
+            if (!blacklist || blacklist.length === 0) return;
+            var emails = blacklist.map(function(e) { return e.membre_email; });
+            // Supprimer les inscriptions blacklistées sur ce billet
+            var emailsFilter = 'membre_email=in.(' + emails.map(function(e) { return '"' + e + '"'; }).join(',') + ')';
+            return supabaseFetch('/rest/v1/inscriptions?billet_id=eq.' + billetId + '&' + emailsFilter, {
+                method: 'DELETE'
+            });
+        })
+        .catch(function(error) {
+            console.warn('Erreur nettoyage blacklist inscriptions:', error);
         });
 }
 
