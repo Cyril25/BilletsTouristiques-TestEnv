@@ -1035,7 +1035,10 @@
             html += '<th>Nom</th>';
             html += '<th>Normal</th>';
             if (hasVarianteCol) html += '<th>Variante</th>';
-            if (trackSerial) html += '<th>N° série</th>';
+            if (trackSerial) {
+                html += '<th>N° série</th>';
+                if (hasVarianteCol) html += '<th>N° série var.</th>';
+            }
             html += '</tr></thead>';
             html += '<tbody>';
 
@@ -1073,6 +1076,14 @@
                     html += '<td class="coll-td-serial" onclick="event.stopPropagation()">';
                     html += '<input type="text" class="coll-serial-input" placeholder="N°" value="' + escapeAttr(serialNormal) + '" onchange="collUpdateSerial(' + b.id + ', \'serial_normal\', this.value)">';
                     html += '</td>';
+                    if (hasVarianteCol) {
+                        html += '<td class="coll-td-serial" onclick="event.stopPropagation()">';
+                        if (hasVar) {
+                            var serialVariante = (c && c.serial_variante) || '';
+                            html += '<input type="text" class="coll-serial-input" placeholder="N°" value="' + escapeAttr(serialVariante) + '" onchange="collUpdateSerial(' + b.id + ', \'serial_variante\', this.value)">';
+                        }
+                        html += '</td>';
+                    }
                 }
 
                 html += '</tr>';
@@ -1621,21 +1632,21 @@
         html += '</div>';
 
         // Possession
+        var serialNormal = (c && c.serial_normal) || '';
+        var serialVariante = (c && c.serial_variante) || '';
         html += '<div class="coll-modal-possession">';
         html += '<h3>Possession</h3>';
+        html += '<div class="coll-modal-possession-row">';
         html += '<label class="coll-own-cb"><input type="checkbox"' + (ownedNormal ? ' checked' : '') + ' onchange="collToggleOwned(' + billetId + ', \'owned_normal\', this.checked); collRefreshModal(' + billetId + ')"> Normal</label>';
-        if (hasVariante) {
-            html += '<label class="coll-own-cb"><input type="checkbox"' + (ownedVariante ? ' checked' : '') + ' onchange="collToggleOwned(' + billetId + ', \'owned_variante\', this.checked); collRefreshModal(' + billetId + ')"> ' + escapeHtml(billet.HasVariante) + '</label>';
-        }
-
-        // Numéros de série
         if (trackSerial) {
-            var serialNormal = (c && c.serial_normal) || '';
-            var serialVariante = (c && c.serial_variante) || '';
-            html += '<div class="coll-modal-serial">';
-            html += '<input type="text" class="coll-serial-input" placeholder="N° série normal" value="' + escapeAttr(serialNormal) + '" onchange="collUpdateSerial(' + billetId + ', \'serial_normal\', this.value)">';
-            if (hasVariante) {
-                html += '<input type="text" class="coll-serial-input" placeholder="N° série variante" value="' + escapeAttr(serialVariante) + '" onchange="collUpdateSerial(' + billetId + ', \'serial_variante\', this.value)">';
+            html += '<input type="text" class="coll-serial-input" placeholder="N° série" value="' + escapeAttr(serialNormal) + '" onchange="collUpdateSerial(' + billetId + ', \'serial_normal\', this.value)">';
+        }
+        html += '</div>';
+        if (hasVariante) {
+            html += '<div class="coll-modal-possession-row">';
+            html += '<label class="coll-own-cb"><input type="checkbox"' + (ownedVariante ? ' checked' : '') + ' onchange="collToggleOwned(' + billetId + ', \'owned_variante\', this.checked); collRefreshModal(' + billetId + ')"> ' + escapeHtml(billet.HasVariante) + '</label>';
+            if (trackSerial) {
+                html += '<input type="text" class="coll-serial-input" placeholder="N° série" value="' + escapeAttr(serialVariante) + '" onchange="collUpdateSerial(' + billetId + ', \'serial_variante\', this.value)">';
             }
             html += '</div>';
         }

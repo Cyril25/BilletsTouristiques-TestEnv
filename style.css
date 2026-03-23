@@ -7293,10 +7293,12 @@ body.login-page {
 .coll-modal-possession {
     padding: var(--spacing-sm) 0;
     border-top: 1px solid var(--color-border);
+}
+.coll-modal-possession-row {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
-    gap: var(--spacing-xs) var(--spacing-md);
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-xs);
 }
 
 .coll-modal-possession h3 {
