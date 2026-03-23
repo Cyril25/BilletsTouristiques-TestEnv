@@ -1,7 +1,7 @@
 // ============================================================
 // CONFIGURATION
 // ============================================================
-const scriptUrl = "https://airbnb-ical-proxy.cyril-samson41.workers.dev/billets-touristiques";
+const scriptUrl = "https://billet-proxy-worker.cyril-samson41.workers.dev/billets-touristiques";
 
 // SEC-02 — Fonctions d'echappement pour empecher les XSS
 function escapeHtml(text) {
