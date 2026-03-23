@@ -1015,17 +1015,11 @@
     }
 
     function renderCollectionTable(groupKeys, grouped) {
-        var hasVarianteCol = false;
-        groupKeys.forEach(function(key) {
-            grouped[key].forEach(function(item) {
-                if (item.billet.HasVariante && item.billet.HasVariante !== 'N') hasVarianteCol = true;
-            });
-        });
-
         var html = '';
         groupKeys.forEach(function(key) {
             var items = grouped[key];
             var ownedCount = items.filter(function(i) { return i.isOwned; }).length;
+            var hasVarianteCol = items.some(function(i) { return i.billet.HasVariante && i.billet.HasVariante !== 'N'; });
 
             html += '<div class="coll-country-group">';
             html += '<div class="coll-country-header">';
