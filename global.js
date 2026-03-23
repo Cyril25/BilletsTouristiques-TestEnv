@@ -346,8 +346,13 @@ function renderImpersonateBanner() {
 window.showImpersonateModal = function() {
     if (window.userRole !== 'superadmin') return;
 
-    supabaseFetch('/rest/v1/membres?select=email,prenom,nom&order=nom.asc')
+    supabaseFetch('/rest/v1/membres?select=email,prenom,nom')
     .then(function(membres) {
+        membres.sort(function(a, b) {
+            var na = ((a.prenom || '') + ' ' + (a.nom || '')).trim().toLowerCase() || a.email.toLowerCase();
+            var nb = ((b.prenom || '') + ' ' + (b.nom || '')).trim().toLowerCase() || b.email.toLowerCase();
+            return na.localeCompare(nb);
+        });
         var html = '<div class="impersonate-modal-overlay" onclick="window.closeImpersonateModal()">';
         html += '<div class="impersonate-modal" onclick="event.stopPropagation()">';
         html += '<button class="impersonate-modal-close" onclick="window.closeImpersonateModal()">&times;</button>';
