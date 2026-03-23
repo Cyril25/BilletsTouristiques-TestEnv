@@ -1260,6 +1260,11 @@ body.login-page {
     display: none;
 }
 
+/* Collection — lien masqué par défaut (accès restreint) */
+.collection-only {
+    display: none;
+}
+
 /* Petit message d'erreur caché par défaut */
 #error-msg {
     color: var(--color-danger);

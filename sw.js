@@ -7,7 +7,7 @@
 //   - Network Only  : API données (supabase, workers.dev, google)
 // ============================================================
 
-const CACHE_NAME = 'billets-v39';
+const CACHE_NAME = 'billets-v40';
 
 const STATIC_ASSETS = [
     './',
@@ -36,6 +36,8 @@ const STATIC_ASSETS = [
     'app-new.js',
     'admin-pre-inscriptions.html',
     'admin-pre-inscriptions.js',
+    'ma-collection.html',
+    'ma-collection.js',
 ];
 
 // Domaines dont les réponses ne doivent JAMAIS être mises en cache
