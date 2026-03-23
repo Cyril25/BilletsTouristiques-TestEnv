@@ -80,6 +80,10 @@
                     <button class="coll-filter-btn" data-filter="missing" onclick="collFilter('missing')">Manquants</button>
                     <button class="coll-filter-btn" data-filter="outofscope" onclick="collFilter('outofscope')">Hors périmètre</button>
                 </div>
+                <div class="collection-view-toggle">
+                    <button class="coll-view-btn active" data-view="table" onclick="collSetView('table')" title="Vue tableau"><i class="fa-solid fa-table-list"></i></button>
+                    <button class="coll-view-btn" data-view="card" onclick="collSetView('card')" title="Vue vignettes"><i class="fa-solid fa-grip"></i></button>
+                </div>
                 <div class="collection-excel-actions">
                     <button class="btn-secondary btn-sm" onclick="collExport()">
                         <i class="fa-solid fa-file-export"></i> Exporter

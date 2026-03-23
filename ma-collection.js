@@ -28,6 +28,7 @@
     var searchQuery = '';
     var filterPays = '';            // '' = tous
     var filterAnnee = '';           // '' = toutes
+    var viewMode = 'table';         // table | card
     var collectionMap = {};        // billet_id -> { owned_normal, owned_variante, ... }
     var minYear = 2015;
     var maxYear = new Date().getFullYear();
@@ -51,6 +52,7 @@
     window.collToggleSerial = collToggleSerial;
     window.collExport = collExport;
     window.collImport = collImport;
+    window.collSetView = collSetView;
     window.collShowBillet = collShowBillet;
     window.collCloseModal = collCloseModal;
     window.onboardingNext = onboardingNext;
@@ -878,6 +880,14 @@
     // 11. AFFICHAGE COLLECTION — 3 NIVEAUX (Story 7-1)
     // ============================================================
 
+    function collSetView(mode) {
+        viewMode = mode;
+        document.querySelectorAll('.coll-view-btn').forEach(function(btn) {
+            btn.classList.toggle('active', btn.getAttribute('data-view') === mode);
+        });
+        renderCollection();
+    }
+
     function renderCollection() {
         var el = document.getElementById('collection-content');
         if (!el) return;
@@ -959,11 +969,9 @@
             return a.localeCompare(b);
         });
 
-        var html = '';
+        // Trier les items dans chaque groupe
         groupKeys.forEach(function(key) {
-            var items = grouped[key];
-            // Trier par millésime, pays, dep (France), référence, version
-            items.sort(function(a, b) {
+            grouped[key].sort(function(a, b) {
                 var yA = parseInt(a.billet.Millesime) || 0;
                 var yB = parseInt(b.billet.Millesime) || 0;
                 if (yA !== yB) return yA - yB;
@@ -975,7 +983,21 @@
                 if (rA !== rB) return rA.localeCompare(rB);
                 return (a.billet.Version || '').localeCompare(b.billet.Version || '');
             });
+        });
 
+        var html = '';
+        if (viewMode === 'table') {
+            html = renderCollectionTable(groupKeys, grouped);
+        } else {
+            html = renderCollectionCards(groupKeys, grouped);
+        }
+        el.innerHTML = html;
+    }
+
+    function renderCollectionCards(groupKeys, grouped) {
+        var html = '';
+        groupKeys.forEach(function(key) {
+            var items = grouped[key];
             var ownedCount = items.filter(function(i) { return i.isOwned; }).length;
 
             html += '<div class="coll-country-group">';
@@ -984,15 +1006,86 @@
             html += '<span class="coll-country-badge">' + ownedCount + ' / ' + items.length + '</span>';
             html += '</div>';
             html += '<div class="coll-billets-grid">';
-
             items.forEach(function(item) {
                 html += renderBilletCard(item);
             });
-
             html += '</div></div>';
         });
+        return html;
+    }
 
-        el.innerHTML = html;
+    function renderCollectionTable(groupKeys, grouped) {
+        var hasVarianteCol = false;
+        groupKeys.forEach(function(key) {
+            grouped[key].forEach(function(item) {
+                if (item.billet.HasVariante && item.billet.HasVariante !== 'N') hasVarianteCol = true;
+            });
+        });
+
+        var html = '';
+        groupKeys.forEach(function(key) {
+            var items = grouped[key];
+            var ownedCount = items.filter(function(i) { return i.isOwned; }).length;
+
+            html += '<div class="coll-country-group">';
+            html += '<div class="coll-country-header">';
+            html += '<h3>' + escapeHtml(key) + '</h3>';
+            html += '<span class="coll-country-badge">' + ownedCount + ' / ' + items.length + '</span>';
+            html += '</div>';
+
+            html += '<table class="coll-table">';
+            html += '<thead><tr>';
+            html += '<th>Dep</th>';
+            html += '<th>Référence</th>';
+            html += '<th>Année</th>';
+            html += '<th>Nom</th>';
+            html += '<th>Normal</th>';
+            if (hasVarianteCol) html += '<th>Variante</th>';
+            if (trackSerial) html += '<th>N° série</th>';
+            html += '</tr></thead>';
+            html += '<tbody>';
+
+            items.forEach(function(item) {
+                var b = item.billet;
+                var c = item.collData;
+                var ownedNormal = c && c.owned_normal;
+                var ownedVariante = c && c.owned_variante;
+                var hasVar = b.HasVariante && b.HasVariante !== 'N';
+
+                var rowClass = '';
+                if (!item.inScope) rowClass = 'coll-row-outofscope';
+                else if (item.isOwned) rowClass = 'coll-row-owned';
+                else rowClass = 'coll-row-missing';
+
+                html += '<tr class="' + rowClass + ' coll-table-row" onclick="collShowBillet(' + b.id + ')">';
+                html += '<td class="coll-td-dep">' + escapeHtml(b.dep || '') + '</td>';
+                html += '<td class="coll-td-ref">' + escapeHtml(b.Reference || '') + (b.Version ? '-' + escapeHtml(b.Version) : '') + '</td>';
+                html += '<td class="coll-td-year">' + escapeHtml((b.Millesime || '').toString()) + '</td>';
+                html += '<td class="coll-td-name">' + escapeHtml(b.NomBillet || '') + '</td>';
+                html += '<td class="coll-td-cb" onclick="event.stopPropagation()">';
+                html += '<input type="checkbox"' + (ownedNormal ? ' checked' : '') + ' onchange="collToggleOwned(' + b.id + ', \'owned_normal\', this.checked)">';
+                html += '</td>';
+
+                if (hasVarianteCol) {
+                    html += '<td class="coll-td-cb" onclick="event.stopPropagation()">';
+                    if (hasVar) {
+                        html += '<input type="checkbox"' + (ownedVariante ? ' checked' : '') + ' onchange="collToggleOwned(' + b.id + ', \'owned_variante\', this.checked)">';
+                    }
+                    html += '</td>';
+                }
+
+                if (trackSerial) {
+                    var serialNormal = (c && c.serial_normal) || '';
+                    html += '<td class="coll-td-serial">' + escapeHtml(serialNormal) + '</td>';
+                }
+
+                html += '</tr>';
+            });
+
+            html += '</tbody></table>';
+            html += '</div>';
+        });
+        return html;
     }
 
     function renderBilletCard(item) {

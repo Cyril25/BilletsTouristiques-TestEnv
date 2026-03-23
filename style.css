@@ -6967,6 +6967,64 @@ body.login-page {
     color: var(--color-text-muted);
 }
 
+/* --- Toggle vue tableau/vignettes --- */
+.collection-view-toggle {
+    display: flex;
+    gap: 2px;
+    align-items: center;
+}
+.coll-view-btn {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-light);
+    padding: 6px 10px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    border-radius: 0;
+    transition: background 0.15s, color 0.15s;
+}
+.coll-view-btn:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+.coll-view-btn:last-child { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+.coll-view-btn.active {
+    background: var(--color-primary);
+    color: #fff;
+    border-color: var(--color-primary);
+}
+
+/* --- Tableau collection --- */
+.coll-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+    margin-bottom: var(--spacing-sm);
+}
+.coll-table th {
+    background: var(--color-surface);
+    border-bottom: 2px solid var(--color-border);
+    padding: 6px 8px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.78rem;
+    color: var(--color-text-light);
+    white-space: nowrap;
+}
+.coll-table td {
+    padding: 5px 8px;
+    border-bottom: 1px solid var(--color-border);
+    vertical-align: middle;
+}
+.coll-table-row { cursor: pointer; transition: background 0.12s; }
+.coll-table-row:hover { background: rgba(var(--color-primary-rgb, 44,62,80), 0.06); }
+.coll-row-owned { background: rgba(46, 204, 113, 0.08); }
+.coll-row-missing { }
+.coll-row-outofscope { opacity: 0.45; }
+.coll-td-dep { font-family: monospace; font-size: 0.75rem; color: var(--color-primary); font-weight: 500; }
+.coll-td-ref { font-family: monospace; font-size: 0.78rem; white-space: nowrap; }
+.coll-td-year { white-space: nowrap; }
+.coll-td-name { max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.coll-td-cb { text-align: center; width: 50px; }
+.coll-td-serial { font-family: monospace; font-size: 0.75rem; }
+
 /* --- Grille de billets --- */
 .coll-billets-grid {
     display: grid;
