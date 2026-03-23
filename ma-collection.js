@@ -1641,6 +1641,10 @@
             var excluded = overrideMap[b.id] === 'exclude';
             if (!inScope || excluded) return;
 
+            // Appliquer les filtres pays/année actifs
+            if (filterPays && (b.Pays || '') !== filterPays) return;
+            if (filterAnnee && (b.Millesime || '').toString() !== filterAnnee) return;
+
             var c = collectionMap[b.id];
             var row = {
                 'Référence': b.Reference || '',
@@ -1674,7 +1678,11 @@
         var ws = XLSX.utils.json_to_sheet(rows);
         var wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Ma collection');
-        XLSX.writeFile(wb, 'ma-collection.xlsx');
+        var filename = 'ma-collection';
+        if (filterPays) filename += '-' + filterPays;
+        if (filterAnnee) filename += '-' + filterAnnee;
+        filename += '.xlsx';
+        XLSX.writeFile(wb, filename);
         showToast(rows.length + ' billets exportés');
     }
 
