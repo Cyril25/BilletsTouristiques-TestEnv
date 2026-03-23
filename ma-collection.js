@@ -1703,20 +1703,9 @@
     }
 
     function renderImpersonationUI() {
-        // Bouton dans la toolbar (ajouté dynamiquement)
-        var existing = document.getElementById('coll-impersonate-btn');
-        if (canImpersonate() && !existing) {
-            var toolbar = document.querySelector('.collection-excel-actions');
-            if (toolbar) {
-                var btn = document.createElement('button');
-                btn.id = 'coll-impersonate-btn';
-                btn.className = 'btn-secondary btn-sm';
-                btn.title = 'Voir la collection d\'un membre';
-                btn.innerHTML = '<i class="fa-solid fa-user-secret"></i>';
-                btn.onclick = collImpersonate;
-                toolbar.appendChild(btn);
-            }
-        }
+        // Afficher le bouton uniquement pour cyril
+        var btn = document.getElementById('coll-impersonate-btn');
+        if (btn) btn.style.display = canImpersonate() ? '' : 'none';
 
         // Bannière d'impersonation
         var banner = document.getElementById('coll-impersonate-banner');
