@@ -1677,6 +1677,8 @@
         });
 
         var ws = XLSX.utils.json_to_sheet(rows);
+        // Masquer la colonne ID (col 0) pour éviter les modifications accidentelles
+        ws['!cols'] = [{ hidden: true }];
         var wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Ma collection');
         var filename = 'ma-collection';
