@@ -125,7 +125,7 @@ document.addEventListener("DOMContentLoaded", function() {
                         window.location.href = "index.html";
                     } else {
                         // Guard admin : vérifier si la page requiert le rôle admin
-                        if (document.body.getAttribute('data-require-admin') === 'true' && window.userRole !== 'admin') {
+                        if (document.body.getAttribute('data-require-admin') === 'true' && window.userRole !== 'admin' && window.userRole !== 'superadmin') {
                             window.location.href = 'index.html';
                             return;
                         }
@@ -204,7 +204,7 @@ function loadMenu() {
     var placeholder = document.getElementById("menu-placeholder");
     if (!placeholder) return;
 
-    fetch("menu.html?v=40")
+    fetch("menu.html?v=41")
         .then(function(response) { return response.text(); })
         .then(function(html) {
             // 1. On injecte le HTML
@@ -223,7 +223,7 @@ function loadMenu() {
             }
 
             // STORY 1.2 — Menu conditionnel : afficher les liens admin uniquement pour les admins
-            if (window.userRole === 'admin') {
+            if (window.userRole === 'admin' || window.userRole === 'superadmin') {
                 var adminLinks = document.querySelectorAll('.admin-only');
                 adminLinks.forEach(function(el) { el.classList.remove('admin-only'); });
             }

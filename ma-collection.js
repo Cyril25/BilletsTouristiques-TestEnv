@@ -1698,8 +1698,7 @@
     // ============================================================
 
     function canImpersonate() {
-        return firebase.auth().currentUser &&
-               firebase.auth().currentUser.email === 'cyril.samson41@gmail.com';
+        return window.userRole === 'superadmin';
     }
 
     function renderImpersonationUI() {
