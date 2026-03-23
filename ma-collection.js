@@ -1062,8 +1062,16 @@
 
         var existing = collectionMap[billetId];
 
+        // Mise à jour optimiste : on met à jour collectionMap AVANT l'appel async
         if (existing) {
-            // PATCH existant
+            var oldValue = existing[field];
+            existing[field] = checked;
+
+            // Re-render immédiat (UI réactive)
+            renderCounter();
+            renderCountryCounters();
+            renderCollection();
+
             var patch = {};
             patch[field] = checked;
             supabaseFetch('/rest/v1/collection?membre_email=eq.' + encodeURIComponent(user.email) + '&billet_id=eq.' + billetId, {
@@ -1071,17 +1079,16 @@
                 body: JSON.stringify(patch),
                 headers: { 'Prefer': 'return=minimal' }
             })
-            .then(function() {
-                existing[field] = checked;
+            .catch(function(err) {
+                // Revert en cas d'erreur
+                existing[field] = oldValue;
                 renderCounter();
                 renderCountryCounters();
-            })
-            .catch(function(err) {
+                renderCollection();
                 console.error('Erreur mise à jour possession :', err);
                 showToast('Erreur', true);
             });
         } else {
-            // INSERT nouvelle ligne
             var row = {
                 membre_email: user.email,
                 billet_id: billetId,
@@ -1093,18 +1100,25 @@
             };
             row[field] = checked;
 
+            // Mise à jour optimiste
+            collectionMap[billetId] = row;
+            collectionData.push(row);
+            renderCounter();
+            renderCountryCounters();
+            renderCollection();
+
             supabaseFetch('/rest/v1/collection', {
                 method: 'POST',
                 body: JSON.stringify(row),
                 headers: { 'Prefer': 'return=minimal' }
             })
-            .then(function() {
-                collectionMap[billetId] = row;
-                collectionData.push(row);
+            .catch(function(err) {
+                // Revert en cas d'erreur
+                delete collectionMap[billetId];
+                collectionData.pop();
                 renderCounter();
                 renderCountryCounters();
-            })
-            .catch(function(err) {
+                renderCollection();
                 console.error('Erreur insertion possession :', err);
                 showToast('Erreur', true);
             });
@@ -1552,8 +1566,8 @@
     }
 
     window.collRefreshModal = function(billetId) {
-        // Re-render la modale avec les données à jour (après toggle possession)
-        setTimeout(function() { collShowBillet(billetId); }, 50);
+        // Re-render la modale avec les données à jour (mise à jour optimiste)
+        collShowBillet(billetId);
     };
 
     // ============================================================
