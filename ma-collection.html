@@ -60,7 +60,24 @@
                 </div>
             </div>
 
-            <!-- Contenu collection (billets) -->
+            <!-- Barre de recherche + filtres -->
+            <div class="collection-toolbar">
+                <div class="collection-search">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="coll-search" placeholder="Chercher par référence, nom ou pays..." oninput="collSearch()">
+                </div>
+                <div class="collection-filters">
+                    <button class="coll-filter-btn active" data-filter="all" onclick="collFilter('all')">Dans le périmètre</button>
+                    <button class="coll-filter-btn" data-filter="owned" onclick="collFilter('owned')">Possédés</button>
+                    <button class="coll-filter-btn" data-filter="missing" onclick="collFilter('missing')">Manquants</button>
+                    <button class="coll-filter-btn" data-filter="outofscope" onclick="collFilter('outofscope')">Hors périmètre</button>
+                </div>
+            </div>
+
+            <!-- Compteurs par pays -->
+            <div id="collection-country-counters" class="collection-country-counters"></div>
+
+            <!-- Grille des billets -->
             <div id="collection-content"></div>
         </div>
 

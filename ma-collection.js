@@ -3,6 +3,12 @@
 // ============================================================
 // Story 6-2 : Structure + accès restreint
 // Story 6-3 : Paramétrage collection — frise temporelle
+// Story 6-4 : Forçage inclusion/exclusion individuel
+// Story 6-5 : Filtre vivant dynamique
+// Story 7-1 : Affichage 3 niveaux de visibilité
+// Story 7-2 : Compteurs hiérarchiques
+// Story 7-3 : Saisie de possession
+// Story 7-4 : Recherche dans la collection
 // ============================================================
 
 (function() {
@@ -15,7 +21,11 @@
     var editRules = [];         // copie de travail pendant l'édition
     var memberOverrides = [];   // collection_overrides du membre
     var collectionData = [];    // lignes table collection du membre
+    var trackSerial = false;       // track_serial_numbers du membre
     var paramsOpen = false;
+    var currentFilter = 'all';     // all | owned | missing | outofscope
+    var searchQuery = '';
+    var collectionMap = {};        // billet_id -> { owned_normal, owned_variante, ... }
     var minYear = 2015;
     var maxYear = new Date().getFullYear();
 
@@ -26,6 +36,12 @@
     window.collSaveParams = collSaveParams;
     window.collRemoveBreakpoint = collRemoveBreakpoint;
     window.collTogglePaysGrid = collTogglePaysGrid;
+    window.collSearch = collSearch;
+    window.collFilter = collFilter;
+    window.collToggleOwned = collToggleOwned;
+    window.collForceInclude = collForceInclude;
+    window.collForceExclude = collForceExclude;
+    window.collRemoveOverride = collRemoveOverride;
 
     // ============================================================
     // 1. INITIALISATION
@@ -55,7 +71,14 @@
             var membre = (results[2] || [])[0] || {};
             memberRules = membre.collection_rules || [];
             memberOverrides = membre.collection_overrides || [];
+            trackSerial = !!membre.track_serial_numbers;
             collectionData = results[3] || [];
+
+            // Construire la map billet_id -> données de possession
+            collectionMap = {};
+            collectionData.forEach(function(c) {
+                collectionMap[c.billet_id] = c;
+            });
 
             // Déterminer la plage d'années depuis le catalogue
             var years = allBillets
@@ -68,6 +91,8 @@
 
             renderPerimetreSummary();
             renderCounter();
+            renderCountryCounters();
+            renderCollection();
         })
         .catch(function(err) {
             console.error('Erreur chargement collection :', err);
@@ -273,6 +298,8 @@
             collCancelParams();
             renderPerimetreSummary();
             renderCounter();
+            renderCountryCounters();
+            renderCollection();
             showToast('Périmètre enregistré');
         })
         .catch(function(err) {
@@ -572,7 +599,458 @@
     }
 
     // ============================================================
-    // 9. TOAST
+    // 9. COMPTEURS PAR PAYS (Story 7-2)
+    // ============================================================
+
+    function renderCountryCounters() {
+        var el = document.getElementById('collection-country-counters');
+        if (!el) return;
+
+        var perimetre = calculerPerimetre(allBillets, memberRules, memberOverrides);
+
+        // Grouper par pays
+        var paysStats = {};
+        allBillets.forEach(function(b) {
+            if (!perimetre[b.id]) return;
+            var pays = b.Pays || 'Inconnu';
+            if (!paysStats[pays]) paysStats[pays] = { total: 0, owned: 0 };
+            paysStats[pays].total++;
+            var c = collectionMap[b.id];
+            if (c && (c.owned_normal || c.owned_variante)) {
+                paysStats[pays].owned++;
+            }
+        });
+
+        // Trier par progression décroissante puis par nom
+        var paysList = Object.keys(paysStats).sort(function(a, b) {
+            var pctA = paysStats[a].total > 0 ? paysStats[a].owned / paysStats[a].total : 0;
+            var pctB = paysStats[b].total > 0 ? paysStats[b].owned / paysStats[b].total : 0;
+            if (pctB !== pctA) return pctB - pctA;
+            return a.localeCompare(b);
+        });
+
+        if (paysList.length === 0) {
+            el.innerHTML = '';
+            return;
+        }
+
+        var html = '<details class="collection-counters-details"><summary><i class="fa-solid fa-chart-bar"></i> Détail par pays (' + paysList.length + ')</summary><div class="collection-counters-grid">';
+
+        paysList.forEach(function(pays) {
+            var s = paysStats[pays];
+            var pct = s.total > 0 ? Math.round((s.owned / s.total) * 100) : 0;
+            html +=
+                '<div class="country-counter-item">' +
+                    '<div class="country-counter-label">' + escapeHtml(pays) + '</div>' +
+                    '<div class="country-counter-bar"><div class="country-counter-fill" style="width:' + pct + '%"></div></div>' +
+                    '<div class="country-counter-value">' + s.owned + '/' + s.total + '</div>' +
+                '</div>';
+        });
+
+        html += '</div></details>';
+        el.innerHTML = html;
+    }
+
+    // ============================================================
+    // 10. RECHERCHE ET FILTRES (Story 7-4)
+    // ============================================================
+
+    var searchTimer = null;
+
+    function collSearch() {
+        if (searchTimer) clearTimeout(searchTimer);
+        searchTimer = setTimeout(function() {
+            var input = document.getElementById('coll-search');
+            searchQuery = input ? input.value.trim().toLowerCase() : '';
+            renderCollection();
+        }, 300);
+    }
+
+    function collFilter(filter) {
+        currentFilter = filter;
+        // Toggle bouton actif
+        var btns = document.querySelectorAll('.coll-filter-btn');
+        btns.forEach(function(btn) {
+            btn.classList.toggle('active', btn.getAttribute('data-filter') === filter);
+        });
+        renderCollection();
+    }
+
+    // ============================================================
+    // 11. AFFICHAGE COLLECTION — 3 NIVEAUX (Story 7-1)
+    // ============================================================
+
+    function renderCollection() {
+        var el = document.getElementById('collection-content');
+        if (!el) return;
+
+        var perimetre = calculerPerimetre(allBillets, memberRules, memberOverrides);
+
+        // Construire la map des overrides pour accès rapide
+        var overrideMap = {};
+        memberOverrides.forEach(function(ov) {
+            overrideMap[ov.billet_id] = ov.action;
+        });
+
+        // Filtrer et catégoriser les billets
+        var billetsFiltres = [];
+
+        allBillets.forEach(function(b) {
+            var inScope = !!perimetre[b.id];
+            var c = collectionMap[b.id];
+            var isOwned = c && (c.owned_normal || c.owned_variante);
+
+            // Filtre par onglet
+            if (currentFilter === 'all' && !inScope) return;
+            if (currentFilter === 'owned' && !isOwned) return;
+            if (currentFilter === 'missing' && (!inScope || isOwned)) return;
+            if (currentFilter === 'outofscope' && inScope) return;
+
+            // Filtre par recherche
+            if (searchQuery) {
+                var ref = (b.Reference || '').toLowerCase();
+                var nom = (b.NomBillet || '').toLowerCase();
+                var pays = (b.Pays || '').toLowerCase();
+                var millesime = (b.Millesime || '').toString();
+                if (ref.indexOf(searchQuery) === -1 &&
+                    nom.indexOf(searchQuery) === -1 &&
+                    pays.indexOf(searchQuery) === -1 &&
+                    millesime.indexOf(searchQuery) === -1) {
+                    return;
+                }
+            }
+
+            billetsFiltres.push({
+                billet: b,
+                inScope: inScope,
+                isOwned: isOwned,
+                collData: c || null,
+                override: overrideMap[b.id] || null
+            });
+        });
+
+        if (billetsFiltres.length === 0) {
+            el.innerHTML = '<div class="collection-empty"><i class="fa-solid fa-box-open"></i> Aucun billet à afficher.</div>';
+            return;
+        }
+
+        // Grouper par pays
+        var grouped = {};
+        billetsFiltres.forEach(function(item) {
+            var pays = item.billet.Pays || 'Inconnu';
+            if (!grouped[pays]) grouped[pays] = [];
+            grouped[pays].push(item);
+        });
+
+        var paysSorted = Object.keys(grouped).sort();
+
+        var html = '';
+        paysSorted.forEach(function(pays) {
+            var items = grouped[pays];
+            // Trier par millésime puis version
+            items.sort(function(a, b) {
+                var yA = parseInt(a.billet.Millesime) || 0;
+                var yB = parseInt(b.billet.Millesime) || 0;
+                if (yA !== yB) return yA - yB;
+                return (a.billet.Version || '').localeCompare(b.billet.Version || '');
+            });
+
+            // Compteur pays
+            var ownedCount = items.filter(function(i) { return i.isOwned; }).length;
+
+            html += '<div class="coll-country-group">';
+            html += '<div class="coll-country-header">';
+            html += '<h3>' + escapeHtml(pays) + '</h3>';
+            html += '<span class="coll-country-badge">' + ownedCount + ' / ' + items.length + '</span>';
+            html += '</div>';
+            html += '<div class="coll-billets-grid">';
+
+            items.forEach(function(item) {
+                html += renderBilletCard(item);
+            });
+
+            html += '</div></div>';
+        });
+
+        el.innerHTML = html;
+    }
+
+    function renderBilletCard(item) {
+        var b = item.billet;
+        var c = item.collData;
+        var hasVariante = b.HasVariante && b.HasVariante !== 'N';
+
+        var cssClass = 'coll-billet-card';
+        if (!item.inScope) {
+            cssClass += ' coll-out-of-scope';
+        } else if (item.isOwned) {
+            cssClass += ' coll-owned';
+        } else {
+            cssClass += ' coll-missing';
+        }
+
+        var html = '<div class="' + cssClass + '" data-billet-id="' + b.id + '">';
+
+        // En-tête : référence + année-version
+        html += '<div class="coll-billet-header">';
+        html += '<span class="coll-billet-ref">' + escapeHtml(b.Reference || '') + '</span>';
+        html += '<span class="coll-billet-year">' + escapeHtml((b.Millesime || '') + (b.Version ? '-' + b.Version : '')) + '</span>';
+        html += '</div>';
+
+        // Nom
+        html += '<div class="coll-billet-name">' + escapeHtml(b.NomBillet || '') + '</div>';
+
+        // Variante info
+        if (hasVariante) {
+            html += '<div class="coll-billet-variante"><i class="fa-solid fa-star"></i> ' + escapeHtml(b.HasVariante) + '</div>';
+        }
+
+        // Override badge
+        if (item.override === 'include') {
+            html += '<div class="coll-override-badge coll-override-include" title="Ajouté manuellement"><i class="fa-solid fa-thumbtack"></i> Inclus</div>';
+        } else if (item.override === 'exclude') {
+            html += '<div class="coll-override-badge coll-override-exclude" title="Exclu manuellement"><i class="fa-solid fa-ban"></i> Exclu</div>';
+        }
+
+        // Checkboxes de possession (Story 7-3)
+        html += '<div class="coll-billet-possession">';
+
+        var ownedNormal = c && c.owned_normal;
+        var ownedVariante = c && c.owned_variante;
+
+        html += '<label class="coll-own-cb">';
+        html += '<input type="checkbox"' + (ownedNormal ? ' checked' : '') + ' onchange="collToggleOwned(' + b.id + ', \'owned_normal\', this.checked)">';
+        html += ' Normal';
+        html += '</label>';
+
+        if (hasVariante) {
+            html += '<label class="coll-own-cb">';
+            html += '<input type="checkbox"' + (ownedVariante ? ' checked' : '') + ' onchange="collToggleOwned(' + b.id + ', \'owned_variante\', this.checked)">';
+            html += ' ' + escapeHtml(b.HasVariante);
+            html += '</label>';
+        }
+
+        html += '</div>';
+
+        // Numéros de série (si activé)
+        if (trackSerial) {
+            var serialNormal = (c && c.serial_normal) || '';
+            var serialVariante = (c && c.serial_variante) || '';
+
+            html += '<div class="coll-billet-serial">';
+            html += '<input type="text" class="coll-serial-input" placeholder="N° série" value="' + escapeAttr(serialNormal) + '" onchange="collUpdateSerial(' + b.id + ', \'serial_normal\', this.value)">';
+            if (hasVariante) {
+                html += '<input type="text" class="coll-serial-input" placeholder="N° série var." value="' + escapeAttr(serialVariante) + '" onchange="collUpdateSerial(' + b.id + ', \'serial_variante\', this.value)">';
+            }
+            html += '</div>';
+        }
+
+        // Actions forçage (Story 6-4)
+        html += '<div class="coll-billet-actions">';
+        if (item.override) {
+            html += '<button class="btn-link btn-sm" onclick="collRemoveOverride(' + b.id + ')" title="Retirer le forçage"><i class="fa-solid fa-rotate-left"></i> Retirer forçage</button>';
+        } else if (item.inScope) {
+            html += '<button class="btn-link btn-sm" onclick="collForceExclude(' + b.id + ')" title="Exclure manuellement"><i class="fa-solid fa-ban"></i> Exclure</button>';
+        } else {
+            html += '<button class="btn-link btn-sm" onclick="collForceInclude(' + b.id + ')" title="Inclure manuellement"><i class="fa-solid fa-thumbtack"></i> Inclure</button>';
+        }
+        html += '</div>';
+
+        html += '</div>';
+        return html;
+    }
+
+    // ============================================================
+    // 12. SAISIE DE POSSESSION (Story 7-3)
+    // ============================================================
+
+    function collToggleOwned(billetId, field, checked) {
+        var user = firebase.auth().currentUser;
+        if (!user) return;
+
+        var existing = collectionMap[billetId];
+
+        if (existing) {
+            // PATCH existant
+            var patch = {};
+            patch[field] = checked;
+            supabaseFetch('/rest/v1/collection?membre_email=eq.' + encodeURIComponent(user.email) + '&billet_id=eq.' + billetId, {
+                method: 'PATCH',
+                body: JSON.stringify(patch),
+                headers: { 'Prefer': 'return=minimal' }
+            })
+            .then(function() {
+                existing[field] = checked;
+                renderCounter();
+                renderCountryCounters();
+            })
+            .catch(function(err) {
+                console.error('Erreur mise à jour possession :', err);
+                showToast('Erreur', true);
+            });
+        } else {
+            // INSERT nouvelle ligne
+            var row = {
+                membre_email: user.email,
+                billet_id: billetId,
+                owned_normal: false,
+                owned_variante: false,
+                serial_normal: '',
+                serial_variante: '',
+                nb_doubles: 0
+            };
+            row[field] = checked;
+
+            supabaseFetch('/rest/v1/collection', {
+                method: 'POST',
+                body: JSON.stringify(row),
+                headers: { 'Prefer': 'return=minimal' }
+            })
+            .then(function() {
+                collectionMap[billetId] = row;
+                collectionData.push(row);
+                renderCounter();
+                renderCountryCounters();
+            })
+            .catch(function(err) {
+                console.error('Erreur insertion possession :', err);
+                showToast('Erreur', true);
+            });
+        }
+    }
+
+    window.collUpdateSerial = function(billetId, field, value) {
+        var user = firebase.auth().currentUser;
+        if (!user) return;
+
+        var existing = collectionMap[billetId];
+
+        if (existing) {
+            var patch = {};
+            patch[field] = value;
+            supabaseFetch('/rest/v1/collection?membre_email=eq.' + encodeURIComponent(user.email) + '&billet_id=eq.' + billetId, {
+                method: 'PATCH',
+                body: JSON.stringify(patch),
+                headers: { 'Prefer': 'return=minimal' }
+            })
+            .then(function() {
+                existing[field] = value;
+            })
+            .catch(function(err) {
+                console.error('Erreur mise à jour série :', err);
+                showToast('Erreur', true);
+            });
+        } else {
+            // Créer la ligne avec le numéro de série
+            var row = {
+                membre_email: user.email,
+                billet_id: billetId,
+                owned_normal: false,
+                owned_variante: false,
+                serial_normal: '',
+                serial_variante: '',
+                nb_doubles: 0
+            };
+            row[field] = value;
+
+            supabaseFetch('/rest/v1/collection', {
+                method: 'POST',
+                body: JSON.stringify(row),
+                headers: { 'Prefer': 'return=minimal' }
+            })
+            .then(function() {
+                collectionMap[billetId] = row;
+                collectionData.push(row);
+            })
+            .catch(function(err) {
+                console.error('Erreur insertion série :', err);
+                showToast('Erreur', true);
+            });
+        }
+    };
+
+    // ============================================================
+    // 13. FORÇAGE INCLUSION / EXCLUSION (Story 6-4)
+    // ============================================================
+
+    function saveOverrides() {
+        var user = firebase.auth().currentUser;
+        if (!user) return Promise.reject(new Error('Non connecté'));
+
+        return supabaseFetch('/rest/v1/membres?email=eq.' + encodeURIComponent(user.email), {
+            method: 'PATCH',
+            body: JSON.stringify({ collection_overrides: memberOverrides }),
+            headers: { 'Prefer': 'return=minimal' }
+        });
+    }
+
+    function collForceInclude(billetId) {
+        // Retirer un éventuel override existant
+        memberOverrides = memberOverrides.filter(function(ov) { return ov.billet_id !== billetId; });
+        memberOverrides.push({ billet_id: billetId, action: 'include' });
+
+        saveOverrides()
+            .then(function() {
+                showToast('Billet inclus manuellement');
+                renderCounter();
+                renderCountryCounters();
+                renderCollection();
+            })
+            .catch(function(err) {
+                console.error('Erreur forçage include :', err);
+                showToast('Erreur', true);
+            });
+    }
+
+    function collForceExclude(billetId) {
+        memberOverrides = memberOverrides.filter(function(ov) { return ov.billet_id !== billetId; });
+        memberOverrides.push({ billet_id: billetId, action: 'exclude' });
+
+        saveOverrides()
+            .then(function() {
+                showToast('Billet exclu manuellement');
+                renderCounter();
+                renderCountryCounters();
+                renderCollection();
+            })
+            .catch(function(err) {
+                console.error('Erreur forçage exclude :', err);
+                showToast('Erreur', true);
+            });
+    }
+
+    function collRemoveOverride(billetId) {
+        memberOverrides = memberOverrides.filter(function(ov) { return ov.billet_id !== billetId; });
+
+        saveOverrides()
+            .then(function() {
+                showToast('Forçage retiré');
+                renderCounter();
+                renderCountryCounters();
+                renderCollection();
+            })
+            .catch(function(err) {
+                console.error('Erreur retrait override :', err);
+                showToast('Erreur', true);
+            });
+    }
+
+    // ============================================================
+    // 14. HELPERS
+    // ============================================================
+
+    function escapeHtml(str) {
+        var div = document.createElement('div');
+        div.appendChild(document.createTextNode(str));
+        return div.innerHTML;
+    }
+
+    function escapeAttr(str) {
+        return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    // ============================================================
+    // 15. TOAST
     // ============================================================
 
     function showToast(message, isError) {
