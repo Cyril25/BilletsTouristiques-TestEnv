@@ -1058,7 +1058,7 @@
                 else rowClass = 'coll-row-missing';
 
                 html += '<tr class="' + rowClass + ' coll-table-row" onclick="collShowBillet(' + b.id + ')">';
-                html += '<td class="coll-td-dep">' + escapeHtml(b.dep || '') + '</td>';
+                html += '<td class="coll-td-dep">' + escapeHtml(b.Dep || '') + '</td>';
                 html += '<td class="coll-td-ref">' + escapeHtml(b.Reference || '') + (b.Version ? '-' + escapeHtml(b.Version) : '') + '</td>';
                 html += '<td class="coll-td-year">' + escapeHtml((b.Millesime || '').toString()) + '</td>';
                 html += '<td class="coll-td-name">' + escapeHtml(b.NomBillet || '') + '</td>';
@@ -1076,7 +1076,9 @@
 
                 if (trackSerial) {
                     var serialNormal = (c && c.serial_normal) || '';
-                    html += '<td class="coll-td-serial">' + escapeHtml(serialNormal) + '</td>';
+                    html += '<td class="coll-td-serial" onclick="event.stopPropagation()">';
+                    html += '<input type="text" class="coll-serial-input" placeholder="N°" value="' + escapeAttr(serialNormal) + '" onchange="collUpdateSerial(' + b.id + ', \'serial_normal\', this.value)">';
+                    html += '</td>';
                 }
 
                 html += '</tr>';
