@@ -1031,7 +1031,7 @@
             html += '<thead><tr>';
             html += '<th>Dep</th>';
             html += '<th>Référence</th>';
-            html += '<th>Année</th>';
+            html += '<th>Année-V</th>';
             html += '<th>Nom</th>';
             html += '<th>Normal</th>';
             if (hasVarianteCol) html += '<th>Variante</th>';
@@ -1053,8 +1053,8 @@
 
                 html += '<tr class="' + rowClass + ' coll-table-row" onclick="collShowBillet(' + b.id + ')">';
                 html += '<td class="coll-td-dep">' + escapeHtml(b.Dep || '') + '</td>';
-                html += '<td class="coll-td-ref">' + escapeHtml(b.Reference || '') + (b.Version ? '-' + escapeHtml(b.Version) : '') + '</td>';
-                html += '<td class="coll-td-year">' + escapeHtml((b.Millesime || '').toString()) + '</td>';
+                html += '<td class="coll-td-ref">' + escapeHtml(b.Reference || '') + '</td>';
+                html += '<td class="coll-td-year">' + escapeHtml((b.Millesime || '').toString() + (b.Version ? '-' + b.Version : '')) + '</td>';
                 html += '<td class="coll-td-name">' + escapeHtml(b.NomBillet || '') + '</td>';
                 html += '<td class="coll-td-cb" onclick="event.stopPropagation()">';
                 html += '<input type="checkbox"' + (ownedNormal ? ' checked' : '') + ' onchange="collToggleOwned(' + b.id + ', \'owned_normal\', this.checked)">';
