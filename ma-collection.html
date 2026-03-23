@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://cdnjs.cloudflare.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https://drive.google.com https://drive.usercontent.google.com https://lh3.googleusercontent.com https://res.cloudinary.com; connect-src 'self' https://www.gstatic.com https://lhwcoybugdsggcclhtgb.supabase.co https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com https://accounts.google.com https://api.cloudinary.com https://billet-proxy-worker.cyril-samson41.workers.dev; frame-src 'self' https://asso-billet-site.firebaseapp.com https://apis.google.com https://accounts.google.com;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://cdnjs.cloudflare.com https://apis.google.com https://cdn.sheetjs.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https://drive.google.com https://drive.usercontent.google.com https://lh3.googleusercontent.com https://res.cloudinary.com; connect-src 'self' https://www.gstatic.com https://lhwcoybugdsggcclhtgb.supabase.co https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com https://accounts.google.com https://api.cloudinary.com https://billet-proxy-worker.cyril-samson41.workers.dev; frame-src 'self' https://asso-billet-site.firebaseapp.com https://apis.google.com https://accounts.google.com;">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Ma collection — suivi personnalisé de ma collection de billets touristiques.">
     <title>Ma collection - BilletsTouristiques</title>
@@ -80,6 +80,15 @@
                     <button class="coll-filter-btn" data-filter="missing" onclick="collFilter('missing')">Manquants</button>
                     <button class="coll-filter-btn" data-filter="outofscope" onclick="collFilter('outofscope')">Hors périmètre</button>
                 </div>
+                <div class="collection-excel-actions">
+                    <button class="btn-secondary btn-sm" onclick="collExport()">
+                        <i class="fa-solid fa-file-export"></i> Exporter
+                    </button>
+                    <label class="btn-secondary btn-sm coll-import-btn">
+                        <i class="fa-solid fa-file-import"></i> Importer
+                        <input type="file" id="coll-import-file" accept=".xlsx" onchange="collImport(this)" style="display:none">
+                    </label>
+                </div>
             </div>
 
             <!-- Compteurs par pays -->
@@ -93,6 +102,7 @@
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js" integrity="sha384-v3Z/Xdw1sCeo6M/geW7sn1Lt9obIm7MhAk8laVV+rvYFmzuWDELOiygx7dVte2dX" crossorigin="anonymous"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js" integrity="sha384-p62xBRve8PdqGDGASZtZMuHgPsyPcT5VsFwgmz2p4zaFdEtt5ZzNqxK+CLzQS7xP" crossorigin="anonymous"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <script src="global.js"></script>
     <script src="ma-collection.js"></script>
 </body>

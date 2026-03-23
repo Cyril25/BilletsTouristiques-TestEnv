@@ -49,6 +49,8 @@
     window.collFilterPays = collFilterPays;
     window.collFilterAnnee = collFilterAnnee;
     window.collToggleSerial = collToggleSerial;
+    window.collExport = collExport;
+    window.collImport = collImport;
     window.collShowBillet = collShowBillet;
     window.collCloseModal = collCloseModal;
     window.onboardingNext = onboardingNext;
@@ -1620,7 +1622,222 @@
     }
 
     // ============================================================
-    // 17. TOAST
+    // 17. EXPORT / IMPORT EXCEL (Epic 8)
+    // ============================================================
+
+    function collExport() {
+        if (typeof XLSX === 'undefined') {
+            showToast('Librairie Excel non chargée', true);
+            return;
+        }
+
+        var perimetre = calculerPerimetre(allBillets, memberRules, memberOverrides);
+        var overrideMap = {};
+        (memberOverrides || []).forEach(function(o) { overrideMap[o.billet_id] = o.type; });
+
+        var rows = [];
+        allBillets.forEach(function(b) {
+            var inScope = !!perimetre[b.id];
+            var excluded = overrideMap[b.id] === 'exclude';
+            if (!inScope || excluded) return;
+
+            var c = collectionMap[b.id];
+            var row = {
+                'Référence': b.Reference || '',
+                'Millésime': b.Millesime || '',
+                'Version': b.Version || '',
+                'Nom': b.NomBillet || '',
+                'Pays': b.Pays || '',
+                'Dep': b.Dep || '',
+                'Possédé': (c && c.owned_normal) ? 'oui' : 'non',
+            };
+            if (trackSerial) {
+                row['N° série'] = (c && c.serial_normal) ? c.serial_normal : '';
+            }
+            if (b.HasVariante && b.HasVariante !== 'N') {
+                row['Variante'] = b.HasVariante;
+                row['Possédé variante'] = (c && c.owned_variante) ? 'oui' : 'non';
+                if (trackSerial) {
+                    row['N° série variante'] = (c && c.serial_variante) ? c.serial_variante : '';
+                }
+            } else {
+                row['Variante'] = '';
+                row['Possédé variante'] = '';
+                if (trackSerial) {
+                    row['N° série variante'] = '';
+                }
+            }
+            row['Nb doubles'] = (c && c.nb_doubles) ? c.nb_doubles : 0;
+            rows.push(row);
+        });
+
+        var ws = XLSX.utils.json_to_sheet(rows);
+        var wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Ma collection');
+        XLSX.writeFile(wb, 'ma-collection.xlsx');
+        showToast(rows.length + ' billets exportés');
+    }
+
+    function collImport(input) {
+        if (!input.files || !input.files[0]) return;
+        if (typeof XLSX === 'undefined') {
+            showToast('Librairie Excel non chargée', true);
+            return;
+        }
+
+        var file = input.files[0];
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            var data = new Uint8Array(e.target.result);
+            var wb = XLSX.read(data, { type: 'array' });
+            var ws = wb.Sheets[wb.SheetNames[0]];
+            var rows = XLSX.utils.sheet_to_json(ws);
+
+            // Validation des colonnes requises
+            if (rows.length === 0) {
+                showToast('Fichier vide', true);
+                input.value = '';
+                return;
+            }
+            var requiredCols = ['Référence', 'Millésime', 'Version', 'Possédé'];
+            var firstRow = rows[0];
+            var missing = requiredCols.filter(function(col) { return !(col in firstRow); });
+            if (missing.length > 0) {
+                showToast('Colonnes manquantes : ' + missing.join(', '), true);
+                input.value = '';
+                return;
+            }
+
+            // Construire un index par clé (ref + millésime + version)
+            var billetIndex = {};
+            allBillets.forEach(function(b) {
+                var key = (b.Reference || '') + '|' + (b.Millesime || '') + '|' + (b.Version || '');
+                billetIndex[key] = b;
+            });
+
+            // Analyser les changements
+            var changes = [];
+            var errors = [];
+            var unchanged = 0;
+
+            rows.forEach(function(row, idx) {
+                var key = (row['Référence'] || '') + '|' + (row['Millésime'] || '') + '|' + (row['Version'] || '');
+                var billet = billetIndex[key];
+                if (!billet) {
+                    errors.push('Ligne ' + (idx + 2) + ' : référence inconnue (' + key + ')');
+                    return;
+                }
+
+                var c = collectionMap[billet.id] || {};
+                var newOwned = (row['Possédé'] || '').toString().toLowerCase() === 'oui';
+                var newOwnedVar = (row['Possédé variante'] || '').toString().toLowerCase() === 'oui';
+                var newSerial = (row['N° série'] || '').toString();
+                var newSerialVar = (row['N° série variante'] || '').toString();
+                var newDoubles = parseInt(row['Nb doubles']) || 0;
+
+                var oldOwned = !!c.owned_normal;
+                var oldOwnedVar = !!c.owned_variante;
+                var oldSerial = c.serial_normal || '';
+                var oldSerialVar = c.serial_variante || '';
+                var oldDoubles = c.nb_doubles || 0;
+
+                if (newOwned === oldOwned && newOwnedVar === oldOwnedVar &&
+                    newSerial === oldSerial && newSerialVar === oldSerialVar &&
+                    newDoubles === oldDoubles) {
+                    unchanged++;
+                    return;
+                }
+
+                changes.push({
+                    billet_id: billet.id,
+                    owned_normal: newOwned,
+                    owned_variante: newOwnedVar,
+                    serial_normal: newSerial,
+                    serial_variante: newSerialVar,
+                    nb_doubles: newDoubles,
+                    hasExisting: !!c.owned_normal || !!c.owned_variante || !!c.serial_normal
+                });
+            });
+
+            // Afficher prévisualisation
+            var msg = changes.length + ' modification(s), ' + unchanged + ' inchangé(s)';
+            if (errors.length > 0) {
+                msg += ', ' + errors.length + ' erreur(s)';
+            }
+
+            if (changes.length === 0) {
+                showToast('Aucune modification à importer. ' + msg);
+                input.value = '';
+                return;
+            }
+
+            if (errors.length > 0 && changes.length === 0) {
+                showToast('Import bloqué : ' + errors.join(' ; '), true);
+                input.value = '';
+                return;
+            }
+
+            var proceed = confirm('Import : ' + msg + '\n\nConfirmer l\'import ?');
+            if (!proceed) {
+                input.value = '';
+                return;
+            }
+
+            // Exécuter l'import par batch
+            var email = firebase.auth().currentUser.email;
+            var batchSize = 50;
+            var batches = [];
+            for (var i = 0; i < changes.length; i += batchSize) {
+                batches.push(changes.slice(i, i + batchSize));
+            }
+
+            var done = 0;
+            var chain = Promise.resolve();
+            batches.forEach(function(batch) {
+                chain = chain.then(function() {
+                    var rows = batch.map(function(ch) {
+                        return {
+                            membre_email: email,
+                            billet_id: ch.billet_id,
+                            owned_normal: ch.owned_normal,
+                            owned_variante: ch.owned_variante,
+                            serial_normal: ch.serial_normal,
+                            serial_variante: ch.serial_variante,
+                            nb_doubles: ch.nb_doubles
+                        };
+                    });
+                    return supabaseFetch('/rest/v1/collection', {
+                        method: 'POST',
+                        headers: { 'Prefer': 'resolution=merge-duplicates' },
+                        body: JSON.stringify(rows),
+                    }).then(function() {
+                        done += batch.length;
+                    });
+                });
+            });
+
+            chain.then(function() {
+                showToast(done + ' billet(s) importé(s) avec succès');
+                // Recharger les données collection
+                supabaseFetch('/rest/v1/collection?select=*').then(function(data) {
+                    collectionMap = {};
+                    data.forEach(function(c) { collectionMap[c.billet_id] = c; });
+                    renderCounter();
+                    renderCountryCounters();
+                    renderCollection();
+                });
+            }).catch(function(err) {
+                console.error('Erreur import:', err);
+                showToast('Erreur lors de l\'import', true);
+            });
+
+            input.value = '';
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    // ============================================================
+    // 18. TOAST
     // ============================================================
 
     function showToast(message, isError) {

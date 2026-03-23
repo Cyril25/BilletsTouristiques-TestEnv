@@ -6751,6 +6751,19 @@ body.login-page {
     flex-wrap: wrap;
 }
 
+.collection-excel-actions {
+    display: flex;
+    gap: var(--spacing-xs);
+    align-items: center;
+}
+
+.coll-import-btn {
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
 .coll-filter-btn {
     background: transparent;
     border: 1px solid var(--color-border);
