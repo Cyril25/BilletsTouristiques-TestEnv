@@ -135,8 +135,8 @@ if (typeof firebase !== 'undefined') {
             loadMesInscriptions();
             loadCollecteursForCatalogue();
             loadCompteursInscriptions();
-            loadFraisPortCatalogue(user.email);
-            loadBlacklistMembre(user.email);
+            loadFraisPortCatalogue(window.getActiveEmail());
+            loadBlacklistMembre(window.getActiveEmail());
         }
     });
 }
@@ -689,9 +689,8 @@ function showToast(message, type) {
 
 // --- Chargement des inscriptions du membre connecté ---
 function loadMesInscriptions() {
-    var user = firebase.auth().currentUser;
-    if (!user) return;
-    var email = user.email;
+    var email = window.getActiveEmail();
+    if (!email) return;
     supabaseFetch('/rest/v1/inscriptions?membre_email=eq.' + encodeURIComponent(email) + '&select=id,billet_id,nb_normaux,nb_variantes,statut_paiement,envoye,pas_interesse')
         .then(function(data) {
             mesInscriptions = {};
@@ -925,7 +924,7 @@ function annulerInscription(billetId) {
 
 // --- Soumission de l'inscription ---
 function confirmerInscription(billetId) {
-    var email = firebase.auth().currentUser.email;
+    var email = window.getActiveEmail();
     var billet = allData.find(function(b) { return b.id === billetId; });
     if (!billet) return;
     var normauxEl = document.getElementById('insc-nb-normaux-' + billetId);
@@ -996,7 +995,7 @@ function creerEnveloppeSiAbsente(collecteurAlias, membreEmail) {
 
 // --- Marquage "Pas intéressé" ---
 function marquerPasInteresse(billetId) {
-    var email = firebase.auth().currentUser.email;
+    var email = window.getActiveEmail();
     var billet = allData.find(function(b) { return b.id === billetId; });
     var body = {
         billet_id: billetId,

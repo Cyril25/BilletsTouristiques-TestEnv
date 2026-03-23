@@ -78,9 +78,8 @@ function showToast(message, type) {
 // ============================================================
 
 function loadMesInscriptions() {
-    var user = firebase.auth().currentUser;
-    if (!user) return;
-    var email = user.email;
+    var email = window.getActiveEmail();
+    if (!email) return;
 
     var annee = new Date().getFullYear();
 
@@ -435,9 +434,8 @@ function showInscriptionsTab(tab) {
 var envoisData = { enveloppes: [], inscByEnv: {}, billetsEnvoisMap: {}, inscSansEnveloppe: [] };
 
 function loadMesEnvois() {
-    var user = firebase.auth().currentUser;
-    if (!user) return;
-    var email = user.email;
+    var email = window.getActiveEmail();
+    if (!email) return;
 
     // Charger en parallèle : enveloppes + toutes les inscriptions actives du membre
     var pEnveloppes = supabaseFetch('/rest/v1/enveloppes?membre_email=eq.' + encodeURIComponent(email) + '&select=*&order=date_creation.desc');

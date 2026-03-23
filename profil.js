@@ -326,7 +326,7 @@ function dismissOnboardingProfil() {
 function initProfilPage(user) {
     // Afficher l'email
     var emailDisplay = document.getElementById('profil-email');
-    if (emailDisplay) emailDisplay.textContent = user.email;
+    if (emailDisplay) emailDisplay.textContent = window.getActiveEmail();
 
     // Vérifier si redirection depuis inscription
     var params = new URLSearchParams(window.location.search);
@@ -380,10 +380,9 @@ function loadPaysList() {
 // 3. CHARGEMENT DU PROFIL
 // ============================================================
 function loadProfil() {
-    var user = firebase.auth().currentUser;
-    if (!user) return;
+    var email = window.getActiveEmail();
+    if (!email) return;
 
-    var email = user.email;
     supabaseFetch('/rest/v1/membres?email=eq.' + encodeURIComponent(email) + '&select=nom,prenom,rue,code_postal,ville,pays,indicatif_tel,telephone')
         .then(function(data) {
             if (data && data.length > 0) {
@@ -454,7 +453,7 @@ function saveProfil() {
         return;
     }
 
-    var email = user.email;
+    var email = window.getActiveEmail();
     var body = {
         nom: nom,
         prenom: prenom,

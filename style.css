@@ -7323,37 +7323,86 @@ body.login-page {
     margin-top: var(--spacing-sm);
 }
 
-/* --- Impersonation --- */
-.coll-impersonate-banner {
+/* --- Impersonation globale (superadmin) --- */
+.impersonate-banner {
     background: #fff3cd;
     border: 1px solid #ffc107;
     border-radius: var(--radius-sm);
     padding: var(--spacing-xs) var(--spacing-sm);
-    margin-bottom: var(--spacing-md);
+    margin: 0 var(--spacing-sm) var(--spacing-md);
     display: flex;
     align-items: center;
     gap: var(--spacing-sm);
     font-size: 0.88rem;
     color: #856404;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
 }
-.coll-impersonate-banner .btn-link {
+.impersonate-banner .btn-link {
     color: #856404;
     font-weight: 600;
     margin-left: auto;
 }
-.coll-impersonate-list {
+.btn-impersonate {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--color-text-light);
+    font-size: 0.9rem;
+    padding: 2px 6px;
+    margin-left: 4px;
+    opacity: 0.7;
+    transition: opacity 0.15s;
+}
+.btn-impersonate:hover { opacity: 1; }
+.impersonate-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.impersonate-modal {
+    background: var(--color-surface, #fff);
+    border-radius: var(--radius-md, 8px);
+    padding: var(--spacing-md);
+    max-width: 450px;
+    width: 90%;
+    max-height: 80vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+.impersonate-modal h2 { margin: 0 0 var(--spacing-sm); font-size: 1.1rem; }
+.impersonate-modal-close {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--color-text-light);
+}
+.impersonate-list {
     max-height: 400px;
     overflow-y: auto;
 }
-.coll-impersonate-item {
-    padding: 8px 12px;
+.impersonate-item {
+    padding: 10px 12px;
     cursor: pointer;
     border-bottom: 1px solid var(--color-border);
-    font-size: 0.88rem;
     transition: background 0.12s;
 }
-.coll-impersonate-item:hover {
+.impersonate-item:hover {
     background: rgba(var(--color-primary-rgb, 44,62,80), 0.08);
+}
+.impersonate-item-self {
+    opacity: 0.5;
 }
 
 /* --- Onboarding wizard --- */

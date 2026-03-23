@@ -26,6 +26,12 @@ if (typeof firebase === 'undefined') {
 var SUPABASE_URL = 'https://lhwcoybugdsggcclhtgb.supabase.co';
 var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxod2NveWJ1Z2RzZ2djY2xodGdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5ODY5MzQsImV4cCI6MjA4ODU2MjkzNH0.I1CvqdFT4XPCCfIzJRlYNwKay2MVQ9YBB1_8qfJmQqQ';
 
+// --- Impersonation globale (superadmin uniquement) ---
+window.impersonatedEmail = sessionStorage.getItem('impersonatedEmail') || '';
+window.getActiveEmail = function() {
+    return window.impersonatedEmail || (firebase.auth().currentUser && firebase.auth().currentUser.email) || '';
+};
+
 /**
  * Helper : fetch authentifié vers Supabase.
  * Récupère le Firebase ID token et l'envoie en Bearer.
@@ -204,7 +210,7 @@ function loadMenu() {
     var placeholder = document.getElementById("menu-placeholder");
     if (!placeholder) return;
 
-    fetch("menu.html?v=41")
+    fetch("menu.html?v=42")
         .then(function(response) { return response.text(); })
         .then(function(html) {
             // 1. On injecte le HTML
@@ -219,7 +225,19 @@ function loadMenu() {
 
             // On vérifie si l'utilisateur est là et si le span existe
             if (user && emailSpan) {
-                emailSpan.textContent = user.email;
+                emailSpan.textContent = window.impersonatedEmail || user.email;
+                // Bouton impersonation pour superadmin
+                if (window.userRole === 'superadmin' && !document.getElementById('global-impersonate-btn')) {
+                    var impBtn = document.createElement('button');
+                    impBtn.id = 'global-impersonate-btn';
+                    impBtn.className = 'btn-impersonate';
+                    impBtn.title = 'Se connecter en tant que...';
+                    impBtn.innerHTML = '<i class="fa-solid fa-user-secret"></i>';
+                    impBtn.onclick = function() { window.showImpersonateModal(); };
+                    emailSpan.parentNode.insertBefore(impBtn, emailSpan.nextSibling);
+                }
+                // Bannière impersonation
+                renderImpersonateBanner();
             }
 
             // STORY 1.2 — Menu conditionnel : afficher les liens admin uniquement pour les admins
@@ -281,9 +299,8 @@ function toggleMenu() {
  * @param {function} callback - Fonction appelée avec un booléen (true = complet)
  */
 function isProfilComplet(callback) {
-    var user = firebase.auth().currentUser;
-    if (!user) { callback(false); return; }
-    var email = user.email;
+    var email = window.getActiveEmail();
+    if (!email) { callback(false); return; }
     supabaseFetch('/rest/v1/membres?email=eq.' + encodeURIComponent(email) + '&select=nom,prenom,rue,code_postal,ville,pays')
         .then(function(data) {
             if (!data || data.length === 0) { callback(false); return; }
@@ -303,3 +320,89 @@ if ('serviceWorker' in navigator) {
             .catch(function(err) { console.warn('Service Worker non enregistré :', err); });
     });
 }
+
+// ============================================================
+// 7. IMPERSONATION GLOBALE (superadmin uniquement)
+// ============================================================
+
+function renderImpersonateBanner() {
+    var banner = document.getElementById('global-impersonate-banner');
+    if (window.impersonatedEmail) {
+        if (!banner) {
+            banner = document.createElement('div');
+            banner.id = 'global-impersonate-banner';
+            banner.className = 'impersonate-banner';
+            var body = document.body;
+            body.insertBefore(banner, body.firstChild);
+        }
+        banner.innerHTML = '<i class="fa-solid fa-user-secret"></i> Vue en tant que <strong>' + window.impersonatedEmail + '</strong> ' +
+            '<button class="btn-link" onclick="window.stopImpersonate()"><i class="fa-solid fa-xmark"></i> Revenir à mon compte</button>';
+        banner.style.display = '';
+    } else if (banner) {
+        banner.style.display = 'none';
+    }
+}
+
+window.showImpersonateModal = function() {
+    if (window.userRole !== 'superadmin') return;
+
+    supabaseFetch('/rest/v1/membres?select=email,prenom,nom&order=nom.asc')
+    .then(function(membres) {
+        var html = '<div class="impersonate-modal-overlay" onclick="window.closeImpersonateModal()">';
+        html += '<div class="impersonate-modal" onclick="event.stopPropagation()">';
+        html += '<button class="impersonate-modal-close" onclick="window.closeImpersonateModal()">&times;</button>';
+        html += '<h2>Se connecter en tant que...</h2>';
+        html += '<div class="impersonate-list">';
+        var realEmail = firebase.auth().currentUser.email;
+        membres.forEach(function(m) {
+            var label = ((m.prenom || '') + ' ' + (m.nom || '')).trim() || m.email;
+            var isSelf = m.email === realEmail;
+            html += '<div class="impersonate-item' + (isSelf ? ' impersonate-item-self' : '') + '" onclick="window.selectImpersonate(\'' + m.email.replace(/'/g, "\\'") + '\')">';
+            html += '<strong>' + label + '</strong><br><small>' + m.email + '</small>';
+            if (isSelf) html += ' <em>(moi)</em>';
+            html += '</div>';
+        });
+        html += '</div></div></div>';
+
+        var container = document.getElementById('impersonate-modal-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'impersonate-modal-container';
+            document.body.appendChild(container);
+        }
+        container.innerHTML = html;
+    })
+    .catch(function(err) {
+        console.error('Erreur chargement membres:', err);
+    });
+};
+
+window.closeImpersonateModal = function() {
+    var container = document.getElementById('impersonate-modal-container');
+    if (container) container.innerHTML = '';
+};
+
+window.selectImpersonate = function(email) {
+    window.closeImpersonateModal();
+    var realEmail = firebase.auth().currentUser.email;
+    window.impersonatedEmail = (email === realEmail) ? '' : email;
+    sessionStorage.setItem('impersonatedEmail', window.impersonatedEmail);
+
+    // Mettre à jour l'affichage email
+    var emailSpan = document.getElementById('user-email-display');
+    if (emailSpan) emailSpan.textContent = window.impersonatedEmail || realEmail;
+
+    renderImpersonateBanner();
+
+    // Recharger la page pour appliquer le changement
+    window.location.reload();
+};
+
+window.stopImpersonate = function() {
+    window.impersonatedEmail = '';
+    sessionStorage.removeItem('impersonatedEmail');
+    var emailSpan = document.getElementById('user-email-display');
+    if (emailSpan) emailSpan.textContent = firebase.auth().currentUser.email;
+    renderImpersonateBanner();
+    window.location.reload();
+};

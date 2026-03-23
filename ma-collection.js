@@ -30,12 +30,11 @@
     var filterAnnee = '';           // '' = toutes
     var viewMode = 'table';         // table | card
     var collectionMap = {};        // billet_id -> { owned_normal, owned_variante, ... }
-    var impersonatedEmail = '';     // email du membre impersonné (vide = soi-même)
     var minYear = 2015;
     var maxYear = new Date().getFullYear();
 
     function getCollEmail() {
-        return impersonatedEmail || firebase.auth().currentUser.email;
+        return window.getActiveEmail();
     }
 
     // --- Exposer les fonctions appelées depuis le HTML ---
@@ -60,9 +59,6 @@
     window.collSetView = collSetView;
     window.collShowBillet = collShowBillet;
     window.collCloseModal = collCloseModal;
-    window.collImpersonate = collImpersonate;
-    window.collStopImpersonate = collStopImpersonate;
-    window.collSelectMembre = collSelectMembre;
     window.onboardingNext = onboardingNext;
     window.onboardingPrev = onboardingPrev;
     window.onboardingSkip = onboardingSkip;
@@ -1376,7 +1372,6 @@
         renderCounter();
         renderCountryCounters();
         renderCollection();
-        renderImpersonationUI();
     }
 
     // ============================================================
@@ -1694,88 +1689,7 @@
     };
 
     // ============================================================
-    // 17. IMPERSONATION (cyril.samson41@gmail.com uniquement)
-    // ============================================================
-
-    function canImpersonate() {
-        return window.userRole === 'superadmin';
-    }
-
-    function renderImpersonationUI() {
-        // Afficher le bouton uniquement pour cyril
-        var btn = document.getElementById('coll-impersonate-btn');
-        if (btn) btn.style.display = canImpersonate() ? '' : 'none';
-
-        // Bannière d'impersonation
-        var banner = document.getElementById('coll-impersonate-banner');
-        if (impersonatedEmail) {
-            if (!banner) {
-                banner = document.createElement('div');
-                banner.id = 'coll-impersonate-banner';
-                banner.className = 'coll-impersonate-banner';
-                var section = document.querySelector('.collection-section');
-                if (section) section.parentNode.insertBefore(banner, section);
-            }
-            banner.innerHTML = '<i class="fa-solid fa-user-secret"></i> Vue en tant que <strong>' + escapeHtml(impersonatedEmail) + '</strong> ' +
-                '<button class="btn-link" onclick="collStopImpersonate()"><i class="fa-solid fa-xmark"></i> Revenir à mon compte</button>';
-            banner.style.display = '';
-        } else if (banner) {
-            banner.style.display = 'none';
-        }
-    }
-
-    function collImpersonate() {
-        if (!canImpersonate()) return;
-
-        // Charger la liste des membres
-        supabaseFetch('/rest/v1/membres?select=email,prenom,nom&order=nom.asc')
-        .then(function(membres) {
-            var html = '<div class="coll-modal-overlay" onclick="collCloseImpersonateModal()">';
-            html += '<div class="coll-modal-card" onclick="event.stopPropagation()">';
-            html += '<button class="coll-modal-close" onclick="collCloseImpersonateModal()">&times;</button>';
-            html += '<h2>Voir la collection de...</h2>';
-            html += '<div class="coll-impersonate-list">';
-            membres.forEach(function(m) {
-                var label = (m.prenom || '') + ' ' + (m.nom || '') + ' — ' + m.email;
-                html += '<div class="coll-impersonate-item" onclick="collSelectMembre(\'' + escapeAttr(m.email) + '\')">';
-                html += escapeHtml(label.trim());
-                html += '</div>';
-            });
-            html += '</div></div></div>';
-
-            var container = document.getElementById('coll-impersonate-modal');
-            if (!container) {
-                container = document.createElement('div');
-                container.id = 'coll-impersonate-modal';
-                document.body.appendChild(container);
-            }
-            container.innerHTML = html;
-        })
-        .catch(function(err) {
-            console.error('Erreur chargement membres:', err);
-            showToast('Erreur chargement des membres', true);
-        });
-    }
-
-    window.collCloseImpersonateModal = function() {
-        var container = document.getElementById('coll-impersonate-modal');
-        if (container) container.innerHTML = '';
-    };
-
-    function collSelectMembre(email) {
-        window.collCloseImpersonateModal();
-        impersonatedEmail = email;
-        // Recharger les données pour ce membre
-        init();
-    }
-
-    function collStopImpersonate() {
-        impersonatedEmail = '';
-        init();
-    }
-
-    // ============================================================
-    // 18. HELPERS
+    // 17. HELPERS
     // ============================================================
 
     function resolveImageUrl(item, size) {

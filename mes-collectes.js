@@ -62,7 +62,7 @@ if (typeof firebase !== 'undefined') {
 // 3. VERIFICATION COLLECTEUR (Task 3)
 // ============================================================
 function checkCollecteur() {
-    var email = firebase.auth().currentUser.email;
+    var email = window.getActiveEmail();
     supabaseFetch('/rest/v1/collecteurs?email_membre=eq.' + encodeURIComponent(email) + '&select=*')
         .then(function(data) {
             if (!data || data.length === 0) {
