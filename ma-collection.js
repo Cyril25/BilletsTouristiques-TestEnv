@@ -42,6 +42,10 @@
     window.collForceInclude = collForceInclude;
     window.collForceExclude = collForceExclude;
     window.collRemoveOverride = collRemoveOverride;
+    window.onboardingNext = onboardingNext;
+    window.onboardingPrev = onboardingPrev;
+    window.onboardingSkip = onboardingSkip;
+    window.onboardingFinish = onboardingFinish;
 
     // ============================================================
     // 1. INITIALISATION
@@ -89,10 +93,12 @@
                 maxYear = Math.max.apply(null, years);
             }
 
-            renderPerimetreSummary();
-            renderCounter();
-            renderCountryCounters();
-            renderCollection();
+            // Onboarding si aucune règle configurée
+            if (!memberRules || memberRules.length === 0) {
+                showOnboarding();
+            } else {
+                renderAll();
+            }
         })
         .catch(function(err) {
             console.error('Erreur chargement collection :', err);
@@ -1036,7 +1042,220 @@
     }
 
     // ============================================================
-    // 14. HELPERS
+    // 14. RENDER ALL (helper)
+    // ============================================================
+
+    function renderAll() {
+        renderPerimetreSummary();
+        renderCounter();
+        renderCountryCounters();
+        renderCollection();
+    }
+
+    // ============================================================
+    // 15. ONBOARDING GUIDÉ 3 ÉTAPES (Story 7-5)
+    // ============================================================
+
+    var onboardingStep = 1;
+    var onboardingData = { annee: 2015, pays_exclus: [], variantes: true };
+
+    function showOnboarding() {
+        // Masquer les sections normales
+        var sections = document.querySelectorAll('.collection-section, .collection-toolbar, #collection-country-counters, #collection-content');
+        sections.forEach(function(el) { el.style.display = 'none'; });
+
+        // Masquer le compteur héros
+        var counter = document.getElementById('collection-counter');
+        if (counter) counter.innerHTML = '';
+
+        onboardingStep = 1;
+        onboardingData = { annee: minYear, pays_exclus: [], variantes: true };
+
+        renderOnboardingStep();
+    }
+
+    function hideOnboarding() {
+        var overlay = document.getElementById('onboarding-overlay');
+        if (overlay) overlay.remove();
+
+        // Réafficher les sections normales
+        var sections = document.querySelectorAll('.collection-section, .collection-toolbar, #collection-country-counters, #collection-content');
+        sections.forEach(function(el) { el.style.display = ''; });
+    }
+
+    function renderOnboardingStep() {
+        var overlay = document.getElementById('onboarding-overlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'onboarding-overlay';
+            overlay.className = 'onboarding-overlay';
+            var page = document.querySelector('.collection-page');
+            if (page) {
+                // Insérer après le header
+                var header = page.querySelector('.collection-header');
+                if (header && header.nextSibling) {
+                    page.insertBefore(overlay, header.nextSibling);
+                } else {
+                    page.appendChild(overlay);
+                }
+            }
+        }
+
+        var html = '<div class="onboarding-card">';
+
+        // Progress dots
+        html += '<div class="onboarding-progress">';
+        for (var i = 1; i <= 3; i++) {
+            html += '<span class="onboarding-dot' + (i === onboardingStep ? ' active' : '') + (i < onboardingStep ? ' done' : '') + '">' + i + '</span>';
+        }
+        html += '</div>';
+
+        if (onboardingStep === 1) {
+            // Étape 1 : Année de début
+            html += '<h2>Depuis quand collectionnez-vous ?</h2>';
+            html += '<p class="onboarding-desc">Indiquez l\'année à partir de laquelle vous avez commencé votre collection de billets touristiques.</p>';
+
+            html += '<div class="onboarding-year-picker">';
+            html += '<select id="onboarding-year" class="admin-form-input onboarding-select" onchange="onboardingData.annee=parseInt(this.value)">';
+            for (var y = minYear; y <= maxYear; y++) {
+                html += '<option value="' + y + '"' + (y === onboardingData.annee ? ' selected' : '') + '>' + y + '</option>';
+            }
+            html += '</select>';
+            html += '</div>';
+
+        } else if (onboardingStep === 2) {
+            // Étape 2 : Pays
+            html += '<h2>Quels pays collectionnez-vous ?</h2>';
+            html += '<p class="onboarding-desc">Par défaut tous les pays sont cochés. Décochez ceux que vous ne collectionnez pas.</p>';
+
+            html += '<div class="onboarding-pays-actions">';
+            html += '<button class="btn-link btn-sm" onclick="onboardingPaysAll(true)">Tout cocher</button>';
+            html += '<button class="btn-link btn-sm" onclick="onboardingPaysAll(false)">Tout décocher</button>';
+            html += '</div>';
+
+            html += '<div class="preinsc-country-grid">';
+            allPays.forEach(function(pays) {
+                var checked = onboardingData.pays_exclus.indexOf(pays) === -1;
+                html += '<div class="preinsc-country-item">';
+                html += '<label>';
+                html += '<input type="checkbox" class="onboarding-pays-cb" data-pays="' + escapeAttr(pays) + '"' + (checked ? ' checked' : '') + ' onchange="onboardingTogglePays(\'' + pays.replace(/'/g, "\\'") + '\', this.checked)">';
+                html += ' ' + escapeHtml(pays);
+                html += '</label>';
+                html += '</div>';
+            });
+            html += '</div>';
+
+        } else if (onboardingStep === 3) {
+            // Étape 3 : Variantes
+            html += '<h2>Les variantes aussi ?</h2>';
+            html += '<p class="onboarding-desc">Certains billets existent en version spéciale (anniversary, doré...). Voulez-vous les inclure dans votre collection ?</p>';
+
+            html += '<div class="onboarding-variantes">';
+            html += '<label class="onboarding-radio"><input type="radio" name="onb-var" value="true"' + (onboardingData.variantes ? ' checked' : '') + ' onchange="onboardingData.variantes=true"> Oui, inclure les variantes</label>';
+            html += '<label class="onboarding-radio"><input type="radio" name="onb-var" value="false"' + (!onboardingData.variantes ? ' checked' : '') + ' onchange="onboardingData.variantes=false"> Non, seulement les billets normaux</label>';
+            html += '</div>';
+
+            // Résumé
+            var nbPays = allPays.length - onboardingData.pays_exclus.length;
+            html += '<div class="onboarding-summary">';
+            html += '<i class="fa-solid fa-check-circle"></i> ';
+            html += 'Depuis <strong>' + onboardingData.annee + '</strong>, ';
+            html += '<strong>' + nbPays + '</strong> pays';
+            html += onboardingData.variantes ? ', variantes incluses' : ', sans variantes';
+            html += '</div>';
+        }
+
+        // Navigation
+        html += '<div class="onboarding-nav">';
+        html += '<button class="btn-link" onclick="onboardingSkip()">Passer</button>';
+        html += '<div class="onboarding-nav-right">';
+        if (onboardingStep > 1) {
+            html += '<button class="btn-secondary" onclick="onboardingPrev()"><i class="fa-solid fa-arrow-left"></i> Retour</button>';
+        }
+        if (onboardingStep < 3) {
+            html += '<button class="btn-primary" onclick="onboardingNext()">Suivant <i class="fa-solid fa-arrow-right"></i></button>';
+        } else {
+            html += '<button class="btn-primary" onclick="onboardingFinish()"><i class="fa-solid fa-check"></i> Commencer</button>';
+        }
+        html += '</div>';
+        html += '</div>';
+
+        html += '</div>';
+        overlay.innerHTML = html;
+    }
+
+    function onboardingNext() {
+        // Lire la valeur depuis le select (étape 1)
+        if (onboardingStep === 1) {
+            var sel = document.getElementById('onboarding-year');
+            if (sel) onboardingData.annee = parseInt(sel.value);
+        }
+        if (onboardingStep < 3) {
+            onboardingStep++;
+            renderOnboardingStep();
+        }
+    }
+
+    function onboardingPrev() {
+        if (onboardingStep > 1) {
+            onboardingStep--;
+            renderOnboardingStep();
+        }
+    }
+
+    function onboardingSkip() {
+        // Tout par défaut = pas de règles = tout le catalogue
+        memberRules = [];
+        hideOnboarding();
+        renderAll();
+    }
+
+    function onboardingFinish() {
+        var rule = {
+            type: 'debut',
+            annee: onboardingData.annee,
+            pays_exclus: onboardingData.pays_exclus.slice(),
+            variantes: onboardingData.variantes
+        };
+
+        memberRules = [rule];
+
+        var user = firebase.auth().currentUser;
+        if (!user) return;
+
+        supabaseFetch('/rest/v1/membres?email=eq.' + encodeURIComponent(user.email), {
+            method: 'PATCH',
+            body: JSON.stringify({ collection_rules: memberRules }),
+            headers: { 'Prefer': 'return=minimal' }
+        })
+        .then(function() {
+            hideOnboarding();
+            renderAll();
+            showToast('Périmètre configuré ! Vous pouvez maintenant saisir vos billets.');
+        })
+        .catch(function(err) {
+            console.error('Erreur sauvegarde onboarding :', err);
+            showToast('Erreur lors de la sauvegarde', true);
+        });
+    }
+
+    window.onboardingTogglePays = function(pays, checked) {
+        if (checked) {
+            onboardingData.pays_exclus = onboardingData.pays_exclus.filter(function(p) { return p !== pays; });
+        } else {
+            if (onboardingData.pays_exclus.indexOf(pays) === -1) {
+                onboardingData.pays_exclus.push(pays);
+            }
+        }
+    };
+
+    window.onboardingPaysAll = function(selectAll) {
+        onboardingData.pays_exclus = selectAll ? [] : allPays.slice();
+        renderOnboardingStep();
+    };
+
+    // ============================================================
+    // 16. HELPERS
     // ============================================================
 
     function escapeHtml(str) {
@@ -1050,7 +1269,7 @@
     }
 
     // ============================================================
-    // 15. TOAST
+    // 17. TOAST
     // ============================================================
 
     function showToast(message, isError) {
