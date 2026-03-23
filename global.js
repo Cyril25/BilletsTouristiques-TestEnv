@@ -130,12 +130,6 @@ document.addEventListener("DOMContentLoaded", function() {
                             return;
                         }
 
-                        // Guard email : vérifier si la page requiert un email spécifique
-                        var requireEmail = document.body.getAttribute('data-require-email');
-                        if (requireEmail && user.email !== requireEmail) {
-                            window.location.href = 'index.html';
-                            return;
-                        }
 
                         loadMenu();
                         var appContent = document.getElementById('app-content');
@@ -210,7 +204,7 @@ function loadMenu() {
     var placeholder = document.getElementById("menu-placeholder");
     if (!placeholder) return;
 
-    fetch("menu.html?v=38")
+    fetch("menu.html?v=39")
         .then(function(response) { return response.text(); })
         .then(function(html) {
             // 1. On injecte le HTML
@@ -234,11 +228,6 @@ function loadMenu() {
                 adminLinks.forEach(function(el) { el.classList.remove('admin-only'); });
             }
 
-            // Collection — Afficher le lien uniquement pour l'email autorisé
-            if (user && user.email === 'cyril.samson41@gmail.com') {
-                var collectionLinks = document.querySelectorAll('.collection-only');
-                collectionLinks.forEach(function(el) { el.classList.remove('collection-only'); });
-            }
 
             // QW-1 — Masquer "Mes collectes" pour les non-collecteurs
             var user2 = firebase.auth().currentUser;
