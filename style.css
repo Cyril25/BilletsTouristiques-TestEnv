@@ -3046,6 +3046,7 @@ body.login-page {
 }
 
 .admin-card-edit-btn,
+.admin-card-sheet-btn,
 .admin-card-share-btn,
 .admin-card-copy-btn,
 .admin-card-delete-btn {
@@ -3074,6 +3075,16 @@ body.login-page {
     border-color: var(--color-primary);
 }
 
+.admin-card-sheet-btn {
+    color: #0f9d58;
+    text-decoration: none;
+}
+
+.admin-card-sheet-btn:hover {
+    background: var(--color-surface);
+    border-color: #0f9d58;
+}
+
 .admin-card-copy-btn {
     color: var(--color-secondary);
 }
@@ -3100,6 +3111,7 @@ body.login-page {
     }
 
     .admin-card-edit-btn,
+    .admin-card-sheet-btn,
     .admin-card-share-btn,
     .admin-card-copy-btn,
     .admin-card-delete-btn {

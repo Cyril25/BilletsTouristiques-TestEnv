@@ -735,6 +735,13 @@ function renderAdminCards() {
                 '<button class="admin-card-edit-btn" data-doc-id="' + docId + '" title="Modifier">' +
                     '<i class="fa-solid fa-pen"></i> Modifier' +
                 '</button>' +
+                (function() {
+                    var ls = (billet.LinkSheet || '').trim();
+                    if (ls && /^https?:\/\//i.test(ls)) {
+                        return '<a href="' + escapeAttr(ls) + '" target="_blank" onclick="event.stopPropagation()" class="admin-card-sheet-btn" title="Google Sheet"><i class="fa-solid fa-file-csv"></i></a>';
+                    }
+                    return '';
+                })() +
                 '<button class="admin-card-share-btn" onclick="openShareModal(' + docId + ')" title="Partager">' +
                     '<i class="fa-solid fa-share-nodes"></i>' +
                 '</button>' +
