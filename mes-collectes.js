@@ -853,10 +853,9 @@ function fermerModalDesinscrire() {
 }
 
 function confirmerDesinscrire() {
-    fermerModalDesinscrire();
-    if (!pendingDesinscriptionId) return;
     var inscriptionId = pendingDesinscriptionId;
-    pendingDesinscriptionId = null;
+    fermerModalDesinscrire();
+    if (!inscriptionId) return;
 
     supabaseFetch('/rest/v1/inscriptions?id=eq.' + inscriptionId, {
         method: 'DELETE'
