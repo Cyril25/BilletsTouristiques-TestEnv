@@ -83,7 +83,7 @@ function loadUsers() {
     var grid = document.getElementById('user-cards-grid');
     if (!grid) return;
 
-    supabaseFetch('/rest/v1/membres?select=email,role,pseudo,nom,prenom,last_active_at&order=email.asc', { method: 'GET' })
+    supabaseFetch('/rest/v1/membres?select=email,role,pseudo,nom,prenom,rue,code_postal,ville,pays,indicatif_tel,telephone,last_active_at&order=nom.asc.nullslast,prenom.asc.nullslast', { method: 'GET' })
         .then(function(rows) {
             usersList = rows.map(function(row) {
                 row._id = row.email;
@@ -183,30 +183,18 @@ function renderUserCards(searchQuery) {
                 '<span class="user-card-email"><i class="fa-solid fa-envelope"></i> ' + escapeHtml(email) + '</span>' +
                 (pseudo ? '<span class="user-card-pseudo"><i class="fa-solid fa-at"></i> ' + escapeHtml(pseudo) + '</span>' : '') +
                 '<span class="user-card-last-active"><i class="fa-solid fa-clock"></i> ' + formatLastActive(lastActive) + '</span>' +
-            '</div>' +
-            '<div class="user-card-edit" data-doc-id="' + escapeAttr(email) + '" style="display:none">' +
-                '<div class="user-edit-field">' +
-                    '<label>Pseudo</label>' +
-                    '<input type="text" class="user-edit-pseudo" value="' + escapeAttr(pseudo) + '" placeholder="Pseudo">' +
-                '</div>' +
-                '<div class="user-edit-field">' +
-                    '<label>Nom</label>' +
-                    '<input type="text" class="user-edit-nom" value="' + escapeAttr(nom) + '" placeholder="Nom">' +
-                '</div>' +
-                '<div class="user-edit-field">' +
-                    '<label>Prénom</label>' +
-                    '<input type="text" class="user-edit-prenom" value="' + escapeAttr(prenom) + '" placeholder="Prénom">' +
-                '</div>' +
-                '<div class="user-edit-actions">' +
-                    '<button class="user-edit-save-btn user-modal-btn user-modal-btn-primary" data-doc-id="' + escapeAttr(email) + '"><i class="fa-solid fa-check"></i> Sauvegarder</button>' +
-                    '<button class="user-edit-cancel-btn user-modal-btn"><i class="fa-solid fa-xmark"></i> Annuler</button>' +
-                '</div>' +
+                (function() {
+                    var hasAddr = user.rue || user.code_postal || user.ville;
+                    return '<a href="#" class="user-addr-indicator' + (hasAddr ? ' user-addr-ok' : ' user-addr-missing') + '" data-doc-id="' + escapeAttr(email) + '" onclick="event.preventDefault(); openUserEditModal(\'' + escapeAttr(email).replace(/'/g, "\\'") + '\')">' +
+                        '<i class="fa-solid fa-location-dot"></i> ' + (hasAddr ? 'Adresse renseignée' : 'Adresse non renseignée') +
+                    '</a>';
+                })() +
             '</div>' +
             '<div class="user-card-actions">' +
                 '<button class="user-edit-toggle-btn" ' +
                     'data-doc-id="' + escapeAttr(email) + '" ' +
-                    'title="Modifier profil">' +
-                    '<i class="fa-solid fa-pen"></i> Modifier profil' +
+                    'title="Modifier la fiche">' +
+                    '<i class="fa-solid fa-pen"></i> Modifier la fiche' +
                 '</button>' +
                 (role === 'superadmin' ? '' :
                 '<button class="' + btnClass + '" ' +
@@ -254,38 +242,8 @@ function initUserEvents() {
             var editToggle = event.target.closest('.user-edit-toggle-btn');
             if (editToggle) {
                 event.stopPropagation();
-                var card = editToggle.closest('.user-card');
-                if (!card) return;
-                var editPanel = card.querySelector('.user-card-edit');
-                if (editPanel) {
-                    editPanel.style.display = editPanel.style.display === 'none' ? 'block' : 'none';
-                }
-                return;
-            }
-
-            var editSave = event.target.closest('.user-edit-save-btn');
-            if (editSave) {
-                event.stopPropagation();
-                var emailToEdit = editSave.getAttribute('data-doc-id');
-                var card = editSave.closest('.user-card');
-                if (!card) return;
-                var pseudoInput = card.querySelector('.user-edit-pseudo');
-                var nomInput = card.querySelector('.user-edit-nom');
-                var prenomInput = card.querySelector('.user-edit-prenom');
-                var newPseudo = pseudoInput ? pseudoInput.value.trim() : '';
-                var newNom = nomInput ? nomInput.value.trim() : '';
-                var newPrenom = prenomInput ? prenomInput.value.trim() : '';
-                saveUserProfile(emailToEdit, newPseudo, newNom, newPrenom);
-                return;
-            }
-
-            var editCancel = event.target.closest('.user-edit-cancel-btn');
-            if (editCancel) {
-                event.stopPropagation();
-                var card = editCancel.closest('.user-card');
-                if (!card) return;
-                var editPanel = card.querySelector('.user-card-edit');
-                if (editPanel) editPanel.style.display = 'none';
+                var email = editToggle.getAttribute('data-doc-id');
+                openUserEditModal(email);
                 return;
             }
 
@@ -387,29 +345,98 @@ function addUser() {
 }
 
 // ============================================================
-// 7b2. SAUVEGARDE PROFIL (PSEUDO / NOM / PRENOM)
+// 7b2. MODALE EDITION FICHE MEMBRE
 // ============================================================
-function saveUserProfile(email, pseudo, nom, prenom) {
+function openUserEditModal(email) {
+    var user = null;
+    for (var i = 0; i < usersList.length; i++) {
+        if (usersList[i]._id === email) { user = usersList[i]; break; }
+    }
+    if (!user) return;
+
+    var existing = document.getElementById('user-edit-modal-overlay');
+    if (existing) existing.remove();
+
+    var html = '<div id="user-edit-modal-overlay" class="user-modal-overlay" onclick="if(event.target===this)closeUserEditModal()">';
+    html += '<div class="user-edit-modal">';
+    html += '<button class="user-edit-modal-close" onclick="closeUserEditModal()">&times;</button>';
+    html += '<h2><i class="fa-solid fa-user-pen"></i> Modifier la fiche</h2>';
+    html += '<p class="user-edit-modal-email"><i class="fa-solid fa-envelope"></i> ' + escapeHtml(email) + '</p>';
+
+    html += '<div class="user-edit-modal-fields">';
+    html += '<div class="user-edit-modal-row">';
+    html += '<div class="user-edit-modal-field"><label>Pseudo</label><input type="text" id="ue-pseudo" value="' + escapeAttr(user.pseudo || '') + '" placeholder="Pseudo"></div>';
+    html += '</div>';
+    html += '<div class="user-edit-modal-row">';
+    html += '<div class="user-edit-modal-field"><label>Nom</label><input type="text" id="ue-nom" value="' + escapeAttr(user.nom || '') + '" placeholder="Nom"></div>';
+    html += '<div class="user-edit-modal-field"><label>Prénom</label><input type="text" id="ue-prenom" value="' + escapeAttr(user.prenom || '') + '" placeholder="Prénom"></div>';
+    html += '</div>';
+    html += '<div class="user-edit-modal-row">';
+    html += '<div class="user-edit-modal-field user-edit-modal-field-full"><label>Rue</label><input type="text" id="ue-rue" value="' + escapeAttr(user.rue || '') + '" placeholder="Adresse"></div>';
+    html += '</div>';
+    html += '<div class="user-edit-modal-row">';
+    html += '<div class="user-edit-modal-field"><label>Code postal</label><input type="text" id="ue-cp" value="' + escapeAttr(user.code_postal || '') + '" placeholder="Code postal"></div>';
+    html += '<div class="user-edit-modal-field"><label>Ville</label><input type="text" id="ue-ville" value="' + escapeAttr(user.ville || '') + '" placeholder="Ville"></div>';
+    html += '</div>';
+    html += '<div class="user-edit-modal-row">';
+    html += '<div class="user-edit-modal-field"><label>Pays</label><input type="text" id="ue-pays" value="' + escapeAttr(user.pays || '') + '" placeholder="Pays"></div>';
+    html += '</div>';
+    html += '<div class="user-edit-modal-row">';
+    html += '<div class="user-edit-modal-field"><label>Indicatif</label><input type="text" id="ue-indicatif" value="' + escapeAttr(user.indicatif_tel || '') + '" placeholder="+33"></div>';
+    html += '<div class="user-edit-modal-field"><label>Téléphone</label><input type="text" id="ue-telephone" value="' + escapeAttr(user.telephone || '') + '" placeholder="Téléphone"></div>';
+    html += '</div>';
+    html += '</div>';
+
+    html += '<div class="user-edit-modal-actions">';
+    html += '<button class="user-modal-btn user-modal-btn-primary" onclick="saveUserEditModal(\'' + escapeAttr(email).replace(/'/g, "\\'") + '\')"><i class="fa-solid fa-check"></i> Sauvegarder</button>';
+    html += '<button class="user-modal-btn" onclick="closeUserEditModal()"><i class="fa-solid fa-xmark"></i> Annuler</button>';
+    html += '</div>';
+    html += '</div></div>';
+
+    document.body.insertAdjacentHTML('beforeend', html);
+    document.addEventListener('keydown', onUserEditKeydown);
+}
+
+function closeUserEditModal() {
+    var overlay = document.getElementById('user-edit-modal-overlay');
+    if (overlay) overlay.remove();
+    document.removeEventListener('keydown', onUserEditKeydown);
+}
+
+function onUserEditKeydown(e) {
+    if (e.key === 'Escape') closeUserEditModal();
+}
+
+function saveUserEditModal(email) {
+    var data = {
+        pseudo: document.getElementById('ue-pseudo').value.trim(),
+        nom: document.getElementById('ue-nom').value.trim(),
+        prenom: document.getElementById('ue-prenom').value.trim(),
+        rue: document.getElementById('ue-rue').value.trim(),
+        code_postal: document.getElementById('ue-cp').value.trim(),
+        ville: document.getElementById('ue-ville').value.trim(),
+        pays: document.getElementById('ue-pays').value.trim(),
+        indicatif_tel: document.getElementById('ue-indicatif').value.trim(),
+        telephone: document.getElementById('ue-telephone').value.trim()
+    };
+
     supabaseFetch('/rest/v1/membres?email=eq.' + encodeURIComponent(email), {
         method: 'PATCH',
-        body: JSON.stringify({ pseudo: pseudo, nom: nom, prenom: prenom })
+        body: JSON.stringify(data)
     })
         .then(function() {
-            // Mettre a jour la liste en memoire
             for (var i = 0; i < usersList.length; i++) {
                 if (usersList[i]._id === email) {
-                    usersList[i].pseudo = pseudo;
-                    usersList[i].nom = nom;
-                    usersList[i].prenom = prenom;
+                    Object.keys(data).forEach(function(k) { usersList[i][k] = data[k]; });
                     break;
                 }
             }
-            showToast('Profil mis à jour', 'success');
+            showToast('Fiche mise à jour', 'success');
+            closeUserEditModal();
             renderUserCards();
         })
         .catch(function(error) {
-            showToast('Erreur lors de la mise à jour : ' + error.message, 'error');
-            console.error('Erreur mise à jour profil:', error);
+            showToast('Erreur : ' + error.message, 'error');
         });
 }
 
