@@ -166,7 +166,7 @@ function renderUserCards(searchQuery) {
         var prenom = user.prenom || '';
         var role = user.role || '';
         var lastActive = user.last_active_at || '';
-        var displayName = pseudo || ((prenom && nom) ? prenom + ' ' + nom : (prenom || nom)) || email;
+        var displayName = pseudo || ((nom && prenom) ? nom + ' ' + prenom : (nom || prenom)) || email;
         var isAdmin = role === 'admin' || role === 'superadmin';
         var badgeClass = isAdmin ? 'user-badge-role user-badge-admin' : 'user-badge-role user-badge-member';
         var badgeLabel = isAdmin ? 'Admin' : 'Membre';
