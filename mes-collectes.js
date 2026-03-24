@@ -86,7 +86,7 @@ function checkCollecteur() {
 var mesInscriptionsParBillet = {};
 
 function loadMesCollectes() {
-    supabaseFetch('/rest/v1/billets?select=id,"NomBillet","Ville","Categorie","Collecteur","Prix","PrixVariante","DateColl","DateFin","HasVariante","VersionNormaleExiste","Date","Reference","Millesime","Version",attenuee,"PayerFDP"&"Collecteur"=eq.' + encodeURIComponent(monCollecteur.alias) + '&order="Date".desc.nullslast')
+    supabaseFetch('/rest/v1/billets?select=id,"NomBillet","Ville","Categorie","Collecteur","Prix","PrixVariante","DateColl","DateFin","HasVariante","VersionNormaleExiste","Date","Reference","Millesime","Version",attenuee,"PayerFDP","LinkSheet"&"Collecteur"=eq.' + encodeURIComponent(monCollecteur.alias) + '&order="Date".desc.nullslast')
         .then(function(billets) {
             mesBillets = billets || [];
             if (mesBillets.length === 0) {
@@ -235,6 +235,14 @@ function renderCollectesList() {
         }
         if (b.DateColl) html += '<span><i class="fa-solid fa-calendar"></i> ' + b.DateColl + '</span>';
         html += '</div>';
+
+        // Lien Google Sheet pour les collectes terminées
+        var sheetUrl = (b.LinkSheet || '').trim();
+        if (!isOpen && sheetUrl && /^https?:\/\//i.test(sheetUrl)) {
+            html += '<div class="collecte-card-sheet">';
+            html += '<a href="' + escapeAttrMC(sheetUrl) + '" target="_blank" onclick="event.stopPropagation()" class="icon-btn ico-sheet" title="Voir le fichier Google Sheet"><i class="fa-solid fa-file-csv"></i> Google Sheet</a>';
+            html += '</div>';
+        }
 
         // Indicateurs payé / envoyé
         var stats = mesInscriptionsParBillet[b.id] || { total: 0, confirmes: 0, envoyes: 0 };

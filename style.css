@@ -3888,6 +3888,24 @@ body.login-page {
     color: var(--color-accent);
 }
 
+.collecte-card-sheet {
+    margin: 4px 0;
+}
+.collecte-card-sheet a {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    color: var(--color-accent);
+    text-decoration: none;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: var(--color-surface, #f5f5f5);
+}
+.collecte-card-sheet a:hover {
+    text-decoration: underline;
+}
+
 .collecte-card-indicators {
     display: flex;
     gap: var(--spacing-sm);

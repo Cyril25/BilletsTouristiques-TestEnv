@@ -593,12 +593,17 @@ function showMore() {
                 '<center>' + getCompteurBT(item) + '</center>' +
                 '</div>' +
                 '<div class="more action-icons">' +
-                (sanitizeUrl(item.Sondage)
-                    ? '<a href="' + escapeAttr(sanitizeUrl(item.Sondage)) + '" target="_blank" class="icon-btn ico-form" title="Répondre au sondage"><i class="fa-solid fa-clipboard-question"></i></a>'
-                    : '') +
-                (sanitizeUrl(item.LinkSheet)
-                    ? '<a href="' + escapeAttr(sanitizeUrl(item.LinkSheet)) + '" target="_blank" class="icon-btn ico-sheet" title="Voir le fichier Excel"><i class="fa-solid fa-file-csv"></i></a>'
-                    : '') +
+                (function() {
+                    // Masquer les liens Google pour les collectes terminées et les billets non actifs
+                    var cat = item.Categorie || '';
+                    var hideGoogle = (cat === 'Terminé' || cat === 'Non défini' || cat === 'Jamais édité, projet' || cat === 'Pas de collecte');
+                    return ((!hideGoogle && sanitizeUrl(item.Sondage))
+                        ? '<a href="' + escapeAttr(sanitizeUrl(item.Sondage)) + '" target="_blank" class="icon-btn ico-form" title="Répondre au sondage"><i class="fa-solid fa-clipboard-question"></i></a>'
+                        : '') +
+                    ((!hideGoogle && sanitizeUrl(item.LinkSheet))
+                        ? '<a href="' + escapeAttr(sanitizeUrl(item.LinkSheet)) + '" target="_blank" class="icon-btn ico-sheet" title="Voir le fichier Excel"><i class="fa-solid fa-file-csv"></i></a>'
+                        : '');
+                })() +
                 (sanitizeUrl(item.LinkFB)
                     ? '<a href="' + escapeAttr(sanitizeUrl(item.LinkFB)) + '" target="_blank" class="icon-btn ico-fb" title="Voir sur Facebook"><i class="fa-brands fa-facebook"></i></a>'
                     : '') +
