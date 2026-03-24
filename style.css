@@ -4019,6 +4019,15 @@ body.login-page {
     accent-color: var(--color-primary);
 }
 
+/* --- Cellule actions : boutons côte à côte --- */
+.collecte-table td[data-label="Actions"] {
+    white-space: nowrap;
+}
+.collecte-table td[data-label="Actions"] button {
+    display: inline-flex;
+    vertical-align: middle;
+}
+
 /* --- Bouton desinscrire --- */
 .btn-desinscrire {
     background: none;
