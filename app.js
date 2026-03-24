@@ -465,7 +465,7 @@ function showMore() {
                 <div class="more action-icons">
                     ${(() => {
                         var cat = item.Categorie || '';
-                        var hideGoogle = (cat === 'Terminé' || cat === 'Non défini' || cat === 'Jamais édité, projet' || cat === 'Pas de collecte');
+                        var hideGoogle = (cat === 'Terminé' || cat === 'Non defini' || cat === 'Jamais édité, projet' || cat === 'Pas de collecte');
                         return (!hideGoogle && sanitizeUrl(item.Sondage)) ? `
                         <a href="${escapeAttr(sanitizeUrl(item.Sondage))}" target="_blank" rel="noopener" class="icon-btn ico-form" title="Répondre au sondage">
                             <i class="fa-solid fa-clipboard-question"></i>
@@ -474,7 +474,7 @@ function showMore() {
 
                     ${(() => {
                         var cat = item.Categorie || '';
-                        var hideGoogle = (cat === 'Terminé' || cat === 'Non défini' || cat === 'Jamais édité, projet' || cat === 'Pas de collecte');
+                        var hideGoogle = (cat === 'Terminé' || cat === 'Non defini' || cat === 'Jamais édité, projet' || cat === 'Pas de collecte');
                         return (!hideGoogle && sanitizeUrl(item.LinkSheet)) ? `
                         <a href="${escapeAttr(sanitizeUrl(item.LinkSheet))}" target="_blank" rel="noopener" class="icon-btn ico-sheet" title="Voir le fichier Excel">
                             <i class="fa-solid fa-file-csv"></i>
