@@ -1722,6 +1722,26 @@ body.login-page {
     gap: var(--spacing-sm);
 }
 
+.user-role-filter {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+.user-role-filter-btn {
+    padding: 4px 14px;
+    font-size: 0.8rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface, #f5f5f5);
+    color: var(--color-text-muted);
+    cursor: pointer;
+}
+.user-role-filter-btn.active {
+    background: var(--color-accent);
+    color: #fff;
+    border-color: var(--color-accent);
+}
+
 .user-card-header {
     display: flex;
     justify-content: space-between;

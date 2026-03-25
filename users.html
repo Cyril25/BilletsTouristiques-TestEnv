@@ -27,6 +27,11 @@
             <input type="text" id="user-search-input" class="admin-search__input" placeholder="Rechercher un membre (nom, email, pseudo)..." oninput="filterUsers()">
             <button type="button" class="admin-search__clear" id="user-search-clear" onclick="clearUserSearch()" style="display:none"><i class="fa-solid fa-xmark"></i></button>
         </div>
+        <div id="user-role-filter" class="user-role-filter">
+            <button type="button" class="user-role-filter-btn active" data-role="tous" onclick="filterUsersByRole('tous')">Tous</button>
+            <button type="button" class="user-role-filter-btn" data-role="admin" onclick="filterUsersByRole('admin')">Admins</button>
+            <button type="button" class="user-role-filter-btn" data-role="member" onclick="filterUsersByRole('member')">Membres</button>
+        </div>
         <div id="user-count" style="margin-bottom: 12px; font-size: 0.875rem; color: var(--color-text-light, #666);"></div>
 
         <!-- Formulaire d'ajout de membre -->

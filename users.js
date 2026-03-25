@@ -115,6 +115,8 @@ function loadUsers() {
 // ============================================================
 // 5b. QW-5 — RECHERCHE MEMBRES
 // ============================================================
+var activeRoleFilter = 'tous';
+
 function filterUsers() {
     var input = document.getElementById('user-search-input');
     var clearBtn = document.getElementById('user-search-clear');
@@ -131,6 +133,14 @@ function clearUserSearch() {
     renderUserCards('');
 }
 
+function filterUsersByRole(role) {
+    activeRoleFilter = role;
+    document.querySelectorAll('.user-role-filter-btn').forEach(function(btn) {
+        btn.classList.toggle('active', btn.getAttribute('data-role') === role);
+    });
+    filterUsers();
+}
+
 // ============================================================
 // 6. RENDU DES CARTES UTILISATEURS
 // ============================================================
@@ -140,8 +150,13 @@ function renderUserCards(searchQuery) {
 
     var query = (searchQuery || '').toLowerCase();
     var filtered = usersList;
+    if (activeRoleFilter === 'admin') {
+        filtered = filtered.filter(function(user) { return user.role === 'admin' || user.role === 'superadmin'; });
+    } else if (activeRoleFilter === 'member') {
+        filtered = filtered.filter(function(user) { return user.role !== 'admin' && user.role !== 'superadmin'; });
+    }
     if (query) {
-        filtered = usersList.filter(function(user) {
+        filtered = filtered.filter(function(user) {
             var email = (user._id || '').toLowerCase();
             var pseudo = (user.pseudo || '').toLowerCase();
             var nom = (user.nom || '').toLowerCase();
