@@ -128,7 +128,7 @@ function preInscRender() {
 
 function preInscRenderCard(item) {
     var membre = preInscFindMembre(item.membre_email);
-    var displayName = membre ? ((membre.prenom || '') + ' ' + (membre.nom || '')).trim() || item.membre_email : item.membre_email;
+    var displayName = membre ? ((membre.nom || '') + ' ' + (membre.prenom || '')).trim() || item.membre_email : item.membre_email;
 
     // Résumé pays étrangers
     var paysItems = preInscPaysData.filter(function(p) {
@@ -206,7 +206,7 @@ function preInscOpenForm(membreEmail) {
         html += '</div>';
     } else {
         var membreDisplay = preInscFindMembre(membreEmail);
-        var label = membreDisplay ? ((membreDisplay.prenom || '') + ' ' + (membreDisplay.nom || '')).trim() + ' (' + membreEmail + ')' : membreEmail;
+        var label = membreDisplay ? ((membreDisplay.nom || '') + ' ' + (membreDisplay.prenom || '')).trim() + ' (' + membreEmail + ')' : membreEmail;
         html += '<div class="preinsc-form-group"><label>Membre :</label><strong>' + preInscEscapeHtml(label) + '</strong>';
         html += '<input type="hidden" id="preinsc-membre-select" value="' + preInscEscapeHtml(membreEmail) + '">';
         html += '</div>';
@@ -357,7 +357,7 @@ function preInscFilterMembres() {
     for (var j = 0; j < preInscMembresCache.length; j++) {
         var m = preInscMembresCache[j];
         if (emailsParametres[m.email]) continue;
-        var label = ((m.prenom || '') + ' ' + (m.nom || '')).trim() || m.email;
+        var label = ((m.nom || '') + ' ' + (m.prenom || '')).trim() || m.email;
         var searchable = (label + ' ' + m.email).toLowerCase();
         if (terme && searchable.indexOf(terme) === -1) continue;
         html += '<option value="' + preInscEscapeHtml(m.email) + '">' + preInscEscapeHtml(label) + ' (' + preInscEscapeHtml(m.email) + ')</option>';
@@ -499,7 +499,7 @@ function preInscSave() {
 // ============================================================
 function preInscDelete(membreEmail) {
     var membre = preInscFindMembre(membreEmail);
-    var displayName = membre ? ((membre.prenom || '') + ' ' + (membre.nom || '')).trim() || membreEmail : membreEmail;
+    var displayName = membre ? ((membre.nom || '') + ' ' + (membre.prenom || '')).trim() || membreEmail : membreEmail;
 
     if (!confirm('Supprimer le paramétrage de ' + displayName + ' pour ' + preInscCurrentYear + ' ?\n\nLes inscriptions déjà créées ne seront pas supprimées.')) {
         return;

@@ -667,7 +667,7 @@ function renderAdminCards() {
 
         html += '<div class="admin-card-billet" data-doc-id="' + docId + '">' +
             '<div class="admin-card-header">' +
-                '<h3 class="admin-card-title">' + escapeHtml(nom) + '</h3>' +
+                '<h3 class="admin-card-title">' + escapeHtml(nom) + ' <span style="font-size:10px; color:#ccc; font-weight:normal;">(n\u00b0' + docId + ')</span></h3>' +
                 '<div class="card-badge-wrapper">' +
                     '<span class="admin-badge-status clickable" ' +
                         'data-doc-id="' + docId + '" ' +
@@ -2937,8 +2937,8 @@ function renderInscriptionsModalContent(billet) {
         html += '<th>Actions</th></tr></thead><tbody>';
 
         adminCurrentInscriptions.forEach(function(insc) {
-            var snap = insc.adresse_snapshot || {};
-            var nomMembre = ((snap.prenom || '') + ' ' + (snap.nom || '')).trim() || insc.membre_email;
+            var membreObj = adminMembresCache ? adminMembresCache.find(function(m) { return m.email === insc.membre_email; }) : null;
+            var nomMembre = membreObj ? ((membreObj.nom || '') + ' ' + (membreObj.prenom || '')).trim() || insc.membre_email : insc.membre_email;
 
             html += '<tr id="admin-insc-row-' + insc.id + '">';
             html += '<td title="' + escapeAttr(insc.membre_email) + '">' + escapeHtml(nomMembre) + '</td>';
@@ -3034,7 +3034,7 @@ function renderAdminInscriptionForm(billet, membres, editInscription) {
     var optionsMembres = '<option value="">— Sélectionner un membre —</option>';
     membres.forEach(function(m) {
         if (!isEdit && emailsInscrits[m.email]) return;
-        var label = ((m.prenom || '') + ' ' + (m.nom || '')).trim() || m.email;
+        var label = ((m.nom || '') + ' ' + (m.prenom || '')).trim() || m.email;
         var selected = (m.email === defEmail) ? ' selected' : '';
         optionsMembres += '<option value="' + m.email + '"' + selected + '>' + escapeHtml(label) + ' (' + escapeHtml(m.email) + ')</option>';
     });
