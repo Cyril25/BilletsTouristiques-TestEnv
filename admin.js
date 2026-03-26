@@ -2781,11 +2781,11 @@ function openShareModal(billetId) {
         imgEl.src = '';
     }
 
-    // Partie basse : image Cloudinary + lien
+    // Partie basse : lien inscription + image Cloudinary
     var bottomLines = [];
-    if (imgUrlForCopy) bottomLines.push(imgUrlForCopy);
     var baseUrl = 'https://cyril25.github.io/BilletsTouristiques/billets.html';
     bottomLines.push('👉 S\'inscrire : ' + baseUrl + '?billet=' + billetId);
+    if (imgUrlForCopy) bottomLines.push(imgUrlForCopy);
     textBottomEl.textContent = bottomLines.join('\n\n');
 
     shareOverlay.style.display = '';
