@@ -1979,7 +1979,7 @@ function renderVerificationPaiement(inscriptions, billetsMap) {
             + '<div class="envoi-groupe-header">'
             + '<strong>' + nom + '</strong>'
             + '<span class="envoi-count">' + groupe.inscriptions.length + ' billet(s)</span>'
-            + '<span class="paiement-groupe-total">' + totalGroupe.toFixed(2) + ' €</span>'
+            + '<span class="paiement-groupe-total">Total : ' + totalGroupe.toFixed(2) + ' €</span>'
             + '</div>'
             + '<div class="envoi-groupe-lignes">' + lignes + '</div>'
             + '</div>';
