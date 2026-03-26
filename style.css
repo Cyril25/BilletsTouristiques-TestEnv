@@ -5781,6 +5781,22 @@ body.login-page {
     color: var(--color-accent);
 }
 
+.btn-edit-membre {
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    padding: 2px 5px;
+    border-radius: var(--radius-sm);
+    font-size: 0.78rem;
+    transition: color var(--transition-fast);
+    vertical-align: middle;
+}
+
+.btn-edit-membre:hover {
+    color: var(--color-primary);
+}
+
 @media (max-width: 600px) {
     .insc-form-actions {
         flex-direction: column;

@@ -475,7 +475,7 @@ function renderCollecteDetail(billetId, inscriptions) {
             html += '<tr>';
             var btnEditMembre = '';
             if (window.userRole === 'admin' || window.userRole === 'superadmin') {
-                btnEditMembre = ' <button class="btn-edit-membre" onclick="openMembreEditModal(\'' + escapeAttrMC(ins.membre_email) + '\')" title="Modifier la fiche membre"><i class="fa-solid fa-user-pen"></i></button>';
+                btnEditMembre = ' <button class="btn-edit-membre" data-email="' + escapeAttrMC(ins.membre_email) + '" title="Modifier la fiche membre"><i class="fa-solid fa-user-pen"></i></button>';
             }
             html += '<td data-label="Nom">' + escapeHtmlMC(nomPrenom) + btnEditMembre + '</td>';
             html += '<td data-label="Adresse" class="td-adresse">' + escapeHtmlMC(adresse) + '</td>';
@@ -515,6 +515,13 @@ function renderCollecteDetail(billetId, inscriptions) {
     container.querySelectorAll('.btn-desinscrire[data-ins-id]').forEach(function(btn) {
         btn.addEventListener('click', function() {
             desinscrireMembre(parseInt(btn.getAttribute('data-ins-id')), btn.getAttribute('data-membre-name'));
+        });
+    });
+
+    // Event delegation pour les boutons édition fiche membre
+    container.querySelectorAll('.btn-edit-membre[data-email]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            openMembreEditModal(btn.getAttribute('data-email'));
         });
     });
 }
@@ -2727,4 +2734,138 @@ function retirerBlacklist(entryId) {
         console.error('Erreur retrait blacklist:', error);
         showToast('Erreur lors du retrait', 'error');
     });
+}
+
+// ============================================================
+// ÉDITION FICHE MEMBRE DEPUIS COLLECTE (admin only)
+// ============================================================
+
+var _membreEditEmail = null;
+
+function openMembreEditModal(email) {
+    var existing = document.getElementById('membre-edit-modal-overlay');
+    if (existing) existing.remove();
+    document.removeEventListener('keydown', onMembreEditKeydown); // F6: éviter empilement
+
+    _membreEditEmail = email;
+
+    supabaseFetch('/rest/v1/membres?email=eq.' + encodeURIComponent(email) + '&select=pseudo,nom,prenom,rue,code_postal,ville,pays,indicatif_tel,telephone')
+        .then(function(res) {
+            if (!res.ok) throw new Error('Erreur HTTP ' + res.status); // F3
+            return res.json();
+        })
+        .then(function(data) {
+            if (!data.length) { // F5: membre inexistant
+                showToast('Membre introuvable', 'error');
+                return;
+            }
+            var m = data[0];
+
+            var html = '<div id="membre-edit-modal-overlay" class="user-modal-overlay">';
+            html += '<div class="user-edit-modal">';
+            html += '<button class="user-edit-modal-close">&times;</button>';
+            html += '<h2><i class="fa-solid fa-user-pen"></i> Modifier la fiche</h2>';
+            html += '<p class="user-edit-modal-email"><i class="fa-solid fa-envelope"></i> ' + escapeHtmlMC(email) + '</p>';
+
+            html += '<div class="user-edit-modal-fields">';
+            html += '<div class="user-edit-modal-row">';
+            html += '<div class="user-edit-modal-field"><label>Pseudo</label><input type="text" id="me-pseudo" value="' + escapeAttrMC(m.pseudo || '') + '" placeholder="Pseudo"></div>';
+            html += '</div>';
+            html += '<div class="user-edit-modal-row">';
+            html += '<div class="user-edit-modal-field"><label>Nom</label><input type="text" id="me-nom" value="' + escapeAttrMC(m.nom || '') + '" placeholder="Nom"></div>';
+            html += '<div class="user-edit-modal-field"><label>Prénom</label><input type="text" id="me-prenom" value="' + escapeAttrMC(m.prenom || '') + '" placeholder="Prénom"></div>';
+            html += '</div>';
+            html += '<div class="user-edit-modal-row">';
+            html += '<div class="user-edit-modal-field user-edit-modal-field-full"><label>Rue</label><input type="text" id="me-rue" value="' + escapeAttrMC(m.rue || '') + '" placeholder="Adresse"></div>';
+            html += '</div>';
+            html += '<div class="user-edit-modal-row">';
+            html += '<div class="user-edit-modal-field"><label>Code postal</label><input type="text" id="me-cp" value="' + escapeAttrMC(m.code_postal || '') + '" placeholder="Code postal"></div>';
+            html += '<div class="user-edit-modal-field"><label>Ville</label><input type="text" id="me-ville" value="' + escapeAttrMC(m.ville || '') + '" placeholder="Ville"></div>';
+            html += '</div>';
+            html += '<div class="user-edit-modal-row">';
+            html += '<div class="user-edit-modal-field"><label>Pays</label><input type="text" id="me-pays" value="' + escapeAttrMC(m.pays || '') + '" placeholder="Pays"></div>';
+            html += '</div>';
+            html += '<div class="user-edit-modal-row">';
+            html += '<div class="user-edit-modal-field"><label>Indicatif</label><input type="text" id="me-indicatif" value="' + escapeAttrMC(m.indicatif_tel || '') + '" placeholder="+33"></div>';
+            html += '<div class="user-edit-modal-field"><label>Téléphone</label><input type="text" id="me-telephone" value="' + escapeAttrMC(m.telephone || '') + '" placeholder="Téléphone"></div>';
+            html += '</div>';
+            html += '</div>';
+
+            html += '<div class="user-edit-modal-actions">';
+            html += '<button class="user-modal-btn user-modal-btn-primary" id="me-btn-save"><i class="fa-solid fa-check"></i> Sauvegarder</button>';
+            html += '<button class="user-modal-btn" id="me-btn-cancel"><i class="fa-solid fa-xmark"></i> Annuler</button>';
+            html += '</div>';
+            html += '</div></div>';
+
+            document.body.insertAdjacentHTML('beforeend', html);
+
+            // F2: addEventListener au lieu de onclick inline
+            var overlay = document.getElementById('membre-edit-modal-overlay');
+            overlay.addEventListener('click', function(e) { if (e.target === overlay) closeMembreEditModal(); });
+            document.querySelector('#membre-edit-modal-overlay .user-edit-modal-close').addEventListener('click', closeMembreEditModal);
+            document.getElementById('me-btn-save').addEventListener('click', function() { saveMembreEditModal(_membreEditEmail); });
+            document.getElementById('me-btn-cancel').addEventListener('click', closeMembreEditModal);
+            document.addEventListener('keydown', onMembreEditKeydown);
+        })
+        .catch(function(error) {
+            showToast('Erreur chargement fiche : ' + error.message, 'error');
+        });
+}
+
+function saveMembreEditModal(email) {
+    var btnSave = document.getElementById('me-btn-save');
+    if (btnSave) btnSave.disabled = true; // F7: éviter double-soumission
+
+    var data = {
+        pseudo: document.getElementById('me-pseudo').value.trim(),
+        nom: document.getElementById('me-nom').value.trim(),
+        prenom: document.getElementById('me-prenom').value.trim(),
+        rue: document.getElementById('me-rue').value.trim(),
+        code_postal: document.getElementById('me-cp').value.trim(),
+        ville: document.getElementById('me-ville').value.trim(),
+        pays: document.getElementById('me-pays').value.trim(),
+        indicatif_tel: document.getElementById('me-indicatif').value.trim(),
+        telephone: document.getElementById('me-telephone').value.trim()
+    };
+
+    supabaseFetch('/rest/v1/membres?email=eq.' + encodeURIComponent(email), {
+        method: 'PATCH',
+        body: JSON.stringify(data)
+    })
+        .then(function(res) {
+            if (!res.ok) throw new Error('Erreur HTTP ' + res.status); // F3
+        })
+        .then(function() {
+            // Mettre à jour les snapshots en mémoire pour ce membre
+            for (var i = 0; i < currentInscriptions.length; i++) {
+                if (currentInscriptions[i].membre_email === email) {
+                    var snap = currentInscriptions[i].adresse_snapshot || {};
+                    snap.nom = data.nom;
+                    snap.prenom = data.prenom;
+                    snap.rue = data.rue;
+                    snap.code_postal = data.code_postal;
+                    snap.ville = data.ville;
+                    snap.pays = data.pays;
+                    currentInscriptions[i].adresse_snapshot = snap;
+                }
+            }
+            closeMembreEditModal();
+            renderCollecteDetail(currentBilletId, currentInscriptions);
+            showToast('Fiche mise à jour', 'success');
+        })
+        .catch(function(error) {
+            if (btnSave) btnSave.disabled = false; // F7: réactiver en cas d'erreur
+            showToast('Erreur : ' + error.message, 'error');
+        });
+}
+
+function closeMembreEditModal() {
+    var overlay = document.getElementById('membre-edit-modal-overlay');
+    if (overlay) overlay.remove();
+    document.removeEventListener('keydown', onMembreEditKeydown);
+    _membreEditEmail = null;
+}
+
+function onMembreEditKeydown(e) {
+    if (e.key === 'Escape') closeMembreEditModal();
 }
