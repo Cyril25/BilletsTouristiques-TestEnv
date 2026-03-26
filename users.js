@@ -181,7 +181,7 @@ function renderUserCards(searchQuery) {
         var prenom = user.prenom || '';
         var role = user.role || '';
         var lastActive = user.last_active_at || '';
-        var displayName = pseudo || ((nom && prenom) ? nom + ' ' + prenom : (nom || prenom)) || email;
+        var displayName = ((nom && prenom) ? nom + ' ' + prenom : (nom || prenom)) || pseudo || email;
         var isAdmin = role === 'admin' || role === 'superadmin';
         var badgeClass = isAdmin ? 'user-badge-role user-badge-admin' : 'user-badge-role user-badge-member';
         var badgeLabel = isAdmin ? 'Admin' : 'Membre';
@@ -491,12 +491,22 @@ function closeDeleteUserModal() {
 function confirmDeleteUser() {
     if (!deleteUserTargetEmail) return;
     var email = deleteUserTargetEmail;
-    closeDeleteUserModal();
 
-    supabaseFetch('/rest/v1/membres?email=eq.' + encodeURIComponent(email), {
-        method: 'DELETE'
-    })
-        .then(function() {
+    // Vérifier si le membre a des inscriptions avant de supprimer
+    supabaseFetch('/rest/v1/inscriptions?membre_email=eq.' + encodeURIComponent(email) + '&select=id&limit=1')
+        .then(function(rows) {
+            if (rows && rows.length > 0) {
+                closeDeleteUserModal();
+                showToast('Impossible de supprimer : ce membre a des inscriptions à des collectes', 'error');
+                return;
+            }
+            closeDeleteUserModal();
+            return supabaseFetch('/rest/v1/membres?email=eq.' + encodeURIComponent(email), {
+                method: 'DELETE'
+            });
+        })
+        .then(function(result) {
+            if (result === undefined) return; // arrêté car inscriptions existantes
             showToast('Membre supprimé', 'success');
             usersList = usersList.filter(function(u) { return u._id !== email; });
             renderUserCards();

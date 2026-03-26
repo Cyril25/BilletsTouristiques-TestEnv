@@ -2751,8 +2751,8 @@ function openMembreEditModal(email) {
 
     supabaseFetch('/rest/v1/membres?email=eq.' + encodeURIComponent(email) + '&select=pseudo,nom,prenom,rue,code_postal,ville,pays,indicatif_tel,telephone')
         .then(function(data) {
-            if (!data.length) { // F5: membre inexistant
-                showToast('Membre introuvable', 'error');
+            if (!data.length) { // F5: membre inexistant → popup réattribution
+                openMembreReassignModal(email);
                 return;
             }
             var m = data[0];
@@ -2861,4 +2861,150 @@ function closeMembreEditModal() {
 
 function onMembreEditKeydown(e) {
     if (e.key === 'Escape') closeMembreEditModal();
+}
+
+// ============================================================
+// REASSIGNATION D'UN MEMBRE (email non trouvé dans membres)
+// ============================================================
+var _reassignOldEmail = null;
+var _reassignMembresCache = [];
+
+function openMembreReassignModal(oldEmail) {
+    _reassignOldEmail = oldEmail;
+    var existing = document.getElementById('membre-reassign-overlay');
+    if (existing) existing.remove();
+
+    var html = '<div id="membre-reassign-overlay" class="user-modal-overlay">';
+    html += '<div class="user-edit-modal">';
+    html += '<button class="user-edit-modal-close" id="reassign-close">&times;</button>';
+    html += '<h2><i class="fa-solid fa-user-slash"></i> Membre introuvable</h2>';
+    html += '<p style="margin-bottom:var(--spacing-md)">L\u2019adresse <strong>' + escapeHtmlMC(oldEmail) + '</strong> ne correspond à aucun membre. Sélectionnez un membre existant pour réattribuer les inscriptions.</p>';
+    html += '<input type="text" id="reassign-search" class="membre-search-input" placeholder="Rechercher par nom, prénom ou email\u2026" autocomplete="off">';
+    html += '<div id="reassign-list" class="membre-list"><p style="text-align:center;color:#888">Chargement\u2026</p></div>';
+    html += '<div class="user-edit-modal-actions">';
+    html += '<button class="user-modal-btn" id="reassign-cancel"><i class="fa-solid fa-xmark"></i> Annuler</button>';
+    html += '</div>';
+    html += '</div></div>';
+
+    document.body.insertAdjacentHTML('beforeend', html);
+
+    var overlay = document.getElementById('membre-reassign-overlay');
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) closeMembreReassignModal(); });
+    document.getElementById('reassign-close').addEventListener('click', closeMembreReassignModal);
+    document.getElementById('reassign-cancel').addEventListener('click', closeMembreReassignModal);
+    document.getElementById('reassign-search').addEventListener('input', function() {
+        renderReassignList(this.value.toLowerCase().trim());
+    });
+    document.addEventListener('keydown', onReassignKeydown);
+
+    // Charger les membres
+    supabaseFetch('/rest/v1/membres?select=email,nom,prenom&order=nom.asc,prenom.asc')
+        .then(function(data) {
+            _reassignMembresCache = data || [];
+            renderReassignList('');
+            var searchInput = document.getElementById('reassign-search');
+            if (searchInput) searchInput.focus();
+        })
+        .catch(function(error) {
+            var listDiv = document.getElementById('reassign-list');
+            if (listDiv) listDiv.innerHTML = '<p style="color:red">Erreur de chargement</p>';
+        });
+}
+
+function renderReassignList(filter) {
+    var listDiv = document.getElementById('reassign-list');
+    if (!listDiv) return;
+
+    var filtered = _reassignMembresCache;
+    if (filter) {
+        filtered = _reassignMembresCache.filter(function(m) {
+            var search = (m.nom || '') + ' ' + (m.prenom || '') + ' ' + (m.email || '');
+            return search.toLowerCase().indexOf(filter) !== -1;
+        });
+    }
+
+    if (filtered.length === 0) {
+        listDiv.innerHTML = '<p style="text-align:center;color:#888;padding:var(--spacing-md)">Aucun membre trouvé</p>';
+        return;
+    }
+
+    var html = '';
+    filtered.forEach(function(m) {
+        var displayName = [m.nom, m.prenom].filter(function(s) { return s; }).join(' ');
+        html += '<div class="membre-list-item" data-email="' + escapeAttrMC(m.email) + '">' +
+            '<span class="membre-list-name">' + escapeHtmlMC(displayName || '\u2014') + '</span>' +
+            '<span class="membre-list-email">' + escapeHtmlMC(m.email) + '</span>' +
+            '</div>';
+    });
+
+    listDiv.innerHTML = html;
+
+    listDiv.querySelectorAll('.membre-list-item').forEach(function(item) {
+        item.addEventListener('click', function() {
+            var newEmail = item.getAttribute('data-email');
+            confirmReassign(newEmail);
+        });
+    });
+}
+
+function confirmReassign(newEmail) {
+    if (!_reassignOldEmail || !currentBilletId) return;
+
+    // Trouver les IDs des inscriptions concernées
+    var ids = [];
+    for (var i = 0; i < currentInscriptions.length; i++) {
+        if (currentInscriptions[i].membre_email === _reassignOldEmail) {
+            ids.push(currentInscriptions[i].id);
+        }
+    }
+    if (ids.length === 0) {
+        closeMembreReassignModal();
+        return;
+    }
+
+    // PATCH toutes les inscriptions de cet ancien email sur ce billet
+    supabaseFetch('/rest/v1/inscriptions?id=in.(' + ids.join(',') + ')', {
+        method: 'PATCH',
+        body: JSON.stringify({ membre_email: newEmail })
+    })
+        .then(function() {
+            // Récupérer l'adresse du nouveau membre pour mettre à jour les snapshots
+            return supabaseFetch('/rest/v1/membres?email=eq.' + encodeURIComponent(newEmail) + '&select=nom,prenom,rue,code_postal,ville,pays');
+        })
+        .then(function(data) {
+            var m = data && data[0] ? data[0] : {};
+            var newSnap = { nom: m.nom || '', prenom: m.prenom || '', rue: m.rue || '', code_postal: m.code_postal || '', ville: m.ville || '', pays: m.pays || '' };
+
+            // Mettre à jour les snapshots et le membre_email en mémoire
+            for (var i = 0; i < currentInscriptions.length; i++) {
+                if (ids.indexOf(currentInscriptions[i].id) !== -1) {
+                    currentInscriptions[i].membre_email = newEmail;
+                    currentInscriptions[i].adresse_snapshot = newSnap;
+                }
+            }
+
+            // Persister les snapshots en base
+            supabaseFetch('/rest/v1/inscriptions?id=in.(' + ids.join(',') + ')', {
+                method: 'PATCH',
+                body: JSON.stringify({ adresse_snapshot: newSnap })
+            });
+
+            closeMembreReassignModal();
+            renderCollecteDetail(currentBilletId, currentInscriptions);
+            showToast('Inscriptions réattribuées à ' + newEmail, 'success');
+        })
+        .catch(function(error) {
+            showToast('Erreur réattribution : ' + error.message, 'error');
+        });
+}
+
+function closeMembreReassignModal() {
+    var overlay = document.getElementById('membre-reassign-overlay');
+    if (overlay) overlay.remove();
+    document.removeEventListener('keydown', onReassignKeydown);
+    _reassignOldEmail = null;
+}
+
+function onReassignKeydown(e) {
+    if (e.key === 'Escape') closeMembreReassignModal();
 }
