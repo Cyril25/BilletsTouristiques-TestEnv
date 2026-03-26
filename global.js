@@ -367,8 +367,8 @@ window.showImpersonateModal = function() {
     supabaseFetch('/rest/v1/membres?select=email,prenom,nom')
     .then(function(membres) {
         membres.sort(function(a, b) {
-            var na = ((a.prenom || '') + ' ' + (a.nom || '')).trim().toLowerCase() || a.email.toLowerCase();
-            var nb = ((b.prenom || '') + ' ' + (b.nom || '')).trim().toLowerCase() || b.email.toLowerCase();
+            var na = ((a.nom || '') + ' ' + (a.prenom || '')).trim().toLowerCase() || a.email.toLowerCase();
+            var nb = ((b.nom || '') + ' ' + (b.prenom || '')).trim().toLowerCase() || b.email.toLowerCase();
             return na.localeCompare(nb);
         });
         var html = '<div class="impersonate-modal-overlay" onclick="window.closeImpersonateModal()">';
@@ -378,7 +378,7 @@ window.showImpersonateModal = function() {
         html += '<div class="impersonate-list">';
         var realEmail = firebase.auth().currentUser.email;
         membres.forEach(function(m) {
-            var label = ((m.prenom || '') + ' ' + (m.nom || '')).trim() || m.email;
+            var label = ((m.nom || '') + ' ' + (m.prenom || '')).trim() || m.email;
             var isSelf = m.email === realEmail;
             html += '<div class="impersonate-item' + (isSelf ? ' impersonate-item-self' : '') + '" onclick="window.selectImpersonate(\'' + m.email.replace(/'/g, "\\'") + '\')">';
             html += '<strong>' + label + '</strong><br><small>' + m.email + '</small>';

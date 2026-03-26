@@ -457,8 +457,9 @@ function renderCollecteDetail(billetId, inscriptions) {
         for (var j = 0; j < inscriptions.length; j++) {
             var ins = inscriptions[j];
             var snap = ins.adresse_snapshot || {};
-            var nomPrenom = ((snap.nom || '') + ' ' + (snap.prenom || '')).trim() || ins.membre_email;
-            var adresse = formatAdresse(snap);
+            var membreIns = membresCache ? membresCache.find(function(mc) { return mc.email === ins.membre_email; }) : null;
+            var nomPrenom = membreIns ? ((membreIns.nom || '') + ' ' + (membreIns.prenom || '')).trim() || ins.membre_email : ins.membre_email;
+            var adresse = formatAdresse(membreIns || snap);
             var montantBillets = (prix * (ins.nb_normaux || 0)) + (prixVariante * (ins.nb_variantes || 0));
             var commentaire = ins.commentaire || '';
 
@@ -1043,12 +1044,12 @@ function renderEnveloppesListe(enveloppes, inscriptions, billetsMap) {
         }
         enveloppesMeta.push({ env: env, adr: adr });
     }
-    // Tri par prénom puis nom
+    // Tri par nom puis prénom
     enveloppesMeta.sort(function(a, b) {
-        var pa = (a.adr.prenom || '').toLowerCase(), pb = (b.adr.prenom || '').toLowerCase();
-        if (pa < pb) return -1; if (pa > pb) return 1;
         var na = (a.adr.nom || '').toLowerCase(), nb = (b.adr.nom || '').toLowerCase();
         if (na < nb) return -1; if (na > nb) return 1;
+        var pa = (a.adr.prenom || '').toLowerCase(), pb = (b.adr.prenom || '').toLowerCase();
+        if (pa < pb) return -1; if (pa > pb) return 1;
         return 0;
     });
 
@@ -1065,7 +1066,7 @@ function renderEnveloppesListe(enveloppes, inscriptions, billetsMap) {
             if (totalBillets === 0 && aRepartir.length === 0) continue;
 
             var adr = enveloppesMeta[e].adr;
-            var nom = ((adr.prenom || '') + ' ' + (adr.nom || '')).trim() || env.membre_email;
+            var nom = ((adr.nom || '') + ' ' + (adr.prenom || '')).trim() || env.membre_email;
             var adresseStr = [adr.rue, adr.code_postal, (adr.ville || '').toUpperCase() || null, adr.pays].filter(Boolean).join(', ');
 
             var demandeHtml = '';
@@ -1102,7 +1103,7 @@ function openEnveloppePassee(enveloppeId) {
             return supabaseFetch('/rest/v1/membres?email=eq.' + encodeURIComponent(env.membre_email) + '&select=nom,prenom')
                 .then(function(membres) {
                     if (membres && membres[0]) {
-                        env._nomAffiche = ((membres[0].prenom || '') + ' ' + (membres[0].nom || '')).trim() || env.membre_email;
+                        env._nomAffiche = ((membres[0].nom || '') + ' ' + (membres[0].prenom || '')).trim() || env.membre_email;
                     } else {
                         env._nomAffiche = env.membre_email;
                     }
@@ -1283,7 +1284,7 @@ function buildHistoriqueCards(envPassees, membresMap, query) {
         var modeLabel = { normal: 'Normal', suivi: 'Suivi', r1: 'Recommandé R1', r2: 'Recommandé R2', r3: 'Recommandé R3' }[envH.mode_envoi_reel] || envH.mode_envoi_reel || '—';
 
         var membreH = membresMap[envH.membre_email];
-        var nomH = membreH ? ((membreH.prenom || '') + ' ' + (membreH.nom || '')).trim() : '';
+        var nomH = membreH ? ((membreH.nom || '') + ' ' + (membreH.prenom || '')).trim() : '';
         nomH = nomH || envH.membre_email;
 
         // Filtre recherche
@@ -1343,7 +1344,7 @@ function exportHistoriqueCSV() {
     for (var i = 0; i < _historiqueEnvois.length; i++) {
         var e = _historiqueEnvois[i];
         var m = _historiqueMembresMap[e.membre_email];
-        var nom = m ? ((m.prenom || '') + ' ' + (m.nom || '')).trim() : '';
+        var nom = m ? ((m.nom || '') + ' ' + (m.prenom || '')).trim() : '';
         var dateExp = e.date_expedition ? new Date(e.date_expedition).toLocaleDateString('fr-FR') : '';
         var modeLabel = { normal: 'Normal', suivi: 'Suivi', r1: 'Recommandé R1', r2: 'Recommandé R2', r3: 'Recommandé R3' }[e.mode_envoi_reel] || e.mode_envoi_reel || '';
         var statut = e.statut === 'recue' ? 'Reçue' : 'Expédiée';
@@ -1404,7 +1405,7 @@ function renderEnveloppeDetail(inscriptions, billetsMap) {
             break;
         }
     }
-    var nom = ((adr.prenom || '') + ' ' + (adr.nom || '')).trim() || env.membre_email;
+    var nom = ((adr.nom || '') + ' ' + (adr.prenom || '')).trim() || env.membre_email;
     var adresseStr = [adr.rue, adr.code_postal, (adr.ville || '').toUpperCase() || null, adr.pays].filter(Boolean).join(', ');
 
     var html = '';
@@ -2308,7 +2309,7 @@ function renderInscriptionModal(membres, editInscription) {
     var optionsMembres = '<option value="">— Sélectionner un membre —</option>';
     membres.forEach(function(m) {
         if (!isEdit && emailsInscrits[m.email]) return;
-        var label = ((m.prenom || '') + ' ' + (m.nom || '')).trim() || m.email;
+        var label = ((m.nom || '') + ' ' + (m.prenom || '')).trim() || m.email;
         var selected = (m.email === defEmail) ? ' selected' : '';
         optionsMembres += '<option value="' + m.email + '"' + selected + '>' + label + ' (' + m.email + ')</option>';
     });
@@ -2323,8 +2324,8 @@ function renderInscriptionModal(membres, editInscription) {
 
     // Sélecteur de membre
     if (isEdit) {
-        var snap = editInscription.adresse_snapshot || {};
-        var nomAffiche = ((snap.prenom || '') + ' ' + (snap.nom || '')).trim() || defEmail;
+        var membreEdit = membresCache ? membresCache.find(function(mc) { return mc.email === defEmail; }) : null;
+        var nomAffiche = membreEdit ? ((membreEdit.nom || '') + ' ' + (membreEdit.prenom || '')).trim() || defEmail : defEmail;
         html += '<div class="insc-form-field"><label>Membre</label><span class="insc-form-readonly">' + nomAffiche + '</span></div>';
     } else {
         html += '<div class="insc-form-field"><label>Membre</label>'
@@ -2389,7 +2390,7 @@ function filtrerMembresModal() {
     membresCache.forEach(function(m) {
         if (emailsInscrits[m.email]) return;
         if (blacklistEmails[m.email]) return;
-        var label = ((m.prenom || '') + ' ' + (m.nom || '')).trim() || m.email;
+        var label = ((m.nom || '') + ' ' + (m.prenom || '')).trim() || m.email;
         var searchable = (label + ' ' + m.email).toLowerCase();
         if (terme && searchable.indexOf(terme) === -1) return;
         html += '<option value="' + m.email + '">' + label + ' (' + m.email + ')</option>';
@@ -2620,7 +2621,7 @@ function renderBlacklistView(entries) {
                 for (var j = 0; j < membresCache.length; j++) {
                     if (membresCache[j].email === entry.membre_email) {
                         var m = membresCache[j];
-                        membreLabel = ((m.prenom || '') + ' ' + (m.nom || '')).trim() + ' (' + m.email + ')';
+                        membreLabel = ((m.nom || '') + ' ' + (m.prenom || '')).trim() + ' (' + m.email + ')';
                         break;
                     }
                 }
@@ -2660,7 +2661,7 @@ function filtrerMembresBlacklist() {
     var html = '<option value="">— Sélectionner un membre —</option>';
     membresCache.forEach(function(m) {
         if (emailsBlacklistes[m.email]) return;
-        var label = ((m.prenom || '') + ' ' + (m.nom || '')).trim() || m.email;
+        var label = ((m.nom || '') + ' ' + (m.prenom || '')).trim() || m.email;
         var searchable = (label + ' ' + m.email).toLowerCase();
         if (terme && searchable.indexOf(terme) === -1) return;
         html += '<option value="' + escapeAttrMC(m.email) + '">' + escapeHtmlMC(label + ' (' + m.email + ')') + '</option>';

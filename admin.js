@@ -3044,8 +3044,8 @@ function renderAdminInscriptionForm(billet, membres, editInscription) {
 
     // Sélecteur de membre
     if (isEdit) {
-        var snap = editInscription.adresse_snapshot || {};
-        var nomAffiche = ((snap.prenom || '') + ' ' + (snap.nom || '')).trim() || defEmail;
+        var membreEdit = adminMembresCache ? adminMembresCache.find(function(m) { return m.email === defEmail; }) : null;
+        var nomAffiche = membreEdit ? ((membreEdit.nom || '') + ' ' + (membreEdit.prenom || '')).trim() || defEmail : defEmail;
         html += '<div class="admin-insc-form-field"><label>Membre</label><span class="admin-insc-readonly">' + escapeHtml(nomAffiche) + '</span></div>';
     } else {
         html += '<div class="admin-insc-form-field"><label>Membre</label>' +
@@ -3107,7 +3107,7 @@ function filtrerAdminMembresModal() {
     var html = '<option value="">— Sélectionner un membre —</option>';
     adminMembresCache.forEach(function(m) {
         if (emailsInscrits[m.email]) return;
-        var label = ((m.prenom || '') + ' ' + (m.nom || '')).trim() || m.email;
+        var label = ((m.nom || '') + ' ' + (m.prenom || '')).trim() || m.email;
         var searchable = (label + ' ' + m.email).toLowerCase();
         if (terme && searchable.indexOf(terme) === -1) return;
         html += '<option value="' + m.email + '">' + escapeHtml(label) + ' (' + escapeHtml(m.email) + ')</option>';

@@ -105,7 +105,7 @@ function renderCollecteurs() {
         var emailMembre = c.email_membre || '';
         var masque = c.masque || false;
         var displayName = alias;
-        var fullName = [prenom, nom].filter(function(s) { return s; }).join(' ');
+        var fullName = [nom, prenom].filter(function(s) { return s; }).join(' ');
 
         html += '<div class="user-card' + (masque ? ' collecteur-masque' : '') + '" data-collecteur-id="' + escapeAttr(id) + '">' +
             '<div class="user-card-header">' +
@@ -381,7 +381,7 @@ function renderMembreList(filter) {
 
     var html = '';
     filtered.forEach(function(m) {
-        var displayName = [m.prenom, m.nom].filter(function(s) { return s; }).join(' ');
+        var displayName = [m.nom, m.prenom].filter(function(s) { return s; }).join(' ');
         html += '<div class="membre-list-item" data-email="' + escapeAttr(m.email) + '">' +
             '<span class="membre-list-name">' + escapeHtml(displayName || '—') + '</span>' +
             '<span class="membre-list-email">' + escapeHtml(m.email) + '</span>' +
