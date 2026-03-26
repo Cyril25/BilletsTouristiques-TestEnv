@@ -2871,10 +2871,13 @@ function openInscriptionsModal(billetId) {
         '<p style="text-align:center; padding:20px; color:var(--color-text-light, #666);"><i class="fa-solid fa-spinner fa-spin"></i> Chargement...</p>';
     overlayEl.style.display = '';
 
-    // Charger les inscriptions pour ce billet
-    supabaseFetch('/rest/v1/inscriptions?billet_id=eq.' + billetId + '&pas_interesse=eq.false&select=*&order=date_inscription.desc')
-        .then(function(data) {
-            adminCurrentInscriptions = data || [];
+    // Charger les inscriptions et les membres en parallèle
+    Promise.all([
+        supabaseFetch('/rest/v1/inscriptions?billet_id=eq.' + billetId + '&pas_interesse=eq.false&select=*&order=date_inscription.desc'),
+        chargerAdminMembres()
+    ])
+        .then(function(results) {
+            adminCurrentInscriptions = results[0] || [];
             renderInscriptionsModalContent(billet);
         })
         .catch(function(error) {
