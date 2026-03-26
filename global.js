@@ -244,7 +244,7 @@ function loadMenu() {
             // En mode impersonation, on affiche le menu selon le rôle de la personne impersonnée
             var activeEmail = window.getActiveEmail();
             var menuRolePromise;
-            if (window.impersonatedEmail && window.userRole === 'superadmin') {
+            if (window.impersonatedEmail && (window.userRole === 'superadmin' || window.userRole === 'admin')) {
                 menuRolePromise = supabaseFetch('/rest/v1/membres?email=eq.' + encodeURIComponent(activeEmail) + '&select=role')
                     .then(function(rows) {
                         return (rows && rows.length > 0) ? rows[0].role || 'member' : 'member';
@@ -255,9 +255,16 @@ function loadMenu() {
             }
 
             menuRolePromise.then(function(effectiveRole) {
+                var adminLinks = document.querySelectorAll('[data-admin-only], .admin-only');
                 if (effectiveRole === 'admin' || effectiveRole === 'superadmin') {
-                    var adminLinks = document.querySelectorAll('.admin-only');
-                    adminLinks.forEach(function(el) { el.classList.remove('admin-only'); });
+                    adminLinks.forEach(function(el) {
+                        el.setAttribute('data-admin-only', '');
+                        el.classList.remove('admin-only');
+                    });
+                } else {
+                    adminLinks.forEach(function(el) {
+                        el.classList.add('admin-only');
+                    });
                 }
 
                 // QW-1 — Masquer "Mes collectes" pour les non-collecteurs
