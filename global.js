@@ -131,7 +131,29 @@ document.addEventListener("DOMContentLoaded", function() {
                         window.location.href = "index.html";
                     } else {
                         // Guard admin : vérifier si la page requiert le rôle admin
-                        if (document.body.getAttribute('data-require-admin') === 'true' && window.userRole !== 'admin' && window.userRole !== 'superadmin') {
+                        // En impersonation, on utilise le rôle effectif (celui du membre impersonné)
+                        var guardRole = window.userRole;
+                        if (window.impersonatedEmail && (window.userRole === 'superadmin' || window.userRole === 'admin')) {
+                            guardRole = 'member'; // sera vérifié ci-dessous via la requête
+                        }
+                        if (document.body.getAttribute('data-require-admin') === 'true' && guardRole !== 'admin' && guardRole !== 'superadmin') {
+                            // En impersonation, on vérifie le rôle réel du membre impersonné
+                            if (window.impersonatedEmail) {
+                                var activeEmail = window.getActiveEmail();
+                                supabaseFetch('/rest/v1/membres?email=eq.' + encodeURIComponent(activeEmail) + '&select=role')
+                                    .then(function(rows) {
+                                        var role = (rows && rows.length > 0) ? rows[0].role || 'member' : 'member';
+                                        if (role !== 'admin' && role !== 'superadmin') {
+                                            window.location.href = 'index.html';
+                                        } else {
+                                            loadMenu();
+                                            var appContent = document.getElementById('app-content');
+                                            if (appContent) appContent.style.display = 'block';
+                                        }
+                                    })
+                                    .catch(function() { window.location.href = 'index.html'; });
+                                return;
+                            }
                             window.location.href = 'index.html';
                             return;
                         }
@@ -210,7 +232,7 @@ function loadMenu() {
     var placeholder = document.getElementById("menu-placeholder");
     if (!placeholder) return;
 
-    fetch("menu.html?v=46")
+    fetch("menu.html?v=47")
         .then(function(response) { return response.text(); })
         .then(function(html) {
             // 1. On injecte le HTML

@@ -1257,7 +1257,7 @@ body.login-page {
 
 /* STORY 1.2 — Liens admin masqués par défaut */
 .admin-only {
-    display: none;
+    display: none !important;
 }
 
 
