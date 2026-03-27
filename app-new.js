@@ -696,7 +696,7 @@ function showToast(message, type) {
 function loadMesInscriptions() {
     var email = window.getActiveEmail();
     if (!email) return;
-    supabaseFetch('/rest/v1/inscriptions?membre_email=eq.' + encodeURIComponent(email) + '&select=id,billet_id,nb_normaux,nb_variantes,statut_paiement,envoye,pas_interesse')
+    supabaseFetch('/rest/v1/inscriptions?membre_email=eq.' + encodeURIComponent(email) + '&select=id,billet_id,nb_normaux,nb_variantes,statut_paiement,envoye,pas_interesse,mode_paiement,mode_envoi')
         .then(function(data) {
             mesInscriptions = {};
             (data || []).forEach(function(insc) {
@@ -833,13 +833,22 @@ function declarerPaiementCatalogue(inscriptionId) {
     var collecteur = billet ? (billet.Collecteur || '') : '';
     var prix = parseFloat((billet && billet.Prix) || 0);
     var prixVar = (billet && billet.PrixVariante !== null && billet.PrixVariante !== undefined && billet.PrixVariante !== '') ? parseFloat(billet.PrixVariante) : prix;
-    var montant = insc ? (prix * (insc.nb_normaux || 0)) + (prixVar * (insc.nb_variantes || 0)) : 0;
+    var nbNormaux = insc ? (insc.nb_normaux || 0) : 0;
+    var nbVariantes = insc ? (insc.nb_variantes || 0) : 0;
+    var montant = (prix * nbNormaux) + (prixVar * nbVariantes);
+    var fdpMontant = 0;
+    if (billet && billet.PayerFDP === 'oui' && billet.Categorie !== 'Pré collecte' && membrePaysCatalogue && insc) {
+        var destCat = (membrePaysCatalogue === 'France') ? 'france' : 'international';
+        var typeEnvoi = (insc.mode_envoi || 'Normal').toLowerCase();
+        fdpMontant = findFdpPriceCatalogue(nbNormaux + nbVariantes, destCat, typeEnvoi);
+    }
+    var montantTotal = montant + fdpMontant;
 
     pendingDeclarationCatalogueId = inscriptionId;
     var modal = document.getElementById('confirm-paiement-catalogue-modal');
     var msgEl = document.getElementById('confirm-paiement-catalogue-msg');
     if (msgEl) {
-        msgEl.innerHTML = 'Confirmez-vous avoir payé <strong>' + montant.toFixed(2) + ' €</strong>'
+        msgEl.innerHTML = 'Confirmez-vous avoir payé <strong>' + montantTotal.toFixed(2) + ' €</strong>'
             + (collecteur ? ' à <strong>' + escapeHtml(collecteur) + '</strong>' : '') + ' ?';
     }
     if (modal) modal.style.display = 'flex';
@@ -907,14 +916,50 @@ function buildInscriptionHtml(item) {
         // Inscrit — badges + contact collecteur
         var prixNormal = parseFloat(item.Prix || 0);
         var prixVar = (item.PrixVariante !== null && item.PrixVariante !== undefined && item.PrixVariante !== '') ? parseFloat(item.PrixVariante) : prixNormal;
-        var montant = (prixNormal * (inscription.nb_normaux || 0)) + (prixVar * (inscription.nb_variantes || 0));
+        var nbNormaux = inscription.nb_normaux || 0;
+        var nbVariantes = inscription.nb_variantes || 0;
+        var montant = (prixNormal * nbNormaux) + (prixVar * nbVariantes);
+
+        // Calcul FDP si applicable
+        var fdpMontant = 0;
+        if (item.PayerFDP === 'oui' && item.Categorie !== 'Pré collecte' && membrePaysCatalogue) {
+            var nbTotal = nbNormaux + nbVariantes;
+            var destCat = (membrePaysCatalogue === 'France') ? 'france' : 'international';
+            var typeEnvoi = (inscription.mode_envoi || 'Normal').toLowerCase();
+            fdpMontant = findFdpPriceCatalogue(nbTotal, destCat, typeEnvoi);
+        }
+        var montantAvecFdp = montant + fdpMontant;
+
         html = '<div class="inscription-badges">'
             + '<span class="badge-inscrit">Inscrit</span>'
-            + badgePaiementCatalogue(inscription.statut_paiement, montant, inscription.id, item.Categorie)
-
+            + badgePaiementCatalogue(inscription.statut_paiement, montantAvecFdp, inscription.id, item.Categorie)
             + '</div>';
-        // Bouton contacter le collecteur
+
+        // Lien PayPal si non payé et mode_paiement = PayPal
+        var statut = inscription.statut_paiement || 'non_paye';
         var collecteurInfo = collecteursMap[item.Collecteur] || {};
+        if (statut === 'non_paye' && inscription.mode_paiement === 'PayPal' && item.Categorie !== 'Pré collecte') {
+            var refPart = (item.Reference || '') + ' ' + (item.Millesime || '') + (item.Version ? '-' + item.Version : '');
+            var noteparts = [refPart.trim(), item.NomBillet || ''];
+            var detailParts = [];
+            if (nbNormaux > 0) detailParts.push(prixNormal.toFixed(2) + '€ x ' + nbNormaux);
+            if (nbVariantes > 0) detailParts.push(prixVar.toFixed(2) + '€ x ' + nbVariantes + ' var.');
+            var paypalNote = noteparts.join(' ') + ' - ' + detailParts.join(' + ') + ' = ' + montantAvecFdp.toFixed(2) + '€';
+            var paypalNoteJs = paypalNote.replace(/'/g, "\\'");
+
+            var paypalUrl = '';
+            if (collecteurInfo.paypal_me) {
+                paypalUrl = 'https://paypal.me/' + encodeURIComponent(collecteurInfo.paypal_me) + '/' + montantAvecFdp.toFixed(2);
+            } else if (collecteurInfo.paypal_email) {
+                paypalUrl = 'https://www.paypal.com/paypalme/' + encodeURIComponent(collecteurInfo.paypal_email);
+            }
+            if (paypalUrl) {
+                html += '<div class="paypal-note-hint"><i class="fa-solid fa-paste"></i> Note à coller : ' + escapeHtml(paypalNote) + ' <button type="button" class="btn-copier-note" onclick="event.stopPropagation();navigator.clipboard.writeText(\'' + paypalNoteJs + '\');this.innerHTML=\'<i class=fa-solid fa-check></i> Copié !\';var b=this;setTimeout(function(){b.innerHTML=\'<i class=fa-solid fa-copy></i> Copier\'},2000)"><i class="fa-solid fa-copy"></i> Copier</button></div>';
+                html += '<a href="' + paypalUrl + '" target="_blank" class="btn-payer" onclick="event.stopPropagation()"><i class="fa-brands fa-paypal"></i> Payer via PayPal</a>';
+            }
+        }
+
+        // Bouton contacter le collecteur
         var contactEmail = collecteurInfo.paypal_email || '';
         if (contactEmail) {
             html += '<a href="mailto:' + escapeAttr(contactEmail) + '" class="btn-contacter-collecteur">Contacter le collecteur</a>';
