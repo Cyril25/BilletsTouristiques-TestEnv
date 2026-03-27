@@ -1872,7 +1872,7 @@ function loadVerificationPaiement() {
                 if (ins.membre_email && emails.indexOf(ins.membre_email) === -1) emails.push(ins.membre_email);
             });
             var emailFilter = emails.map(function(e) { return encodeURIComponent(e); }).join(',');
-            return supabaseFetch('/rest/v1/membres?email=in.(' + emailFilter + ')&select=email,nom,prenom,rue,code_postal,ville,pays')
+            return supabaseFetch('/rest/v1/membres?email=in.(' + emailFilter + ')&select=email,nom,prenom,pseudo,rue,code_postal,ville,pays')
                 .then(function(membres) {
                     var membresMap = {};
                     if (membres) {
@@ -1884,6 +1884,7 @@ function loadVerificationPaiement() {
                             if (!ins.adresse_snapshot) ins.adresse_snapshot = {};
                             ins.adresse_snapshot.nom = membre.nom || ins.adresse_snapshot.nom || '';
                             ins.adresse_snapshot.prenom = membre.prenom || ins.adresse_snapshot.prenom || '';
+                            ins.adresse_snapshot.pseudo = membre.pseudo || '';
                             ins.adresse_snapshot.rue = membre.rue || ins.adresse_snapshot.rue || '';
                             ins.adresse_snapshot.code_postal = membre.code_postal || ins.adresse_snapshot.code_postal || '';
                             ins.adresse_snapshot.ville = membre.ville || ins.adresse_snapshot.ville || '';
@@ -1949,6 +1950,7 @@ function renderVerificationPaiement(inscriptions, billetsMap) {
         var groupe = groupes[email];
         var adr = groupe.adresse;
         var nom = ((adr.nom || '') + ' ' + (adr.prenom || '')).trim() || email;
+        if (adr.pseudo) nom += ' (' + adr.pseudo + ')';
 
         var lignes = '';
         var totalGroupe = 0;
@@ -1982,7 +1984,7 @@ function renderVerificationPaiement(inscriptions, billetsMap) {
 
         html += '<div class="envoi-groupe">'
             + '<div class="envoi-groupe-header">'
-            + '<strong>' + nom + '</strong>'
+            + '<strong>' + escapeHtmlMC(nom) + '</strong>'
             + '<span class="envoi-count">' + groupe.inscriptions.length + ' billet(s)</span>'
             + '<span class="paiement-groupe-total">Total : ' + totalGroupe.toFixed(2) + ' €</span>'
             + '</div>'
