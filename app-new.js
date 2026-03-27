@@ -801,7 +801,7 @@ function getCompteurBT(item) {
 }
 
 // --- Badge paiement pour le catalogue ---
-function badgePaiementCatalogue(statut, montant) {
+function badgePaiementCatalogue(statut, montant, inscriptionId, categorie) {
     statut = statut || 'non_paye';
     if (statut === 'confirme') {
         return '<span class="badge-paiement badge-paye">Payé</span>';
@@ -809,7 +809,73 @@ function badgePaiementCatalogue(statut, montant) {
     if (statut === 'declare') {
         return '<span class="badge-paiement badge-declare">En attente de confirmation</span>';
     }
-    return '<span class="badge-paiement badge-non-paye">Non payé — ' + montant.toFixed(2) + ' €</span>';
+    // non_paye — bloquer en pré-collecte (prix non défini)
+    if (categorie === 'Pré collecte') {
+        return '<span class="badge-paiement badge-non-paye">Non payé — ' + montant.toFixed(2) + ' €</span>';
+    }
+    return '<span class="badge-paiement badge-non-paye">Non payé — ' + montant.toFixed(2) + ' €</span>'
+        + '<button class="btn-jai-paye" title="Cliquez pour déclarer votre paiement" onclick="event.stopPropagation();declarerPaiementCatalogue(' + inscriptionId + ')"><i class="fa-solid fa-hand-holding-dollar"></i> J\'ai payé</button>';
+}
+
+// --- Déclaration de paiement depuis le catalogue ---
+var pendingDeclarationCatalogueId = null;
+
+function declarerPaiementCatalogue(inscriptionId) {
+    var insc = null;
+    var billet = null;
+    for (var billetId in mesInscriptions) {
+        if (mesInscriptions[billetId].id === inscriptionId) {
+            insc = mesInscriptions[billetId];
+            billet = allData.find(function(b) { return b.id === parseInt(billetId); });
+            break;
+        }
+    }
+    var collecteur = billet ? (billet.Collecteur || '') : '';
+    var prix = parseFloat((billet && billet.Prix) || 0);
+    var prixVar = (billet && billet.PrixVariante !== null && billet.PrixVariante !== undefined && billet.PrixVariante !== '') ? parseFloat(billet.PrixVariante) : prix;
+    var montant = insc ? (prix * (insc.nb_normaux || 0)) + (prixVar * (insc.nb_variantes || 0)) : 0;
+
+    pendingDeclarationCatalogueId = inscriptionId;
+    var modal = document.getElementById('confirm-paiement-catalogue-modal');
+    var msgEl = document.getElementById('confirm-paiement-catalogue-msg');
+    if (msgEl) {
+        msgEl.innerHTML = 'Confirmez-vous avoir payé <strong>' + montant.toFixed(2) + ' €</strong>'
+            + (collecteur ? ' à <strong>' + escapeHtml(collecteur) + '</strong>' : '') + ' ?';
+    }
+    if (modal) modal.style.display = 'flex';
+}
+
+function confirmerDeclarationPaiementCatalogue() {
+    var modal = document.getElementById('confirm-paiement-catalogue-modal');
+    if (modal) modal.style.display = 'none';
+    if (!pendingDeclarationCatalogueId) return;
+    var inscriptionId = pendingDeclarationCatalogueId;
+    pendingDeclarationCatalogueId = null;
+
+    supabaseFetch('/rest/v1/inscriptions?id=eq.' + inscriptionId, {
+        method: 'PATCH',
+        body: JSON.stringify({ statut_paiement: 'declare' })
+    })
+    .then(function() {
+        for (var billetId in mesInscriptions) {
+            if (mesInscriptions[billetId].id === inscriptionId) {
+                mesInscriptions[billetId].statut_paiement = 'declare';
+                break;
+            }
+        }
+        applyFilters(false);
+        showToast('Paiement déclaré — le collecteur sera notifié');
+    })
+    .catch(function(error) {
+        console.error('Erreur déclaration paiement:', error);
+        showToast('Erreur lors de la déclaration', 'error');
+    });
+}
+
+function annulerDeclarationPaiementCatalogue() {
+    var modal = document.getElementById('confirm-paiement-catalogue-modal');
+    if (modal) modal.style.display = 'none';
+    pendingDeclarationCatalogueId = null;
 }
 
 // --- Génération des badges version (normale / variante) ---
@@ -844,7 +910,7 @@ function buildInscriptionHtml(item) {
         var montant = (prixNormal * (inscription.nb_normaux || 0)) + (prixVar * (inscription.nb_variantes || 0));
         html = '<div class="inscription-badges">'
             + '<span class="badge-inscrit">Inscrit</span>'
-            + badgePaiementCatalogue(inscription.statut_paiement, montant)
+            + badgePaiementCatalogue(inscription.statut_paiement, montant, inscription.id, item.Categorie)
 
             + '</div>';
         // Bouton contacter le collecteur

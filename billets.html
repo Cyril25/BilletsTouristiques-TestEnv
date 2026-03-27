@@ -79,6 +79,18 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js" integrity="sha384-v3Z/Xdw1sCeo6M/geW7sn1Lt9obIm7MhAk8laVV+rvYFmzuWDELOiygx7dVte2dX" crossorigin="anonymous"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js" integrity="sha384-p62xBRve8PdqGDGASZtZMuHgPsyPcT5VsFwgmz2p4zaFdEtt5ZzNqxK+CLzQS7xP" crossorigin="anonymous"></script>
 
+    <!-- Modale de confirmation paiement catalogue -->
+    <div id="confirm-paiement-catalogue-modal" class="user-modal-overlay" style="display:none" onclick="if(event.target===this)annulerDeclarationPaiementCatalogue()">
+        <div class="user-modal" role="alertdialog" aria-modal="true">
+            <h2 class="user-modal-title"><i class="fa-solid fa-hand-holding-dollar"></i> Confirmer le paiement</h2>
+            <p id="confirm-paiement-catalogue-msg" class="user-modal-desc"></p>
+            <div class="user-modal-actions">
+                <button type="button" class="user-modal-btn" onclick="annulerDeclarationPaiementCatalogue()">Annuler</button>
+                <button type="button" class="user-modal-btn user-modal-btn-primary" onclick="confirmerDeclarationPaiementCatalogue()">Oui, j'ai payé</button>
+            </div>
+        </div>
+    </div>
+
     <script src="global.js"></script>
     <script src="app-new.js"></script>
 
