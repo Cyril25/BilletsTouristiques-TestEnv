@@ -973,7 +973,7 @@ function loadEnveloppes() {
                 renderEnveloppesListe(enveloppes, [], {});
                 return;
             }
-            return supabaseFetch('/rest/v1/inscriptions?billet_id=in.(' + billetIds.join(',') + ')&pas_interesse=eq.false&statut_livraison=in.(non_reparti,pret_a_envoyer)&select=*')
+            return supabaseFetch('/rest/v1/inscriptions?billet_id=in.(' + billetIds.join(',') + ')&pas_interesse=eq.false&or=(statut_livraison.is.null,statut_livraison.eq.non_reparti,statut_livraison.eq.pret_a_envoyer)&select=*')
                 .then(function(inscriptions) {
                     inscriptions = inscriptions || [];
                     var emails = [];
@@ -1020,16 +1020,22 @@ function renderEnveloppesListe(enveloppes, inscriptions, billetsMap) {
     var container = document.getElementById('envois-view');
     if (!container) return;
 
-    // #12 — Compteur onglet envois
-    var tabs = document.querySelectorAll('.collectes-tabs .tab-btn');
-    if (tabs[2]) tabs[2].innerHTML = 'Préparation des envois' + (enveloppes.length > 0 ? ' <span class="tab-badge">' + enveloppes.length + '</span>' : '');
-
     // Grouper les inscriptions par membre_email
     var inscByMembre = {};
     inscriptions.forEach(function(ins) {
         if (!inscByMembre[ins.membre_email]) inscByMembre[ins.membre_email] = [];
         inscByMembre[ins.membre_email].push(ins);
     });
+
+    // #12 — Compteur onglet envois (enveloppes non vides uniquement)
+    var tabs = document.querySelectorAll('.collectes-tabs .tab-btn');
+    var nbEnveloppesActives = enveloppes.filter(function(env) {
+        var membreInscs = (inscByMembre[env.membre_email] || []);
+        var dansEnv = membreInscs.filter(function(i) { return i.statut_livraison === 'pret_a_envoyer' && i.enveloppe_id === env.id; });
+        var aRepartir = membreInscs.filter(function(i) { return i.statut_livraison === 'non_reparti' || i.statut_livraison === null; });
+        return dansEnv.length > 0 || aRepartir.length > 0;
+    }).length;
+    if (tabs[2]) tabs[2].innerHTML = 'Préparation des envois' + (nbEnveloppesActives > 0 ? ' <span class="tab-badge">' + nbEnveloppesActives + '</span>' : '');
 
     // Pré-calculer le nom pour le tri
     var enveloppesMeta = [];
@@ -1060,7 +1066,7 @@ function renderEnveloppesListe(enveloppes, inscriptions, billetsMap) {
             var env = enveloppesMeta[e].env;
             var membreInscs = inscByMembre[env.membre_email] || [];
             var dansEnveloppe = membreInscs.filter(function(i) { return i.statut_livraison === 'pret_a_envoyer' && i.enveloppe_id === env.id; });
-            var aRepartir = membreInscs.filter(function(i) { return i.statut_livraison === 'non_reparti'; });
+            var aRepartir = membreInscs.filter(function(i) { return i.statut_livraison === 'non_reparti' || i.statut_livraison === null; });
             var totalBillets = dansEnveloppe.length;
 
             // Masquer les enveloppes vides (0 dans l'enveloppe et 0 à répartir)
@@ -1376,7 +1382,7 @@ function openEnveloppeDetail(enveloppeId) {
             }
             // Inscriptions : dans l'enveloppe (pret_a_envoyer + enveloppe_id) OU à répartir (non_reparti + même membre)
             var membreEmail = encodeURIComponent(currentEnveloppeData.membre_email);
-            return supabaseFetch('/rest/v1/inscriptions?billet_id=in.(' + billetIds.join(',') + ')&membre_email=eq.' + membreEmail + '&pas_interesse=eq.false&statut_livraison=in.(non_reparti,pret_a_envoyer)&select=*')
+            return supabaseFetch('/rest/v1/inscriptions?billet_id=in.(' + billetIds.join(',') + ')&membre_email=eq.' + membreEmail + '&pas_interesse=eq.false&or=(statut_livraison.is.null,statut_livraison.eq.non_reparti,statut_livraison.eq.pret_a_envoyer)&select=*')
                 .then(function(inscriptions) {
                     inscriptions = inscriptions || [];
                     var billetsMap = {};
@@ -1412,7 +1418,7 @@ function renderEnveloppeDetail(inscriptions, billetsMap) {
 
     var env = currentEnveloppeData;
     var dansEnveloppe = inscriptions.filter(function(i) { return i.statut_livraison === 'pret_a_envoyer' && i.enveloppe_id === env.id; });
-    var aRepartir = inscriptions.filter(function(i) { return i.statut_livraison === 'non_reparti'; });
+    var aRepartir = inscriptions.filter(function(i) { return i.statut_livraison === 'non_reparti' || i.statut_livraison === null; });
 
     // Nom du membre
     var adr = {};
