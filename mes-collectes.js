@@ -976,6 +976,25 @@ function loadEnveloppes() {
             return supabaseFetch('/rest/v1/inscriptions?billet_id=in.(' + billetIds.join(',') + ')&pas_interesse=eq.false&or=(statut_livraison.is.null,statut_livraison.eq.non_reparti,statut_livraison.eq.pret_a_envoyer)&select=*')
                 .then(function(inscriptions) {
                     inscriptions = inscriptions || [];
+
+                    // Créer les enveloppes manquantes pour les membres avec des inscriptions à répartir
+                    var enveloppeEmails = enveloppes.map(function(e) { return e.membre_email; });
+                    var membresaSansEnveloppe = [];
+                    inscriptions.forEach(function(ins) {
+                        if ((ins.statut_livraison === 'non_reparti' || ins.statut_livraison === null) &&
+                            ins.membre_email && membresaSansEnveloppe.indexOf(ins.membre_email) === -1 &&
+                            enveloppeEmails.indexOf(ins.membre_email) === -1) {
+                            membresaSansEnveloppe.push(ins.membre_email);
+                        }
+                    });
+                    if (membresaSansEnveloppe.length > 0) {
+                        return Promise.all(membresaSansEnveloppe.map(function(email) {
+                            return creerEnveloppeSiAbsente(alias, email);
+                        })).then(function() {
+                            loadEnveloppes(); // Recharger avec les nouvelles enveloppes
+                        });
+                    }
+
                     var emails = [];
                     inscriptions.forEach(function(ins) {
                         if (ins.membre_email && emails.indexOf(ins.membre_email) === -1) emails.push(ins.membre_email);
