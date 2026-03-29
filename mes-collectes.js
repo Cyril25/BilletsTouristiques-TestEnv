@@ -1046,6 +1046,28 @@ function renderEnveloppesListe(enveloppes, inscriptions, billetsMap) {
         inscByMembre[ins.membre_email].push(ins);
     });
 
+    // Annuler les enveloppes vides (aucune inscription active)
+    var enveloppesVides = enveloppes.filter(function(env) {
+        var membreInscs = inscByMembre[env.membre_email] || [];
+        var dansEnv = membreInscs.filter(function(i) { return i.statut_livraison === 'pret_a_envoyer' && i.enveloppe_id === env.id; });
+        var aRepartir = membreInscs.filter(function(i) { return i.statut_livraison === 'non_reparti' || i.statut_livraison === null; });
+        return dansEnv.length === 0 && aRepartir.length === 0;
+    });
+    if (enveloppesVides.length > 0) {
+        Promise.all(enveloppesVides.map(function(env) {
+            return supabaseFetch('/rest/v1/enveloppes?id=eq.' + env.id, {
+                method: 'PATCH',
+                body: JSON.stringify({ statut: 'annulee' })
+            });
+        })).then(function() {
+            enveloppes = enveloppes.filter(function(env) {
+                return enveloppesVides.indexOf(env) === -1;
+            });
+            renderEnveloppesListe(enveloppes, inscriptions, billetsMap);
+        });
+        return;
+    }
+
     // #12 — Compteur onglet envois
     var tabs = document.querySelectorAll('.collectes-tabs .tab-btn');
     if (tabs[2]) tabs[2].innerHTML = 'Préparation des envois' + (enveloppes.length > 0 ? ' <span class="tab-badge">' + enveloppes.length + '</span>' : '');
