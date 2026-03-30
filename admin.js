@@ -997,7 +997,31 @@ function initPanel() {
                         billetData[dk] = dateUpdates[dk];
                     }
                 }
-                updateBillet(editId, billetData);
+                // Détecter un changement forcé de type (champs déverrouillés par l'admin)
+                var forcedTypeChange = null;
+                var cbNormaleEl = document.getElementById('field-version-normale');
+                var hasVarianteEl2 = document.getElementById('field-has-variante');
+                if (cbNormaleEl && cbNormaleEl.dataset.frozenValue !== undefined &&
+                    hasVarianteEl2 && hasVarianteEl2.dataset.frozenValue !== undefined) {
+                    var ancienNormale = cbNormaleEl.dataset.frozenValue === '1';
+                    var ancienVariante = hasVarianteEl2.dataset.frozenValue || '';
+                    var nouveauNormale = billetData.VersionNormaleExiste;
+                    var nouveauVariante = billetData.HasVariante || '';
+                    var ancienVarianteActive = ancienVariante && ancienVariante !== 'N';
+                    var nouveauVarianteActive = nouveauVariante && nouveauVariante !== 'N';
+                    if (ancienNormale !== nouveauNormale || ancienVariante !== nouveauVariante) {
+                        var tc = {
+                            supprimeNormale: ancienNormale && !nouveauNormale,
+                            supprimeVariante: ancienVarianteActive && !nouveauVarianteActive,
+                            ajouteNormale: !ancienNormale && nouveauNormale,
+                            ajouteVariante: !ancienVarianteActive && nouveauVarianteActive
+                        };
+                        if (tc.supprimeNormale || tc.supprimeVariante || tc.ajouteNormale || tc.ajouteVariante) {
+                            forcedTypeChange = tc;
+                        }
+                    }
+                }
+                updateBillet(editId, billetData, forcedTypeChange);
             } else {
                 saveBillet(billetData);
             }
@@ -1215,19 +1239,40 @@ function openBilletPanel(billetData, docId) {
                     if (cbNormale) {
                         cbNormale.disabled = true;
                         cbNormale.classList.add('admin-field-frozen');
+                        cbNormale.dataset.frozenValue = cbNormale.checked ? '1' : '0';
                     }
                     // Gel de HasVariante
                     var hasVarianteEl = document.getElementById('field-has-variante');
                     if (hasVarianteEl) {
                         hasVarianteEl.disabled = true;
                         hasVarianteEl.classList.add('admin-field-frozen');
+                        hasVarianteEl.dataset.frozenValue = hasVarianteEl.value || '';
                     }
-                    // Message d'avertissement sur la section Type
+                    // Message d'avertissement sur la section Type, avec lien de déverrouillage admin
                     var typeLegend = cbNormale && cbNormale.closest('fieldset');
                     if (typeLegend && !typeLegend.querySelector('.type-frozen-hint')) {
                         var typeHint = document.createElement('small');
                         typeHint.className = 'type-frozen-hint';
-                        typeHint.textContent = 'Type figé — des inscriptions existent pour ce billet';
+                        typeHint.textContent = 'Type figé — des inscriptions existent pour ce billet. ';
+                        var unlockLink = document.createElement('a');
+                        unlockLink.href = '#';
+                        unlockLink.className = 'type-frozen-unlock';
+                        unlockLink.textContent = 'Modifier quand même';
+                        (function(hint, cbN, hvEl) {
+                            unlockLink.addEventListener('click', function(e) {
+                                e.preventDefault();
+                                var varianteActive = hvEl && hvEl.value && hvEl.value !== 'N';
+                                var msg = 'Attention : modifier le type du billet peut supprimer des inscriptions existantes.\n\n';
+                                if (cbN && cbN.checked) msg += '• Si vous décochez "Version normale", les inscriptions normales seront supprimées.\n';
+                                if (varianteActive) msg += '• Si vous passez à "Pas de variante", les inscriptions variante seront supprimées.\n';
+                                msg += '\nContinuer ?';
+                                if (!confirm(msg)) return;
+                                if (cbN) { cbN.disabled = false; cbN.classList.remove('admin-field-frozen'); }
+                                if (hvEl) { hvEl.disabled = false; hvEl.classList.remove('admin-field-frozen'); }
+                                hint.remove();
+                            });
+                        })(typeHint, cbNormale, hasVarianteEl);
+                        typeHint.appendChild(unlockLink);
                         typeLegend.appendChild(typeHint);
                     }
                 }
@@ -1973,7 +2018,7 @@ function creerAutoInscriptionsBatch(billet, qualifies, paysData, isFrance, hasNo
 // 12. STORY 2.3 — MODIFICATION (UPDATE)
 // ============================================================
 
-function updateBillet(docId, billetData) {
+function updateBillet(docId, billetData, forcedTypeChange) {
     var saveBtn = document.getElementById('panel-save-btn');
     if (saveBtn) {
         saveBtn.disabled = true;
@@ -1987,6 +2032,9 @@ function updateBillet(docId, billetData) {
         .then(function() {
             showToast('Billet modifie avec succes', 'success');
             updateCardInList(docId, billetData);
+            if (forcedTypeChange) {
+                reconcilierTypeChangement(docId, billetData, forcedTypeChange);
+            }
             closeBilletPanel();
         })
         .catch(function(error) {
@@ -1997,6 +2045,157 @@ function updateBillet(docId, billetData) {
                 saveBtn.textContent = 'Enregistrer les modifications';
             }
         });
+}
+
+// ============================================================
+// 12b. RÉCONCILIATION DU TYPE APRÈS CHANGEMENT FORCÉ
+// ============================================================
+
+function reconcilierTypeChangement(billetId, billet, typeChange) {
+    var promesses = [];
+
+    // Supprimer / zéro-iser les inscriptions normales
+    if (typeChange.supprimeNormale) {
+        promesses.push(
+            supabaseFetch('/rest/v1/inscriptions?billet_id=eq.' + billetId + '&nb_normaux=gt.0&select=id,nb_variantes')
+                .then(function(inscs) {
+                    if (!inscs || inscs.length === 0) return;
+                    var toDelete = inscs.filter(function(i) { return i.nb_variantes === 0; });
+                    var toUpdate = inscs.filter(function(i) { return i.nb_variantes > 0; });
+                    var p = [];
+                    if (toDelete.length > 0) {
+                        var ids = toDelete.map(function(i) { return i.id; }).join(',');
+                        p.push(supabaseFetch('/rest/v1/inscriptions?id=in.(' + ids + ')', { method: 'DELETE' }));
+                    }
+                    if (toUpdate.length > 0) {
+                        var ids2 = toUpdate.map(function(i) { return i.id; }).join(',');
+                        p.push(supabaseFetch('/rest/v1/inscriptions?id=in.(' + ids2 + ')', {
+                            method: 'PATCH',
+                            body: JSON.stringify({ nb_normaux: 0 })
+                        }));
+                    }
+                    return Promise.all(p);
+                })
+        );
+    }
+
+    // Supprimer / zéro-iser les inscriptions variante
+    if (typeChange.supprimeVariante) {
+        promesses.push(
+            supabaseFetch('/rest/v1/inscriptions?billet_id=eq.' + billetId + '&nb_variantes=gt.0&select=id,nb_normaux')
+                .then(function(inscs) {
+                    if (!inscs || inscs.length === 0) return;
+                    var toDelete = inscs.filter(function(i) { return i.nb_normaux === 0; });
+                    var toUpdate = inscs.filter(function(i) { return i.nb_normaux > 0; });
+                    var p = [];
+                    if (toDelete.length > 0) {
+                        var ids = toDelete.map(function(i) { return i.id; }).join(',');
+                        p.push(supabaseFetch('/rest/v1/inscriptions?id=in.(' + ids + ')', { method: 'DELETE' }));
+                    }
+                    if (toUpdate.length > 0) {
+                        var ids2 = toUpdate.map(function(i) { return i.id; }).join(',');
+                        p.push(supabaseFetch('/rest/v1/inscriptions?id=in.(' + ids2 + ')', {
+                            method: 'PATCH',
+                            body: JSON.stringify({ nb_variantes: 0 })
+                        }));
+                    }
+                    return Promise.all(p);
+                })
+        );
+    }
+
+    Promise.all(promesses)
+        .then(function() {
+            if (typeChange.ajouteNormale || typeChange.ajouteVariante) {
+                // Recalculer les pré-inscriptions avec le nouveau type (merge sur l'existant)
+                recalculerAutoInscriptions(billet);
+            } else if (typeChange.supprimeNormale || typeChange.supprimeVariante) {
+                showToast('Inscriptions mises à jour après changement de type', 'info');
+            }
+        })
+        .catch(function(err) {
+            showToast('Erreur lors de la mise à jour des inscriptions : ' + (err.message || err), 'error');
+            console.error('Erreur réconciliation type:', err);
+        });
+}
+
+// Recalcule les quantités des inscriptions existantes d'après les pré-inscriptions auto
+// Utilise merge-duplicates pour mettre à jour nb_normaux/nb_variantes sans toucher les autres champs
+function recalculerAutoInscriptions(billet) {
+    var isFrance = !billet.Pays || billet.Pays === 'France';
+    var annee = parseInt(billet.Millesime) || new Date().getFullYear();
+    var hasNormale = billet.VersionNormaleExiste !== false && billet.VersionNormaleExiste !== 'false';
+    var hasVariante = !!(billet.HasVariante && billet.HasVariante !== 'N');
+
+    supabaseFetch('/rest/v1/inscriptions_auto?annee=eq.' + annee + '&select=*')
+        .then(function(autoData) {
+            if (!autoData || autoData.length === 0) return;
+            var qualifies = autoData.filter(function(a) { return isFrance ? a.france : a.etranger; });
+            if (qualifies.length === 0) return;
+
+            if (isFrance) {
+                recalculerAutoInscriptionsBatch(billet, qualifies, [], isFrance, hasNormale, hasVariante);
+            } else {
+                supabaseFetch('/rest/v1/inscriptions_auto_pays?annee=eq.' + annee + '&select=*')
+                    .then(function(paysData) {
+                        recalculerAutoInscriptionsBatch(billet, qualifies, paysData || [], isFrance, hasNormale, hasVariante);
+                    })
+                    .catch(function(err) { console.warn('Erreur paysData recalcul:', err); });
+            }
+        })
+        .catch(function(err) { console.warn('Erreur recalculerAutoInscriptions:', err); });
+}
+
+function recalculerAutoInscriptionsBatch(billet, qualifies, paysData, isFrance, hasNormale, hasVariante) {
+    var updates = [];
+
+    for (var i = 0; i < qualifies.length; i++) {
+        var auto = qualifies[i];
+        var nbNormaux = 0;
+        var nbVariantes = 0;
+
+        if (isFrance) {
+            nbNormaux = hasNormale ? auto.nb_normaux_fr : 0;
+            nbVariantes = hasVariante ? auto.nb_variantes_fr : 0;
+        } else {
+            var membrePays = paysData.filter(function(p) {
+                return p.membre_email === auto.membre_email && p.annee === auto.annee;
+            });
+            if (membrePays.length > 0) {
+                var paysMatch = null;
+                for (var mp = 0; mp < membrePays.length; mp++) {
+                    if (membrePays[mp].pays_nom === billet.Pays) { paysMatch = membrePays[mp]; break; }
+                }
+                if (!paysMatch) continue;
+                nbNormaux = hasNormale ? paysMatch.nb_normaux : 0;
+                nbVariantes = hasVariante ? paysMatch.nb_variantes : 0;
+            } else {
+                nbNormaux = hasNormale ? auto.nb_normaux_etr_defaut : 0;
+                nbVariantes = hasVariante ? auto.nb_variantes_etr_defaut : 0;
+            }
+        }
+
+        updates.push({
+            billet_id: billet.id,
+            membre_email: auto.membre_email,
+            nb_normaux: nbNormaux,
+            nb_variantes: nbVariantes
+        });
+    }
+
+    if (updates.length === 0) return;
+
+    supabaseFetch('/rest/v1/inscriptions?on_conflict=billet_id,membre_email', {
+        method: 'POST',
+        body: JSON.stringify(updates),
+        headers: { 'Prefer': 'return=minimal, resolution=merge-duplicates' }
+    })
+    .then(function() {
+        showToast('Quantités recalculées d\'après les pré-inscriptions', 'info');
+    })
+    .catch(function(err) {
+        console.warn('Erreur recalculerAutoInscriptionsBatch:', err);
+    });
 }
 
 // Story 2.3 — Rafraichir la carte dans le DOM apres modification

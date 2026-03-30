@@ -2695,6 +2695,14 @@ body.login-page {
     font-style: italic;
 }
 
+.type-frozen-unlock {
+    font-style: normal;
+    color: var(--color-primary);
+    cursor: pointer;
+    text-decoration: underline;
+    white-space: nowrap;
+}
+
 /* Status chips */
 .admin-status-chips {
     display: flex;
