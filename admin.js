@@ -2108,6 +2108,7 @@ function reconcilierTypeChangement(billetId, billet, typeChange) {
         .then(function() {
             if (typeChange.ajouteNormale || typeChange.ajouteVariante) {
                 // Recalculer les pré-inscriptions avec le nouveau type (merge sur l'existant)
+                billet.id = billet.id || billetId;
                 recalculerAutoInscriptions(billet);
             } else if (typeChange.supprimeNormale || typeChange.supprimeVariante) {
                 showToast('Inscriptions mises à jour après changement de type', 'info');
