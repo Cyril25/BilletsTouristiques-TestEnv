@@ -71,7 +71,8 @@ var BILLETS_CATEGORIES = [
     'Collecte',
     'Terminé',
     'Pas de collecte',
-    'Jamais édité, projet'
+    'Jamais édité, projet',
+    'Masqué'
 ];
 
 // Couleurs des categories (meme mapping que admin.js)
@@ -81,7 +82,8 @@ var CATEGORIE_COLORS = {
     'Terminé': '#C27BA0',
     'Pas de collecte': '#FF0000',
     'Jamais édité, projet': '#CECECE',
-    'Non defini': '#F57C00'
+    'Non defini': '#F57C00',
+    'Masqué': '#555555'
 };
 
 function getCategorieColor(categorie) {
@@ -178,7 +180,7 @@ function fetchData() {
             if (counter) {
                 counter.style.backgroundColor = "#B19CD9";
                 counter.style.color = "white";
-                counter.innerText = allData.length + " billets";
+                counter.innerText = currentData.length + " billets";
             }
 
             // Lien direct : ?billet=ID → scroll + ouverture formulaire
@@ -397,7 +399,10 @@ function applyFilters(silent) {
     var fEnd = document.getElementById('date-end').value;
 
     // Filtre sans la catégorie pour mettre à jour les compteurs des chips
+    // Les billets "Masqué" sont exclus de la vue publique
     var preFiltered = allData.filter(function(item) {
+        if (item.Categorie === 'Masqué') return false;
+
         var txt = !s || (item.NomBillet && item.NomBillet.toLowerCase().indexOf(s) !== -1) ||
             (item.Ville && item.Ville.toLowerCase().indexOf(s) !== -1) ||
             (item.Reference && item.Reference.toLowerCase().indexOf(s) !== -1) ||

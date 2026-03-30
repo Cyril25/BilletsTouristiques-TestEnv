@@ -65,7 +65,8 @@ var CATEGORIES = [
     'Collecte',
     'Terminé',
     'Pas de collecte',
-    'Jamais édité, projet'
+    'Jamais édité, projet',
+    'Masqué'
 ];
 var CATEGORIE_FLOW = {
     'Jamais édité, projet': 'Pré collecte',
@@ -83,7 +84,8 @@ var CATEGORIE_COLORS = {
     'Terminé': '#C27BA0',
     'Pas de collecte': '#FF0000',
     'Jamais édité, projet': '#CECECE',
-    'Non defini': '#F57C00'
+    'Non defini': '#F57C00',
+    'Masqué': '#555555'
 };
 
 // Cloudinary — configuration upload unsigned
@@ -267,7 +269,14 @@ function updateDateFieldsState(categorie) {
     dateColl.disabled = false; dateColl.title = '';
     dateFin.disabled = false; dateFin.title = '';
 
-    if (categorie === 'Pré collecte') {
+    if (categorie === 'Masqué') {
+        datePre.disabled = true;
+        datePre.title = 'Les dates ne sont pas requises pour un billet masqué';
+        dateColl.disabled = true;
+        dateColl.title = 'Les dates ne sont pas requises pour un billet masqué';
+        dateFin.disabled = true;
+        dateFin.title = 'Les dates ne sont pas requises pour un billet masqué';
+    } else if (categorie === 'Pré collecte') {
         dateColl.disabled = true;
         dateColl.title = 'Passez en statut Collecte pour saisir cette date';
         dateFin.disabled = true;
@@ -1649,6 +1658,19 @@ function validateBilletForm() {
     var prix = document.getElementById('field-prix');
     var categorie = document.getElementById('field-categorie');
     var isCollecte = categorie && categorie.value === 'Collecte';
+
+    // Date obligatoire si catégorie ≠ "Masqué"
+    if (categorie && categorie.value !== 'Masqué') {
+        var datePre = document.getElementById('field-date-pre');
+        var dateColl = document.getElementById('field-date-coll');
+        var dateFin = document.getElementById('field-date-fin');
+        var hasDate = (datePre && datePre.value) || (dateColl && dateColl.value) || (dateFin && dateFin.value);
+        if (!hasDate) {
+            setFieldError('field-date-pre', 'error-date-pre', 'Au moins une date est requise (sauf pour les billets "Masqué")');
+            valid = false;
+            if (!firstErrorField) firstErrorField = datePre;
+        }
+    }
 
     if (prix && prix.value !== '' && (isNaN(parseFloat(prix.value)) || parseFloat(prix.value) < 0)) {
         setFieldError('field-prix', 'error-prix', 'Le prix doit etre un nombre positif');
