@@ -503,7 +503,7 @@ function loadAdminBillets() {
 // 4a-bis. CHARGEMENT DES COMPTEURS D'INSCRIPTIONS
 // ============================================================
 function loadAdminInscriptionCounts() {
-    supabaseFetch('/rest/v1/inscriptions?select=billet_id,nb_normaux,nb_variantes&pas_interesse=eq.false')
+    return supabaseFetch('/rest/v1/inscriptions?select=billet_id,nb_normaux,nb_variantes&pas_interesse=eq.false')
         .then(function(data) {
             adminInscriptionCounts = {};
             (data || []).forEach(function(row) {
@@ -2112,6 +2112,9 @@ function reconcilierTypeChangement(billetId, billet, typeChange) {
                 recalculerAutoInscriptions(billet);
             } else if (typeChange.supprimeNormale || typeChange.supprimeVariante) {
                 showToast('Inscriptions mises à jour après changement de type', 'info');
+                loadAdminInscriptionCounts().then(function() {
+                    if (adminCurrentBilletId === billetId) openInscriptionsModal(billetId);
+                });
             }
         })
         .catch(function(err) {
@@ -2193,6 +2196,9 @@ function recalculerAutoInscriptionsBatch(billet, qualifies, paysData, isFrance, 
     })
     .then(function() {
         showToast('Quantités recalculées d\'après les pré-inscriptions', 'info');
+        loadAdminInscriptionCounts().then(function() {
+            if (adminCurrentBilletId === billet.id) openInscriptionsModal(billet.id);
+        });
     })
     .catch(function(err) {
         console.warn('Erreur recalculerAutoInscriptionsBatch:', err);
