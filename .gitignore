@@ -10,3 +10,9 @@ scripts/
 
 # Documentation vide
 docs/
+
+# Données membres et inscriptions (données personnelles)
+membres_rows.csv
+consolidation billets.csv
+consolidation_billets_clean.csv
+consolidate.py
