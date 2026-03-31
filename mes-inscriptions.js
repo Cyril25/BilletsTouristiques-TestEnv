@@ -278,11 +278,23 @@ function renderInscriptions() {
             + '</div>';
     }
 
+    // Priorité d'affichage : 0=Collecte non payée, 1=Pré-collecte, 2=Collecte payée
+    function inscPriorite(insc) {
+        var billet = billetsMap[insc.billet_id] || {};
+        var cat = billet.Categorie || 'Pré collecte';
+        var statut = insc.statut_paiement || 'non_paye';
+        if (cat === 'Collecte' && statut === 'non_paye') return 0;
+        if (cat === 'Pré collecte') return 1;
+        return 2; // Collecte déclarée ou confirmée
+    }
+
     // #11 — Rendu groupé par collecteur (header seulement si > 1 collecteur)
     var html = '';
     var multiCollecteurs = ordreCollecteurs.length > 1;
     ordreCollecteurs.forEach(function(alias) {
-        var inscs = parCollecteur[alias];
+        var inscs = parCollecteur[alias].slice().sort(function(a, b) {
+            return inscPriorite(a) - inscPriorite(b);
+        });
         if (multiCollecteurs) {
             html += '<div class="inscription-group-header"><i class="fa-solid fa-user"></i> ' + escapeHtml(alias) + ' <span class="inscription-group-count">(' + inscs.length + ')</span></div>';
         }
