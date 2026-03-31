@@ -76,7 +76,10 @@ function supabaseFetch(path, options) {
                     throw new Error(msg);
                 });
             }
-            return response.json();
+            return response.text().then(function(text) {
+                if (!text) return null;
+                return JSON.parse(text);
+            });
         });
 }
 
