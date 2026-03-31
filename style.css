@@ -5260,15 +5260,6 @@ body.login-page {
     font-size: 1rem;
 }
 
-.inscription-ville {
-    color: var(--color-text-muted);
-    font-size: 0.85rem;
-    text-transform: uppercase;
-}
-
-.inscription-ville i {
-    color: var(--color-accent);
-}
 
 .inscription-collecteur {
     color: var(--color-text-muted);

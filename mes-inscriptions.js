@@ -243,7 +243,6 @@ function renderInscriptions() {
         return '<div class="inscription-card">'
             + '<div class="inscription-card-header">'
             + '<strong>' + escapeHtml(((billet.Reference ? billet.Reference + ' ' : '') + (billet.Millesime || '') + (billet.Version ? '-' + billet.Version : '') + (billet.NomBillet ? ' - ' + billet.NomBillet : '')).trim() || 'Billet inconnu') + '</strong>'
-            + '<span class="inscription-ville"><i class="fa-solid fa-location-dot"></i> ' + escapeHtml(billet.Ville || '') + '</span>'
             + (billet.Collecteur ? '<span class="inscription-collecteur"><i class="fa-solid fa-user"></i> ' + escapeHtml(billet.Collecteur) + '</span>' : '')
             + '</div>'
             + '<div class="inscription-card-details">'
