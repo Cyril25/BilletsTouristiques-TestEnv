@@ -244,6 +244,7 @@ function renderInscriptions() {
             + '<div class="inscription-card-header">'
             + '<strong>' + escapeHtml(billet.NomBillet || 'Billet inconnu') + '</strong>'
             + '<span class="inscription-ville"><i class="fa-solid fa-location-dot"></i> ' + escapeHtml(billet.Ville || '') + '</span>'
+            + (billet.Collecteur ? '<span class="inscription-collecteur"><i class="fa-solid fa-user"></i> ' + escapeHtml(billet.Collecteur) + '</span>' : '')
             + '</div>'
             + '<div class="inscription-card-details">'
             + '<span><i class="fa-solid fa-ticket"></i> ' + (billet.VersionNormaleExiste === false ? (nbVariantes + ' var.') : (nbNormaux + (nbVariantes > 0 ? ' + ' + nbVariantes + ' var.' : ''))) + '</span>'

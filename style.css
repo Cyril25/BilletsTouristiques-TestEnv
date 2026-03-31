@@ -5270,6 +5270,15 @@ body.login-page {
     color: var(--color-accent);
 }
 
+.inscription-collecteur {
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+}
+
+.inscription-collecteur i {
+    color: var(--color-accent);
+}
+
 .inscription-card-details {
     display: flex;
     gap: var(--spacing-lg);
