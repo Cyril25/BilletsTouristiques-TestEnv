@@ -1994,7 +1994,8 @@ function creerAutoInscriptionsBatch(billet, qualifies, paysData, isFrance, hasNo
             statut_paiement: 'non_paye',
             envoye: false,
             fdp_regles: false,
-            pas_interesse: false
+            pas_interesse: false,
+            changed_by: 'pré-inscription'
         });
     }
 
