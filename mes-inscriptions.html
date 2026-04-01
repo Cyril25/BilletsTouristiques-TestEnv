@@ -48,6 +48,19 @@
 
     </div>
 
+    <!-- Modale modifier quantités pré-collecte -->
+    <div id="modifier-preinsc-modal" class="user-modal-overlay" style="display:none" onclick="if(event.target===this)fermerModifierPreCollecte()">
+        <div class="user-modal" role="dialog" aria-modal="true">
+            <h2 class="user-modal-title"><i class="fa-solid fa-pen"></i> Modifier l'inscription</h2>
+            <p id="modifier-preinsc-titre" class="user-modal-desc"></p>
+            <div id="modifier-preinsc-fields" class="preinsc-qty-fields"></div>
+            <div class="user-modal-actions">
+                <button type="button" class="user-modal-btn" onclick="fermerModifierPreCollecte()">Annuler</button>
+                <button type="button" class="user-modal-btn user-modal-btn-primary" onclick="confirmerModifierPreCollecte()">Confirmer</button>
+            </div>
+        </div>
+    </div>
+
     <!-- QW-3 — Modale de confirmation paiement -->
     <div id="confirm-paiement-modal" class="user-modal-overlay" style="display:none" onclick="if(event.target===this)annulerDeclarationPaiement()">
         <div class="user-modal" role="alertdialog" aria-modal="true">

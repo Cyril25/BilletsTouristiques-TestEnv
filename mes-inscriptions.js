@@ -9,6 +9,7 @@ var collecteursMap = {};
 var membrePays = '';
 var fraisPortData = [];
 var currentInscFilter = 'tous'; // #9 — filtre actif
+var modifierInscCurrent = null; // Inscription en cours de modification (pré-collecte)
 
 // #14 — Onboarding membre inscriptions
 function getOnboardingMembreHtml() {
@@ -263,6 +264,12 @@ function renderInscriptions() {
             + '<span class="inscription-date"><i class="fa-regular fa-calendar"></i> ' + dateInsc + '</span>'
             + paypalBtnHtml
             + '</div>'
+            + (billet.Categorie === 'Pré collecte'
+                ? '<div class="inscription-card-actions">'
+                    + '<button class="btn-modifier-insc" onclick="ouvrirModifierPreCollecte(' + insc.id + ')"><i class="fa-solid fa-pen"></i> Modifier</button>'
+                    + '<button class="btn-desinscrire" onclick="desinscriprePreCollecte(' + insc.id + ')"><i class="fa-solid fa-xmark"></i> Se désinscrire</button>'
+                    + '</div>'
+                : '')
             + '</div>';
     }
 
@@ -416,6 +423,108 @@ function annulerDeclarationPaiement() {
     var modal = document.getElementById('confirm-paiement-modal');
     if (modal) modal.style.display = 'none';
     pendingDeclarationId = null;
+}
+
+// ============================================================
+// Modifier / se désinscrire d'une pré-collecte
+// ============================================================
+
+function ouvrirModifierPreCollecte(inscId) {
+    var insc = null;
+    for (var i = 0; i < mesInscriptions.length; i++) {
+        if (mesInscriptions[i].id === inscId) { insc = mesInscriptions[i]; break; }
+    }
+    if (!insc) return;
+    var billet = billetsMap[insc.billet_id] || {};
+    modifierInscCurrent = { id: inscId, billet: billet };
+
+    var titre = ((billet.Reference ? billet.Reference + ' ' : '') + (billet.Millesime || '') + (billet.Version ? '-' + billet.Version : '') + (billet.NomBillet ? ' - ' + billet.NomBillet : '')).trim();
+    var hasNormale = billet.VersionNormaleExiste !== false && billet.VersionNormaleExiste !== 'false';
+    var hasVariante = !!(billet.HasVariante && billet.HasVariante !== 'N');
+
+    document.getElementById('modifier-preinsc-titre').textContent = titre || 'Billet inconnu';
+
+    var fields = '';
+    if (hasNormale) {
+        fields += '<div class="preinsc-qty-field">'
+            + '<label for="modifier-preinsc-normaux">Billets normaux</label>'
+            + '<input type="number" id="modifier-preinsc-normaux" min="0" value="' + (insc.nb_normaux || 0) + '">'
+            + '</div>';
+    }
+    if (hasVariante) {
+        fields += '<div class="preinsc-qty-field">'
+            + '<label for="modifier-preinsc-variantes">Variantes</label>'
+            + '<input type="number" id="modifier-preinsc-variantes" min="0" value="' + (insc.nb_variantes || 0) + '">'
+            + '</div>';
+    }
+    document.getElementById('modifier-preinsc-fields').innerHTML = fields;
+    document.getElementById('modifier-preinsc-modal').style.display = 'flex';
+}
+
+function fermerModifierPreCollecte() {
+    var modal = document.getElementById('modifier-preinsc-modal');
+    if (modal) modal.style.display = 'none';
+    modifierInscCurrent = null;
+}
+
+function confirmerModifierPreCollecte() {
+    if (!modifierInscCurrent) return;
+    var billet = modifierInscCurrent.billet;
+    var hasNormale = billet.VersionNormaleExiste !== false && billet.VersionNormaleExiste !== 'false';
+    var hasVariante = !!(billet.HasVariante && billet.HasVariante !== 'N');
+
+    var normauxEl = document.getElementById('modifier-preinsc-normaux');
+    var variantesEl = document.getElementById('modifier-preinsc-variantes');
+    var nbNormaux = (hasNormale && normauxEl) ? (parseInt(normauxEl.value) || 0) : 0;
+    var nbVariantes = (hasVariante && variantesEl) ? (parseInt(variantesEl.value) || 0) : 0;
+
+    if (nbNormaux + nbVariantes === 0) {
+        showToast('Sélectionnez au moins un billet', 'error');
+        return;
+    }
+
+    var inscId = modifierInscCurrent.id;
+    fermerModifierPreCollecte();
+
+    supabaseFetch('/rest/v1/inscriptions?id=eq.' + inscId, {
+        method: 'PATCH',
+        body: JSON.stringify({ nb_normaux: nbNormaux, nb_variantes: nbVariantes })
+    })
+    .then(function() {
+        for (var i = 0; i < mesInscriptions.length; i++) {
+            if (mesInscriptions[i].id === inscId) {
+                mesInscriptions[i].nb_normaux = nbNormaux;
+                mesInscriptions[i].nb_variantes = nbVariantes;
+                break;
+            }
+        }
+        renderInscriptions();
+        showToast('Inscription mise à jour');
+    })
+    .catch(function() {
+        showToast('Erreur lors de la modification', 'error');
+    });
+}
+
+function desinscriprePreCollecte(inscId) {
+    var insc = null;
+    for (var i = 0; i < mesInscriptions.length; i++) {
+        if (mesInscriptions[i].id === inscId) { insc = mesInscriptions[i]; break; }
+    }
+    var billet = insc ? (billetsMap[insc.billet_id] || {}) : {};
+    var titre = billet.NomBillet || 'cette collecte';
+
+    if (!confirm('Se désinscrire de « ' + titre + ' » ?\n\nVotre inscription sera supprimée.')) return;
+
+    supabaseFetch('/rest/v1/inscriptions?id=eq.' + inscId, { method: 'DELETE' })
+    .then(function() {
+        mesInscriptions = mesInscriptions.filter(function(i) { return i.id !== inscId; });
+        renderInscriptions();
+        showToast('Désinscription effectuée');
+    })
+    .catch(function() {
+        showToast('Erreur lors de la désinscription', 'error');
+    });
 }
 
 // ============================================================
