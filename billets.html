@@ -24,10 +24,17 @@
             </div>
         </header>
 
-        <div style="display:flex; justify-content:flex-end; margin-bottom:10px; gap:10px;">
-            <button onclick="changeView('collecte')" class="btn-mode" title="Mode Collecte"><i class="fa-solid fa-address-card"></i> Collecte</button>
-            <button onclick="changeView('liste')" class="btn-mode" title="Mode Liste"><i class="fa-solid fa-list"></i> Liste</button>
-            <button onclick="changeView('galerie')" class="btn-mode" title="Mode Galerie"><i class="fa-solid fa-images"></i> Galerie</button>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:10px; flex-wrap:wrap;">
+            <div style="display:flex; align-items:center; gap:6px;">
+                <span style="font-size:0.8em; color:var(--color-text-muted); font-weight:bold;">Trier par</span>
+                <button id="btn-sort-date" onclick="setSortMode('date')" class="btn-mode btn-mode--active" title="Trier par date"><i class="fa-solid fa-calendar-days"></i> Date</button>
+                <button id="btn-sort-ref" onclick="setSortMode('reference')" class="btn-mode" title="Trier par référence"><i class="fa-solid fa-arrow-down-a-z"></i> Référence</button>
+            </div>
+            <div style="display:flex; gap:10px;">
+                <button onclick="changeView('collecte')" class="btn-mode" title="Mode Collecte"><i class="fa-solid fa-address-card"></i> Collecte</button>
+                <button onclick="changeView('liste')" class="btn-mode" title="Mode Liste"><i class="fa-solid fa-list"></i> Liste</button>
+                <button onclick="changeView('galerie')" class="btn-mode" title="Mode Galerie"><i class="fa-solid fa-images"></i> Galerie</button>
+            </div>
         </div>
 
         <div class="filters-row">
@@ -51,7 +58,16 @@
 
         <div class="filters-row">
             <div class="filter-group"><label for="sel-coll">Collecteur</label><select id="sel-coll" onchange="applyFilters()"><option value="">Tout</option></select></div>
-            <div class="filter-group"><label for="sel-pays">Pays</label><select id="sel-pays" onchange="applyFilters()"><option value="">Tout</option></select></div>
+            <div class="filter-group">
+                <label>Pays</label>
+                <div class="multiselect-wrapper" id="pays-multiselect-wrapper">
+                    <button type="button" class="multiselect-btn" id="sel-pays-btn" onclick="togglePaysDropdown(event)" aria-haspopup="listbox" aria-expanded="false">
+                        <span id="sel-pays-label">Tous</span>
+                        <i class="fa-solid fa-chevron-down multiselect-chevron"></i>
+                    </button>
+                    <div class="multiselect-dropdown" id="sel-pays-dropdown" role="listbox" aria-multiselectable="true" style="display:none;"></div>
+                </div>
+            </div>
             <div class="filter-group"><label for="sel-year">Millésime</label><select id="sel-year" onchange="applyFilters()"><option value="">Tout</option></select></div>
             <div class="filter-group"><label for="sel-theme">Thème</label><select id="sel-theme" onchange="applyFilters()"><option value="">Tout</option></select></div>
         </div>

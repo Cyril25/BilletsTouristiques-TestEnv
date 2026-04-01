@@ -65,6 +65,12 @@ var compteurInscriptionsMap = {};
 // Filtre par catégorie actif
 var billetsActiveStatusFilter = 'tous';
 
+// Multi-select pays
+var selectedPays = [];
+
+// Tri actif : 'date' (défaut) ou 'reference'
+var billetsSort = 'date';
+
 // Catégories dans l'ordre d'affichage
 var BILLETS_CATEGORIES = [
     'Pré collecte',
@@ -289,6 +295,15 @@ function changeView(mode) {
     applyFilters(false);
 }
 
+function setSortMode(mode) {
+    billetsSort = mode;
+    var btnDate = document.getElementById('btn-sort-date');
+    var btnRef = document.getElementById('btn-sort-ref');
+    if (btnDate) btnDate.classList.toggle('btn-mode--active', mode === 'date');
+    if (btnRef) btnRef.classList.toggle('btn-mode--active', mode === 'reference');
+    applyFilters(false);
+}
+
 // Convertit 25/12/2025 ou 2025-12-25T10:00 en 2025-12-25
 function normalizeDate(str) {
     if (!str) return "";
@@ -303,7 +318,6 @@ function normalizeDate(str) {
 
 function populateFilters() {
     var maps = [
-        { id: 'sel-pays', key: 'Pays' },
         { id: 'sel-year', key: 'Millesime' },
         { id: 'sel-theme', key: 'Theme' },
         { id: 'sel-coll', key: 'Collecteur' }
@@ -314,7 +328,6 @@ function populateFilters() {
 
         var currentVal = select.value;
         var h = '<option value="">Tout</option>';
-        // Récupère valeurs uniques triées
         var unique = [];
         var seen = {};
         allData.forEach(function(item) {
@@ -329,6 +342,34 @@ function populateFilters() {
         });
         select.innerHTML = h;
     });
+
+    // Multi-select pays : reconstruire la liste des options
+    var paysDropdown = document.getElementById('sel-pays-dropdown');
+    if (paysDropdown) {
+        var uniquePays = [];
+        var seenPays = {};
+        allData.forEach(function(item) {
+            var v = item['Pays'];
+            if (v && !seenPays[v]) {
+                seenPays[v] = true;
+                uniquePays.push(v);
+            }
+        });
+        uniquePays.sort();
+
+        var h = '';
+        if (uniquePays.length > 0) {
+            h += '<span class="multiselect-clear" onclick="clearPaysFilter()"><i class="fa-solid fa-xmark"></i> Tout effacer</span>';
+        }
+        uniquePays.forEach(function(val) {
+            var checked = selectedPays.indexOf(val) !== -1 ? ' checked' : '';
+            h += '<label role="option" aria-selected="' + (checked ? 'true' : 'false') + '">'
+                + '<input type="checkbox" value="' + escapeAttr(val) + '"' + checked + ' onchange="togglePaysOption(this.value, this.checked)">'
+                + escapeHtml(val)
+                + '</label>';
+        });
+        paysDropdown.innerHTML = h;
+    }
 
     renderBilletsStatusCounters();
 }
@@ -380,6 +421,65 @@ function billetsFilterByStatus(statut) {
     applyFilters();
 }
 
+// --- Multi-select Pays ---
+function togglePaysDropdown(event) {
+    event.stopPropagation();
+    var dropdown = document.getElementById('sel-pays-dropdown');
+    var btn = document.getElementById('sel-pays-btn');
+    if (!dropdown) return;
+    var isOpen = dropdown.style.display !== 'none';
+    if (isOpen) {
+        dropdown.style.display = 'none';
+        btn.setAttribute('aria-expanded', 'false');
+    } else {
+        dropdown.style.display = 'block';
+        btn.setAttribute('aria-expanded', 'true');
+    }
+}
+
+function togglePaysOption(val, checked) {
+    if (checked) {
+        if (selectedPays.indexOf(val) === -1) selectedPays.push(val);
+    } else {
+        selectedPays = selectedPays.filter(function(v) { return v !== val; });
+    }
+    updatePaysLabel();
+    applyFilters();
+}
+
+function clearPaysFilter() {
+    selectedPays = [];
+    var dropdown = document.getElementById('sel-pays-dropdown');
+    if (dropdown) {
+        dropdown.querySelectorAll('input[type="checkbox"]').forEach(function(cb) { cb.checked = false; });
+    }
+    updatePaysLabel();
+    applyFilters();
+}
+
+function updatePaysLabel() {
+    var label = document.getElementById('sel-pays-label');
+    if (!label) return;
+    if (selectedPays.length === 0) {
+        label.textContent = 'Tous';
+    } else if (selectedPays.length === 1) {
+        label.textContent = selectedPays[0];
+    } else {
+        label.textContent = selectedPays.length + ' pays';
+    }
+}
+
+// Fermer le dropdown pays si clic en dehors
+document.addEventListener('click', function(e) {
+    var wrapper = document.getElementById('pays-multiselect-wrapper');
+    if (wrapper && !wrapper.contains(e.target)) {
+        var dropdown = document.getElementById('sel-pays-dropdown');
+        var btn = document.getElementById('sel-pays-btn');
+        if (dropdown) dropdown.style.display = 'none';
+        if (btn) btn.setAttribute('aria-expanded', 'false');
+    }
+});
+
 function applyFilters(silent) {
     if (silent === undefined) silent = false;
     // Si on est sur une page sans grille, on arrête
@@ -389,7 +489,7 @@ function applyFilters(silent) {
     var searchInput = document.getElementById('search-input');
     var s = searchInput ? searchInput.value.toLowerCase() : '';
     var fCat = billetsActiveStatusFilter !== 'tous' ? billetsActiveStatusFilter : '';
-    var fPays = document.getElementById('sel-pays').value;
+    var fPays = selectedPays; // tableau (multi-select)
     var fYear = document.getElementById('sel-year').value;
     var fTheme = document.getElementById('sel-theme').value;
     var fColl = document.getElementById('sel-coll').value;
@@ -413,7 +513,7 @@ function applyFilters(silent) {
             (!fEnd || (itemDate && itemDate <= fEnd));
 
         return txt && matchDate &&
-            (!fPays || item.Pays === fPays) && (!fYear || item.Millesime == fYear) &&
+            (!fPays.length || fPays.indexOf(item.Pays) !== -1) && (!fYear || item.Millesime == fYear) &&
             (!fTheme || item.Theme === fTheme) && (!fColl || item.Collecteur === fColl);
     });
 
@@ -427,6 +527,21 @@ function applyFilters(silent) {
     } else {
         currentData = preFiltered;
     }
+
+    // Tri
+    if (billetsSort === 'reference') {
+        currentData = currentData.slice().sort(function(a, b) {
+            var ra = (a.Reference || '').toLowerCase();
+            var rb = (b.Reference || '').toLowerCase();
+            if (ra < rb) return -1;
+            if (ra > rb) return 1;
+            // Millésime-Version en secondaire
+            var va = (a.Millesime || '') + '-' + (a.Version || '');
+            var vb = (b.Millesime || '') + '-' + (b.Version || '');
+            return va < vb ? -1 : va > vb ? 1 : 0;
+        });
+    }
+    // tri 'date' : ordre natif de l'API (Date.desc), rien à faire
 
     if (!silent) {
         // Vider l'affichage
