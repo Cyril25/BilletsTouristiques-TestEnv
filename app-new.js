@@ -71,6 +71,9 @@ var selectedPays = [];
 // Tri actif : 'date' (défaut) ou 'reference'
 var billetsSort = 'date';
 
+// Préférence masquer les billets "pas intéressé"
+var masquerPasInteresse = false;
+
 // Catégories dans l'ordre d'affichage
 var BILLETS_CATEGORIES = [
     'Pré collecte',
@@ -304,6 +307,26 @@ function setSortMode(mode) {
     applyFilters(false);
 }
 
+function toggleMasquerPasInteresse() {
+    var cb = document.getElementById('toggle-masquer-pas-interesse');
+    masquerPasInteresse = cb ? cb.checked : !masquerPasInteresse;
+    var email = window.getActiveEmail();
+    if (email) {
+        supabaseFetch('/rest/v1/membres?email=eq.' + encodeURIComponent(email), {
+            method: 'PATCH',
+            body: JSON.stringify({ masquer_pas_interesse: masquerPasInteresse })
+        }).catch(function(err) {
+            console.warn('Erreur sauvegarde préférence masquer_pas_interesse:', err);
+        });
+    }
+    applyFilters(false);
+}
+
+function updateToggleMasquer() {
+    var cb = document.getElementById('toggle-masquer-pas-interesse');
+    if (cb) cb.checked = masquerPasInteresse;
+}
+
 // Convertit 25/12/2025 ou 2025-12-25T10:00 en 2025-12-25
 function normalizeDate(str) {
     if (!str) return "";
@@ -514,7 +537,8 @@ function applyFilters(silent) {
 
         return txt && matchDate &&
             (!fPays.length || fPays.indexOf(item.Pays) !== -1) && (!fYear || item.Millesime == fYear) &&
-            (!fTheme || item.Theme === fTheme) && (!fColl || item.Collecteur === fColl);
+            (!fTheme || item.Theme === fTheme) && (!fColl || item.Collecteur === fColl) &&
+            (!masquerPasInteresse || !(mesInscriptions[item.id] && mesInscriptions[item.id].pas_interesse));
     });
 
     renderBilletsStatusCounters(preFiltered);
@@ -881,11 +905,20 @@ function loadFraisPortCatalogue(email) {
     var annee = new Date().getFullYear();
     Promise.all([
         supabaseFetch('/rest/v1/frais_port?annee=eq.' + annee + '&select=*'),
-        supabaseFetch('/rest/v1/membres?email=eq.' + encodeURIComponent(email) + '&select=pays')
+        supabaseFetch('/rest/v1/membres?email=eq.' + encodeURIComponent(email) + '&select=pays,masquer_pas_interesse')
     ])
     .then(function(results) {
         fraisPortCatalogue = results[0] || [];
-        membrePaysCatalogue = (results[1] && results[1][0]) ? (results[1][0].pays || '') : '';
+        var membre = results[1] && results[1][0];
+        membrePaysCatalogue = membre ? (membre.pays || '') : '';
+        var prefChargee = membre ? (membre.masquer_pas_interesse === true) : false;
+        if (prefChargee !== masquerPasInteresse) {
+            masquerPasInteresse = prefChargee;
+            updateToggleMasquer();
+            applyFilters(false);
+        } else {
+            updateToggleMasquer();
+        }
     })
     .catch(function(error) {
         console.warn('Erreur chargement frais de port catalogue:', error);

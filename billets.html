@@ -30,10 +30,17 @@
                 <button id="btn-sort-date" onclick="setSortMode('date')" class="btn-mode btn-mode--active" title="Trier par date"><i class="fa-solid fa-calendar-days"></i> Date</button>
                 <button id="btn-sort-ref" onclick="setSortMode('reference')" class="btn-mode" title="Trier par référence"><i class="fa-solid fa-arrow-down-a-z"></i> Référence</button>
             </div>
-            <div style="display:flex; gap:10px;">
-                <button onclick="changeView('collecte')" class="btn-mode" title="Mode Collecte"><i class="fa-solid fa-address-card"></i> Collecte</button>
-                <button onclick="changeView('liste')" class="btn-mode" title="Mode Liste"><i class="fa-solid fa-list"></i> Liste</button>
-                <button onclick="changeView('galerie')" class="btn-mode" title="Mode Galerie"><i class="fa-solid fa-images"></i> Galerie</button>
+            <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                <label class="toggle-switch" title="Masquer les billets marqués Pas intéressé">
+                    <input type="checkbox" id="toggle-masquer-pas-interesse" onchange="toggleMasquerPasInteresse()">
+                    <span class="toggle-slider"></span>
+                    <span class="toggle-label">Masquer les <em>pas intéressé</em></span>
+                </label>
+                <div style="display:flex; gap:10px;">
+                    <button onclick="changeView('collecte')" class="btn-mode" title="Mode Collecte"><i class="fa-solid fa-address-card"></i> Collecte</button>
+                    <button onclick="changeView('liste')" class="btn-mode" title="Mode Liste"><i class="fa-solid fa-list"></i> Liste</button>
+                    <button onclick="changeView('galerie')" class="btn-mode" title="Mode Galerie"><i class="fa-solid fa-images"></i> Galerie</button>
+                </div>
             </div>
         </div>
 
