@@ -1336,6 +1336,9 @@ function copyBillet(billetData) {
     delete copy.Sondage;
     delete copy.LinkSondage;
     delete copy.LinkSheet;
+    delete copy.LinkFB;
+    delete copy.Commentaire;
+    delete copy.Collecteur;
     copy.NomBillet = (copy.NomBillet || '') + ' (copie)';
     copy.Categorie = CATEGORIE_DEFAULT;
 
