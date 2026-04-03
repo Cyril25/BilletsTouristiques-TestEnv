@@ -298,6 +298,50 @@
                     </div>
                 </fieldset>
 
+                <!-- Section 9 : Collectes supplémentaires (Story 12.3) -->
+                <div id="admin-collectes-supplementaires" style="display:none" class="admin-collectes-section">
+                    <h4 class="admin-collectes-title">Collectes supplémentaires</h4>
+                    <div id="collectes-list"></div>
+                    <div id="collecte-add-form" class="collecte-add-form">
+                        <div class="admin-form-group">
+                            <label for="field-collecte-nom">Nom *</label>
+                            <input type="text" id="field-collecte-nom" autocomplete="off" placeholder="Rattrapage automne 2026">
+                            <span class="admin-form-error" id="error-collecte-nom"></span>
+                        </div>
+                        <div class="admin-form-group">
+                            <label for="field-collecte-scope">Scope *</label>
+                            <select id="field-collecte-scope" class="admin-form-select">
+                                <option value="">— Sélectionner —</option>
+                                <option value="normal">Normal</option>
+                                <option value="variante">Variante</option>
+                                <option value="les_deux">Les deux</option>
+                            </select>
+                            <span class="admin-form-error" id="error-collecte-scope"></span>
+                        </div>
+                        <div class="admin-form-group">
+                            <label for="field-collecte-collecteur">Collecteur</label>
+                            <select id="field-collecte-collecteur" class="admin-form-select">
+                                <option value="">— Sélectionner un collecteur —</option>
+                            </select>
+                        </div>
+                        <div class="admin-form-group">
+                            <label for="field-collecte-date-pre">Date pré-collecte</label>
+                            <input type="date" id="field-collecte-date-pre">
+                        </div>
+                        <div class="admin-form-group">
+                            <label for="field-collecte-date-coll">Date collecte</label>
+                            <input type="date" id="field-collecte-date-coll">
+                        </div>
+                        <div class="admin-form-group">
+                            <label for="field-collecte-date-fin">Date fin</label>
+                            <input type="date" id="field-collecte-date-fin">
+                        </div>
+                        <button type="button" id="btn-add-collecte" class="btn-admin-secondary">
+                            <i class="fa-solid fa-plus"></i> Ajouter cette collecte
+                        </button>
+                    </div>
+                </div>
+
             </form>
         </div>
 

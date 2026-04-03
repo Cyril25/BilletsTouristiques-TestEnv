@@ -8186,3 +8186,103 @@ body.login-page {
         max-height: 85vh;
     }
 }
+
+/* ============================================================
+   STORY 12.3 — Collectes supplémentaires (panel admin)
+   ============================================================ */
+
+.admin-collectes-section {
+    padding: 16px 0 8px;
+    border-top: 1px solid var(--color-surface);
+    margin-top: 8px;
+}
+
+.admin-collectes-title {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--color-primary);
+    margin: 0 0 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.collectes-empty {
+    font-style: italic;
+    color: var(--color-text-light, #666);
+    font-size: 0.875rem;
+    margin: 0 0 12px;
+}
+
+.collecte-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 8px 10px;
+    margin-bottom: 6px;
+    background: var(--color-surface);
+    border-radius: 6px;
+    border-left: 3px solid var(--color-accent);
+}
+
+.collecte-item:has(.collecte-scope-normal) { border-left-color: var(--color-primary); }
+.collecte-item:has(.collecte-scope-variante) { border-left-color: var(--color-secondary); }
+.collecte-item:has(.collecte-scope-les_deux) { border-left-color: var(--color-accent); }
+
+.collecte-badge-nom {
+    font-weight: 500;
+    font-size: 0.875rem;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: var(--color-primary);
+    color: #fff;
+}
+
+.collecte-scope-normal .collecte-badge-nom,
+.collecte-badge-nom.collecte-scope-normal { background: var(--color-primary); }
+.collecte-badge-nom.collecte-scope-variante { background: var(--color-secondary); }
+.collecte-badge-nom.collecte-scope-les_deux { background: var(--color-accent); color: #333; }
+
+.collecte-badge-status {
+    font-size: 0.75rem;
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-weight: 500;
+}
+.collecte-badge-status.ouverte {
+    background: #e8f5e9;
+    color: var(--color-success);
+}
+.collecte-badge-status.cloturee {
+    background: #f0f0f0;
+    color: #888;
+}
+
+.collecte-meta {
+    font-size: 0.8rem;
+    color: var(--color-text-light, #666);
+    flex: 1;
+}
+
+.btn-cloturer-collecte {
+    font-size: 0.75rem;
+    padding: 3px 10px;
+    border-radius: 4px;
+    border: 1px solid var(--color-danger);
+    background: transparent;
+    color: var(--color-danger);
+    cursor: pointer;
+    white-space: nowrap;
+}
+.btn-cloturer-collecte:hover {
+    background: var(--color-danger);
+    color: #fff;
+}
+
+.collecte-add-form {
+    margin-top: 12px;
+    padding: 12px;
+    background: #fafafa;
+    border-radius: 6px;
+    border: 1px dashed var(--color-accent);
+}

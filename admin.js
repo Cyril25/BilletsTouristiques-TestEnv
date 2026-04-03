@@ -1108,6 +1108,29 @@ function initPanel() {
         }
     });
 
+    // Story 12.3 — Délégation sur la liste des collectes (clôture)
+    var collectesList = document.getElementById('collectes-list');
+    if (collectesList) {
+        collectesList.addEventListener('click', function(e) {
+            var btn = e.target.closest('.btn-cloturer-collecte');
+            if (!btn) return;
+            cloturerCollecte(btn.dataset.collecteId, btn.dataset.billetRef);
+        });
+    }
+
+    // Story 12.3 — Bouton ajouter une collecte
+    var btnAddCollecte = document.getElementById('btn-add-collecte');
+    if (btnAddCollecte) {
+        btnAddCollecte.addEventListener('click', function() {
+            var section = document.getElementById('admin-collectes-supplementaires');
+            if (!section) return;
+            var billetRef = section.dataset.billetReference;
+            if (!billetRef) return;
+            if (!validateCollecteForm()) return;
+            saveCollecte(billetRef);
+        });
+    }
+
     // Pagination — event delegation
     var paginationContainer = document.getElementById('admin-pagination');
     if (paginationContainer) {
@@ -1179,6 +1202,15 @@ function openBilletPanel(billetData, docId) {
 
         // Pre-remplir tous les champs
         prefillForm(billetData);
+
+        // Story 12.3 — Section collectes supplémentaires (mode edition uniquement)
+        var sectionCollectes = document.getElementById('admin-collectes-supplementaires');
+        if (sectionCollectes) {
+            sectionCollectes.style.display = '';
+            sectionCollectes.dataset.billetReference = billetData.Reference || '';
+            loadCollectesForBillet(billetData.Reference || '');
+        }
+        populateCollecteCollecteurSelect();
 
         // Story 5.2 — Gestion des champs Google en mode edition
         var hasGoogleData = (billetData.LinkSheet && billetData.LinkSheet !== '') ||
@@ -1286,6 +1318,10 @@ function openBilletPanel(billetData, docId) {
         // --- Mode ajout (Story 2.2) ---
         delete panel.dataset.editId;
         if (title) title.textContent = 'Ajouter un billet';
+
+        // Story 12.3 — Masquer la section collectes supplémentaires en mode création
+        var sectionCollectes = document.getElementById('admin-collectes-supplementaires');
+        if (sectionCollectes) sectionCollectes.style.display = 'none';
         if (saveBtn) saveBtn.textContent = 'Sauvegarder';
         panel.setAttribute('aria-label', 'Ajouter un billet');
 
@@ -3535,5 +3571,133 @@ function confirmAdminDeleteInscription(inscriptionId) {
     .catch(function(error) {
         console.error('Erreur suppression inscription:', error);
         showToast('Erreur lors de la suppression', 'error');
+    });
+}
+
+// ============================================================
+// STORY 12.3 — GESTION DES COLLECTES SUPPLÉMENTAIRES
+// ============================================================
+
+function loadCollectesForBillet(billetReference) {
+    if (!billetReference) return;
+    var container = document.getElementById('collectes-list');
+    if (container) container.innerHTML = '<p style="font-style:italic; color: var(--color-text-light, #666);">Chargement...</p>';
+    supabaseFetch('/rest/v1/collectes?billet_id=eq.' + encodeURIComponent(billetReference) + '&order=created_at.asc')
+        .then(function(data) {
+            renderCollectesList(data || [], billetReference);
+        })
+        .catch(function(error) {
+            console.error('Erreur chargement collectes:', error);
+            var c = document.getElementById('collectes-list');
+            if (c) c.innerHTML = '<p style="color: var(--color-danger);">Erreur de chargement.</p>';
+        });
+}
+
+function renderCollectesList(collectes, billetReference) {
+    var container = document.getElementById('collectes-list');
+    if (!container) return;
+    if (!collectes || collectes.length === 0) {
+        container.innerHTML = '<p class="collectes-empty">Aucune collecte supplémentaire.</p>';
+        return;
+    }
+    var today = new Date().toISOString().slice(0, 10);
+    var html = collectes.map(function(c) {
+        var isOpen = !c.date_fin || c.date_fin >= today;
+        var statusClass = isOpen ? 'ouverte' : 'cloturee';
+        var statusLabel = isOpen ? 'Ouverte' : 'Clôturée';
+        return '<div class="collecte-item" data-collecte-id="' + c.id + '">' +
+            '<span class="collecte-badge-nom collecte-scope-' + (c.scope || '') + '">' + (c.nom || '') + '</span>' +
+            '<span class="collecte-badge-status ' + statusClass + '">' + statusLabel + '</span>' +
+            '<span class="collecte-meta">' + (c.collecteur || '—') + '</span>' +
+            (isOpen ? '<button type="button" class="btn-cloturer-collecte" data-collecte-id="' + c.id + '" data-billet-ref="' + (billetReference || '') + '">Clôturer</button>' : '') +
+            '</div>';
+    }).join('');
+    container.innerHTML = html;
+}
+
+function validateCollecteForm() {
+    var nomEl = document.getElementById('field-collecte-nom');
+    var scopeEl = document.getElementById('field-collecte-scope');
+    var errorNom = document.getElementById('error-collecte-nom');
+    var errorScope = document.getElementById('error-collecte-scope');
+    var valid = true;
+
+    if (errorNom) errorNom.textContent = '';
+    if (errorScope) errorScope.textContent = '';
+    if (nomEl && nomEl.closest('.admin-form-group')) nomEl.closest('.admin-form-group').classList.remove('has-error');
+    if (scopeEl && scopeEl.closest('.admin-form-group')) scopeEl.closest('.admin-form-group').classList.remove('has-error');
+
+    if (!nomEl || nomEl.value.trim() === '') {
+        if (errorNom) errorNom.textContent = 'Le nom est obligatoire';
+        if (nomEl && nomEl.closest('.admin-form-group')) nomEl.closest('.admin-form-group').classList.add('has-error');
+        valid = false;
+    }
+    if (!scopeEl || scopeEl.value === '') {
+        if (errorScope) errorScope.textContent = 'Le scope est obligatoire';
+        if (scopeEl && scopeEl.closest('.admin-form-group')) scopeEl.closest('.admin-form-group').classList.add('has-error');
+        valid = false;
+    }
+    return valid;
+}
+
+function saveCollecte(billetReference) {
+    var getValue = function(id) {
+        var el = document.getElementById(id);
+        return el ? el.value.trim() : '';
+    };
+    var body = {
+        billet_id: billetReference,
+        nom: getValue('field-collecte-nom'),
+        scope: getValue('field-collecte-scope'),
+        collecteur: getValue('field-collecte-collecteur') || null,
+        date_pre: getValue('field-collecte-date-pre') || null,
+        date_coll: getValue('field-collecte-date-coll') || null,
+        date_fin: getValue('field-collecte-date-fin') || null
+    };
+    supabaseFetch('/rest/v1/collectes', {
+        method: 'POST',
+        headers: { 'Prefer': 'return=representation' },
+        body: JSON.stringify(body)
+    })
+    .then(function() {
+        showToast('Collecte ajoutée', 'success');
+        var ids = ['field-collecte-nom', 'field-collecte-scope', 'field-collecte-collecteur',
+                   'field-collecte-date-pre', 'field-collecte-date-coll', 'field-collecte-date-fin'];
+        ids.forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) el.value = '';
+        });
+        loadCollectesForBillet(billetReference);
+    })
+    .catch(function(error) {
+        console.error('Erreur ajout collecte:', error);
+        showToast('Erreur lors de l\'ajout', 'error');
+    });
+}
+
+function cloturerCollecte(collecteId, billetReference) {
+    supabaseFetch('/rest/v1/collectes?id=eq.' + collecteId, {
+        method: 'PATCH',
+        body: JSON.stringify({ date_fin: new Date().toISOString().slice(0, 10) })
+    })
+    .then(function() {
+        showToast('Collecte clôturée', 'success');
+        loadCollectesForBillet(billetReference);
+    })
+    .catch(function(error) {
+        console.error('Erreur clôture collecte:', error);
+        showToast('Erreur lors de la clôture', 'error');
+    });
+}
+
+function populateCollecteCollecteurSelect() {
+    var select = document.getElementById('field-collecte-collecteur');
+    if (!select) return;
+    select.length = 1;
+    (collecteursList || []).forEach(function(coll) {
+        var option = document.createElement('option');
+        option.value = coll.alias;
+        option.textContent = coll.alias;
+        select.appendChild(option);
     });
 }
