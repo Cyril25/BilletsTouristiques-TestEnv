@@ -1339,6 +1339,8 @@ function copyBillet(billetData) {
     delete copy.LinkFB;
     delete copy.Commentaire;
     delete copy.Collecteur;
+    delete copy.ImageUrl;
+    delete copy.ImageId;
     copy.NomBillet = (copy.NomBillet || '') + ' (copie)';
     copy.Categorie = CATEGORIE_DEFAULT;
 
