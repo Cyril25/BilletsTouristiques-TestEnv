@@ -3641,6 +3641,17 @@ function validateCollecteForm() {
 }
 
 function saveCollecte(billetReference) {
+    // DEBUG RLS — à supprimer après diagnostic
+    if (firebase.auth().currentUser) {
+        firebase.auth().currentUser.getIdToken(false).then(function(token) {
+            try {
+                var payload = JSON.parse(atob(token.split('.')[1]));
+                console.log('[DEBUG saveCollecte] JWT email:', payload.email);
+                console.log('[DEBUG saveCollecte] JWT role:', payload.role);
+                console.log('[DEBUG saveCollecte] JWT full payload:', JSON.stringify(payload));
+            } catch(e) { console.log('[DEBUG saveCollecte] Erreur décodage JWT', e); }
+        });
+    }
     var getValue = function(id) {
         var el = document.getElementById(id);
         return el ? el.value.trim() : '';
