@@ -440,7 +440,9 @@ function clearImageUpload() {
     var placeholder = document.getElementById('image-upload-placeholder');
     var removeBtn = document.getElementById('btn-image-remove');
     var imageUrlField = document.getElementById('field-image-url');
+    var imageIdField = document.getElementById('field-image-id');
     var fileInput = document.getElementById('field-image-file');
+    var groupImageId = document.getElementById('group-image-id');
 
     if (preview) {
         preview.src = '';
@@ -449,6 +451,8 @@ function clearImageUpload() {
     if (placeholder) placeholder.classList.remove('hidden');
     if (removeBtn) removeBtn.classList.add('hidden');
     if (imageUrlField) imageUrlField.value = '';
+    if (imageIdField) imageIdField.value = '';
+    if (groupImageId) groupImageId.classList.add('hidden');
     if (fileInput) fileInput.value = '';
 }
 
