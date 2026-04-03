@@ -730,7 +730,6 @@ function showMore() {
                 '<tr><td>Pré Collecte :</td><td><b>' + escapeHtml(item.DatePre || '') + '</b></td></tr>' +
                 '<tr><td>Collecte :</td><td><b>' + escapeHtml(item.DateColl || '') + '</b></td></tr>' +
                 '<tr><td>Terminé :</td><td><b>' + escapeHtml(item.DateFin || '') + '</b></td></tr>' +
-                (item.DateCollVariante ? '<tr><td>Collecte variante :</td><td><b>' + escapeHtml(item.DateCollVariante || '') + '</b></td></tr>' : '') +
                 '</table>' +
                 '</center>' +
                 '</div>' +
@@ -1062,11 +1061,8 @@ function buildVersionBadgesHtml(item) {
 // --- Génération du HTML d'inscription pour une carte ---
 function buildInscriptionHtml(item) {
     var inscription = mesInscriptions[item.id];
-    // Avant :
-    var collecteOuverte = (item.Categorie === 'Pré collecte' || item.Categorie === 'Collecte') && !item.DateFin;
-    // Story 9.10 — Phase variante post-collecte
-    var phaseVarianteOuverte = item.DateCollVariante && !item.DateFinVariante;
-    var modeVarianteSeulement = !collecteOuverte && phaseVarianteOuverte;
+    var collecteOuverte = (item.Categorie === 'Pré collecte' || item.Categorie === 'Collecte') &&
+        !item.DateFin;
 
     var html = '';
     if (inscription && !inscription.pas_interesse) {
@@ -1146,35 +1142,6 @@ function buildInscriptionHtml(item) {
                     + '</div>';
             }
         }
-    } else if (modeVarianteSeulement) {
-        // Story 9.10 — Phase variante uniquement (collecte normale terminée)
-        if (inscription && !inscription.pas_interesse) {
-            // Déjà inscrit — permettre de modifier nb_variantes uniquement
-            var prixNormalV = parseFloat(item.Prix || 0);
-            var prixVarV = (item.PrixVariante !== null && item.PrixVariante !== undefined && item.PrixVariante !== '') ? parseFloat(item.PrixVariante) : prixNormalV;
-            var nbNormauxV = inscription.nb_normaux || 0;
-            var nbVariantesV = inscription.nb_variantes || 0;
-            var montantV = (prixNormalV * nbNormauxV) + (prixVarV * nbVariantesV);
-            html = '<div class="inscription-badges">'
-                + '<span class="badge-inscrit">Inscrit</span>'
-                + badgePaiementCatalogue(inscription.statut_paiement, montantV, inscription.id, item.Categorie)
-                + '</div>'
-                + '<button onclick="ouvrirModificationVariante(' + item.id + ')" class="btn-sinscrire"><i class="fa-solid fa-pen-to-square"></i> Modifier ma commande variante</button>';
-        } else {
-            // Non inscrit — permettre de s'inscrire en mode variante uniquement
-            var isBlacklisteV = item.Collecteur && blacklistCollecteurs[item.Collecteur];
-            if (isBlacklisteV) {
-                html = '<div class="inscription-badges">'
-                    + '<span class="badge-non-inscrit">Non inscrit</span>'
-                    + '<button class="btn-inscription-impossible" disabled><i class="fa-solid fa-ban"></i> Inscription impossible</button>'
-                    + '</div>';
-            } else {
-                html = '<div class="inscription-badges">'
-                    + '<span class="badge-non-inscrit">Non inscrit</span>'
-                    + '<button onclick="ouvrirInscriptionVariante(' + item.id + ')" class="btn-sinscrire"><i class="fa-solid fa-pen-to-square"></i> S\'inscrire à la variante</button>'
-                    + '</div>';
-            }
-        }
     }
     return html;
 }
@@ -1222,124 +1189,6 @@ function ouvrirInscription(billetId) {
 function annulerInscription(billetId) {
     var form = document.getElementById('inscription-form-' + billetId);
     if (form) form.remove();
-}
-
-// --- Story 9.10 — Inscription en mode variante uniquement (nouvel inscrit) ---
-function ouvrirInscriptionVariante(billetId) {
-    isProfilComplet(function(complet) {
-        if (!complet) {
-            showToast('Complétez votre profil avant de vous inscrire', 'error');
-            setTimeout(function() {
-                window.location.href = 'profil.html?from=inscription&billet=' + billetId;
-            }, 1500);
-            return;
-        }
-        var formHtml = '<div class="mini-inscription-form" id="inscription-form-' + billetId + '">'
-            + '<div class="mini-form-field"><label>Nb variantes</label><input type="number" id="insc-nb-variantes-' + billetId + '" value="1" min="1"></div>'
-            + '<div class="mini-form-field"><label>Paiement</label><select id="insc-paiement-' + billetId + '"><option value="PayPal">PayPal</option><option value="Chèque">Chèque</option></select></div>'
-            + '<div class="mini-form-field"><label>Envoi</label><select id="insc-envoi-' + billetId + '"><option value="Normal">Normal</option><option value="Suivi">Suivi</option><option value="R1">Recommandé R1</option><option value="R2">Recommandé R2</option><option value="R3">Recommandé R3</option></select></div>'
-            + '<div class="mini-form-field"><label>Commentaire</label><textarea id="insc-commentaire-' + billetId + '" rows="2"></textarea></div>'
-            + '<div class="mini-form-actions">'
-            + '<button onclick="confirmerInscriptionVariante(' + billetId + ')" class="btn-confirmer-inscription">Confirmer</button>'
-            + '<button onclick="annulerInscription(' + billetId + ')" class="btn-annuler-inscription">Annuler</button>'
-            + '</div>'
-            + '</div>';
-        var card = document.querySelector('[data-billet-id="' + billetId + '"]');
-        if (!card) return;
-        var existingForm = card.querySelector('.mini-inscription-form');
-        if (existingForm) existingForm.remove();
-        card.insertAdjacentHTML('beforeend', formHtml);
-    });
-}
-
-// --- Story 9.10 — Soumission inscription variante uniquement (INSERT nb_normaux=0) ---
-function confirmerInscriptionVariante(billetId) {
-    var email = window.getActiveEmail();
-    var billet = allData.find(function(b) { return b.id === billetId; });
-    if (!billet) return;
-    var variantesEl = document.getElementById('insc-nb-variantes-' + billetId);
-    var nbVariantes = variantesEl ? parseInt(variantesEl.value) || 0 : 0;
-    if (nbVariantes <= 0) {
-        showToast('Sélectionnez au moins 1 variante', 'error');
-        return;
-    }
-    supabaseFetch('/rest/v1/membres?email=eq.' + encodeURIComponent(email) + '&select=nom,prenom,rue,code_postal,ville,pays')
-        .then(function(membreData) {
-            var adresse = membreData && membreData[0] ? membreData[0] : {};
-            var body = {
-                billet_id: billetId,
-                membre_email: email,
-                nb_normaux: 0,
-                nb_variantes: nbVariantes,
-                mode_paiement: document.getElementById('insc-paiement-' + billetId).value,
-                mode_envoi: document.getElementById('insc-envoi-' + billetId).value,
-                commentaire: (document.getElementById('insc-commentaire-' + billetId).value || '').trim(),
-                adresse_snapshot: adresse,
-                statut_paiement: 'non_paye',
-                envoye: false,
-                fdp_regles: false,
-                pas_interesse: false
-            };
-            return supabaseFetch('/rest/v1/inscriptions', {
-                method: 'POST',
-                body: JSON.stringify(body)
-            });
-        })
-        .then(function() {
-            showToast('Inscription variante confirmée !');
-            var form = document.getElementById('inscription-form-' + billetId);
-            if (form) form.remove();
-            loadMesInscriptions();
-            loadCompteursInscriptions();
-            if (billet.Collecteur) {
-                creerEnveloppeSiAbsente(billet.Collecteur, email);
-            }
-        })
-        .catch(function(error) {
-            console.error('Erreur inscription variante:', error);
-            showToast('Erreur lors de l\'inscription variante', 'error');
-        });
-}
-
-// --- Story 9.10 — Modification variante uniquement (PATCH nb_variantes) ---
-function ouvrirModificationVariante(billetId) {
-    var inscription = mesInscriptions[billetId];
-    var nbVariantesActuel = (inscription && inscription.nb_variantes) || 0;
-    var inscriptionId = inscription ? inscription.id : null;
-    if (!inscriptionId) return;
-    var formHtml = '<div class="mini-inscription-form" id="inscription-form-' + billetId + '">'
-        + '<div class="mini-form-field"><label>Nb variantes</label><input type="number" id="insc-nb-variantes-' + billetId + '" value="' + nbVariantesActuel + '" min="0"></div>'
-        + '<div class="mini-form-actions">'
-        + '<button onclick="confirmerModificationVariante(' + billetId + ', ' + inscriptionId + ')" class="btn-confirmer-inscription">Confirmer</button>'
-        + '<button onclick="annulerInscription(' + billetId + ')" class="btn-annuler-inscription">Annuler</button>'
-        + '</div>'
-        + '</div>';
-    var card = document.querySelector('[data-billet-id="' + billetId + '"]');
-    if (!card) return;
-    var existingForm = card.querySelector('.mini-inscription-form');
-    if (existingForm) existingForm.remove();
-    card.insertAdjacentHTML('beforeend', formHtml);
-}
-
-// --- Story 9.10 — Soumission modification variante (PATCH nb_variantes uniquement) ---
-function confirmerModificationVariante(billetId, inscriptionId) {
-    var variantesEl = document.getElementById('insc-nb-variantes-' + billetId);
-    var nbVariantes = variantesEl ? parseInt(variantesEl.value) || 0 : 0;
-    supabaseFetch('/rest/v1/inscriptions?id=eq.' + inscriptionId, {
-        method: 'PATCH',
-        body: JSON.stringify({ nb_variantes: nbVariantes })
-    })
-    .then(function() {
-        showToast('Commande variante mise à jour !');
-        var form = document.getElementById('inscription-form-' + billetId);
-        if (form) form.remove();
-        loadMesInscriptions();
-        loadCompteursInscriptions();
-    })
-    .catch(function(error) {
-        console.error('Erreur modification variante:', error);
-        showToast('Erreur lors de la mise à jour', 'error');
-    });
 }
 
 // --- Soumission de l'inscription ---

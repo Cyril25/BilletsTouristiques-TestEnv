@@ -929,20 +929,10 @@ function initPanel() {
     }
 
     // Story 9.2 — Toggle PrixVariante quand HasVariante change
-    // Story 9.10 — Toggle champs phase variante quand HasVariante change
     var hasVarianteSelect = document.getElementById('field-has-variante');
     if (hasVarianteSelect) {
         hasVarianteSelect.addEventListener('change', function() {
             togglePrixVarianteField();
-            toggleVariantePostCollecteFields();
-        });
-    }
-
-    // Story 9.10 — Toggle champs phase variante quand DateFin change
-    var dateFinInput = document.getElementById('field-date-fin');
-    if (dateFinInput) {
-        dateFinInput.addEventListener('change', function() {
-            toggleVariantePostCollecteFields();
         });
     }
 
@@ -1395,8 +1385,6 @@ function prefillForm(data) {
         'field-date-pre': 'DatePre',
         'field-date-coll': 'DateColl',
         'field-date-fin': 'DateFin',
-        'field-date-coll-variante': 'DateCollVariante',
-        'field-date-fin-variante': 'DateFinVariante',
         'field-image-url': 'ImageUrl',
         'field-image-id': 'ImageId',
         'field-sondage': 'Sondage',
@@ -1493,9 +1481,6 @@ function prefillForm(data) {
     // Story 9.6 — Bloquer les champs prix en Pré-collecte
     togglePrixFields();
 
-    // Story 9.10 — Afficher/masquer les champs phase variante post-collecte
-    toggleVariantePostCollecteFields();
-
     // Prévisualisation image — priorité ImageUrl > ImageId (Google Drive)
     var imgUrl = data.ImageUrl || '';
     var imgId = data.ImageId || '';
@@ -1590,55 +1575,6 @@ function togglePrixFields() {
 
     if (msgEl) {
         msgEl.style.display = isPreCollecte ? '' : 'none';
-    }
-}
-
-// --- Story 9.10 — Affichage des champs phase variante post-collecte ---
-function toggleVariantePostCollecteFields() {
-    var dateFinEl = document.getElementById('field-date-fin');
-    var hasVarianteEl = document.getElementById('field-has-variante');
-    var groupDateCollVariante = document.getElementById('group-date-coll-variante');
-    var groupDateFinVariante = document.getElementById('group-date-fin-variante');
-    var badgeEl = document.getElementById('badge-variante-post');
-
-    if (!dateFinEl || !hasVarianteEl) return;
-
-    var dateFinRenseignee = !!(dateFinEl.value && dateFinEl.value.trim());
-    var hasVarianteVal = hasVarianteEl.value || '';
-    var varianteActive = hasVarianteVal && hasVarianteVal !== 'N';
-
-    var afficherChamps = dateFinRenseignee && varianteActive;
-
-    if (groupDateCollVariante) groupDateCollVariante.style.display = afficherChamps ? '' : 'none';
-    if (groupDateFinVariante) groupDateFinVariante.style.display = afficherChamps ? '' : 'none';
-
-    if (badgeEl) {
-        if (afficherChamps) {
-            var dateCollVarianteEl = document.getElementById('field-date-coll-variante');
-            var dateCollVarianteVide = !dateCollVarianteEl || !dateCollVarianteEl.value;
-            if (dateCollVarianteVide) {
-                badgeEl.innerHTML = '<small class="field-hint variante-post-hint">'
-                    + '<i class="fa-solid fa-circle-info"></i> Phase variante possible. '
-                    + '<a href="#" id="btn-ouvrir-variante">Ouvrir la collecte variante</a>'
-                    + '</small>';
-                var lienOuvrir = document.getElementById('btn-ouvrir-variante');
-                if (lienOuvrir) {
-                    lienOuvrir.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        var today = new Date().toISOString().slice(0, 10);
-                        if (dateCollVarianteEl) dateCollVarianteEl.value = today;
-                        badgeEl.innerHTML = '';
-                    });
-                }
-                badgeEl.style.display = '';
-            } else {
-                badgeEl.innerHTML = '';
-                badgeEl.style.display = 'none';
-            }
-        } else {
-            badgeEl.innerHTML = '';
-            badgeEl.style.display = 'none';
-        }
     }
 }
 
@@ -1887,8 +1823,6 @@ function collectFormData() {
         DatePre: getValue('field-date-pre') || null,
         DateColl: getValue('field-date-coll') || null,
         DateFin: getValue('field-date-fin') || null,
-        DateCollVariante: getValue('field-date-coll-variante') || null,
-        DateFinVariante: getValue('field-date-fin-variante') || null,
         ImageUrl: getValue('field-image-url'),
         ImageId: getValue('field-image-id'),
         // Story 5.2 — Ne collecter les champs Google que si le panel est en mode edition

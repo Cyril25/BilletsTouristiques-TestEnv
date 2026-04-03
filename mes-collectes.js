@@ -87,7 +87,7 @@ function checkCollecteur() {
 var mesInscriptionsParBillet = {};
 
 function loadMesCollectes() {
-    supabaseFetch('/rest/v1/billets?select=id,"NomBillet","Ville","Categorie","Collecteur","Prix","PrixVariante","DateColl","DateFin","HasVariante","VersionNormaleExiste","Date","Reference","Millesime","Version",attenuee,"PayerFDP","LinkSheet","DateCollVariante","DateFinVariante"&"Collecteur"=eq.' + encodeURIComponent(monCollecteur.alias) + '&order="Date".desc.nullslast')
+    supabaseFetch('/rest/v1/billets?select=id,"NomBillet","Ville","Categorie","Collecteur","Prix","PrixVariante","DateColl","DateFin","HasVariante","VersionNormaleExiste","Date","Reference","Millesime","Version",attenuee,"PayerFDP","LinkSheet"&"Collecteur"=eq.' + encodeURIComponent(monCollecteur.alias) + '&order="Date".desc.nullslast')
         .then(function(billets) {
             mesBillets = billets || [];
             if (mesBillets.length === 0) {
@@ -410,29 +410,6 @@ function renderCollecteDetail(billetId, inscriptions) {
         html += '<button class="btn-export-csv" onclick="exporterCSV(' + billetId + ')"><i class="fa-solid fa-file-csv"></i> Exporter CSV</button>';
     }
     html += '</div>';
-
-    // Story 9.10 — Section "Phase variante en cours"
-    if (billet && billet.DateCollVariante && !billet.DateFinVariante) {
-        var inscritsVariante = inscriptions.filter(function(i) { return (i.nb_variantes || 0) > 0; });
-        var totalVarPhase = inscritsVariante.reduce(function(acc, i) { return acc + (i.nb_variantes || 0); }, 0);
-        html += '<div class="phase-variante-section">';
-        html += '<h3><i class="fa-solid fa-star"></i> Phase variante en cours</h3>';
-        html += '<p class="phase-variante-depuis">Ouverte depuis le ' + escapeHtmlMC(billet.DateCollVariante) + '</p>';
-        html += '<div class="phase-variante-compteur"><strong>' + totalVarPhase + ' variante(s)</strong> inscrite(s) par ' + inscritsVariante.length + ' membre(s)</div>';
-        if (inscritsVariante.length > 0) {
-            html += '<ul class="phase-variante-list">';
-            inscritsVariante.forEach(function(i) {
-                var snap = i.adresse_snapshot || {};
-                var nomPrenom = escapeHtmlMC((snap.nom || '') + ' ' + (snap.prenom || '')).trim() || escapeHtmlMC(i.membre_email || '');
-                html += '<li>' + nomPrenom + ' — ' + (i.nb_variantes || 0) + ' variante(s)</li>';
-            });
-            html += '</ul>';
-        } else {
-            html += '<p class="collectes-empty">Aucune inscription variante pour l\'instant.</p>';
-        }
-        html += '<button class="btn-cloturer" onclick="cloturerPhaseVariante(' + billetId + ')"><i class="fa-solid fa-lock"></i> Clôturer la phase variante</button>';
-        html += '</div>';
-    }
 
     // Message si FDP non demandé — entre la barre d'actions et le tableau
     if (billet.PayerFDP !== 'oui') {
@@ -883,38 +860,6 @@ function confirmerCloturer() {
     .catch(function(error) {
         console.error('Erreur clôture:', error);
         showToast('Erreur lors de la clôture', 'error');
-    });
-}
-
-// Story 9.10 — Clôture de la phase variante
-var pendingClotureVarianteId = null;
-
-function cloturerPhaseVariante(billetId) {
-    pendingClotureVarianteId = billetId;
-    if (!confirm('Clôturer la phase variante ? Les membres ne pourront plus s\'inscrire à la variante.')) {
-        pendingClotureVarianteId = null;
-        return;
-    }
-    confirmerCloturerPhaseVariante();
-}
-
-function confirmerCloturerPhaseVariante() {
-    var billetId = pendingClotureVarianteId;
-    pendingClotureVarianteId = null;
-    if (!billetId) return;
-
-    var today = new Date().toISOString().slice(0, 10);
-    supabaseFetch('/rest/v1/billets?id=eq.' + billetId, {
-        method: 'PATCH',
-        body: JSON.stringify({ DateFinVariante: today })
-    })
-    .then(function() {
-        showToast('Phase variante clôturée');
-        loadMesCollectes();
-    })
-    .catch(function(error) {
-        console.error('Erreur clôture phase variante:', error);
-        showToast('Erreur lors de la clôture de la phase variante', 'error');
     });
 }
 
