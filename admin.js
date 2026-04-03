@@ -3667,7 +3667,6 @@ function saveCollecte(billetReference) {
     };
     supabaseFetch('/rest/v1/collectes', {
         method: 'POST',
-        headers: { 'Prefer': 'return=representation' },
         body: JSON.stringify(body)
     })
     .then(function() {
