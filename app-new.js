@@ -1121,6 +1121,11 @@ function buildInscriptionHtml(item) {
         if (contactEmail) {
             html += '<a href="mailto:' + escapeAttr(contactEmail) + '" class="btn-contacter-collecteur">Contacter le collecteur</a>';
         }
+
+        // Story 9.10 — Si phase variante ouverte, permettre de modifier nb_variantes même pour un inscrit normal
+        if (modeVarianteSeulement) {
+            html += '<button onclick="ouvrirModificationVariante(' + item.id + ')" class="btn-sinscrire"><i class="fa-solid fa-pen-to-square"></i> Modifier ma commande variante</button>';
+        }
     } else if (inscription && inscription.pas_interesse) {
         // Pas intéressé
         html = '<div class="inscription-badges">'
