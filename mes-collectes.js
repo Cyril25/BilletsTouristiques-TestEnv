@@ -424,6 +424,16 @@ function renderCollecteDetail(billetId, inscriptions) {
     if (inscActives.length > 0) {
         html += '<button class="btn-export-csv" onclick="exporterCSV(' + billetId + ')"><i class="fa-solid fa-file-csv"></i> Exporter CSV</button>';
     }
+    // Bouton "Tout cocher payé"
+    var aValiderPaiement = inscriptions.filter(function(i) {
+        return !i.pas_interesse && i.statut_paiement !== 'confirme' && i.membre_email !== monCollecteur.email_membre;
+    });
+    if (aValiderPaiement.length > 0) {
+        var aValiderIds = aValiderPaiement.map(function(i) { return i.id; });
+        html += '<button class="btn-export-csv" onclick="toutValiderPaiementsCollecte([' + aValiderIds.join(',') + '])" title="Confirmer tous les paiements">'
+            + '<i class="fa-solid fa-check-double"></i> Tout cocher payé (' + aValiderPaiement.length + ')'
+            + '</button>';
+    }
     // Bouton "Tout cocher enveloppes" (uniquement si FDP non demandé)
     if (billet.PayerFDP !== 'oui') {
         var aCocher = inscriptions.filter(function(i) {
@@ -2734,6 +2744,22 @@ function soumettreNouvelleInscription() {
         } else {
             showToast('Erreur lors de l\'inscription', 'error');
         }
+    });
+}
+
+function toutValiderPaiementsCollecte(ids) {
+    if (!ids || ids.length === 0) return;
+    supabaseFetch('/rest/v1/inscriptions?id=in.(' + ids.join(',') + ')', {
+        method: 'PATCH',
+        body: JSON.stringify({ statut_paiement: 'confirme' })
+    })
+    .then(function() {
+        showToast(ids.length + ' paiement' + (ids.length > 1 ? 's' : '') + ' confirmé' + (ids.length > 1 ? 's' : ''));
+        openCollecteDetail(currentBilletId);
+    })
+    .catch(function(error) {
+        console.error('Erreur confirmation paiements:', error);
+        showToast('Erreur', 'error');
     });
 }
 
