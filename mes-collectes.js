@@ -426,6 +426,19 @@ function renderCollecteDetail(billetId, inscriptions) {
     }
     html += '</div>';
 
+    // Bouton "Tout cocher enveloppes" (uniquement si FDP non demandé)
+    if (billet.PayerFDP !== 'oui') {
+        var aCocher = inscriptions.filter(function(i) {
+            return !i.pas_interesse && i.statut_livraison !== 'pret_a_envoyer' && i.statut_livraison !== 'expedie';
+        });
+        if (aCocher.length > 0) {
+            var acocherIds = aCocher.map(function(i) { return i.id; });
+            html += '<button class="btn-marquer-envoye" onclick="toutCocherEnveloppes([' + acocherIds.join(',') + '])" title="Ajouter tous les billets aux enveloppes des membres">'
+                + '<i class="fa-solid fa-check-double"></i> Tout cocher (' + aCocher.length + ')'
+                + '</button>';
+        }
+    }
+
     // Message si FDP non demandé — entre la barre d'actions et le tableau
     if (billet.PayerFDP !== 'oui') {
         html += '<div class="message-gerer-envoi">'
@@ -2723,6 +2736,46 @@ function soumettreNouvelleInscription() {
         } else {
             showToast('Erreur lors de l\'inscription', 'error');
         }
+    });
+}
+
+function toutCocherEnveloppes(ids) {
+    if (!ids || ids.length === 0 || !monCollecteur) return;
+    // Récupérer les inscriptions concernées depuis currentInscriptions
+    var aTraiter = currentInscriptions.filter(function(i) { return ids.indexOf(i.id) !== -1; });
+    // Grouper par membre_email
+    var parMembre = {};
+    aTraiter.forEach(function(i) {
+        if (!parMembre[i.membre_email]) parMembre[i.membre_email] = [];
+        parMembre[i.membre_email].push(i.id);
+    });
+    var emails = Object.keys(parMembre);
+    // Traiter les membres séquentiellement : créer/trouver l'enveloppe puis PATCH les inscriptions
+    var chain = Promise.resolve();
+    emails.forEach(function(email) {
+        chain = chain.then(function() {
+            return creerEnveloppeSiAbsente(monCollecteur.alias, email)
+                .then(function() {
+                    return supabaseFetch('/rest/v1/enveloppes?collecteur_alias=eq.' + encodeURIComponent(monCollecteur.alias) + '&membre_email=eq.' + encodeURIComponent(email) + '&statut=eq.en_cours&select=id');
+                })
+                .then(function(envs) {
+                    if (!envs || envs.length === 0) throw new Error('Enveloppe introuvable pour ' + email);
+                    var enveloppeId = envs[0].id;
+                    var insIds = parMembre[email];
+                    return supabaseFetch('/rest/v1/inscriptions?id=in.(' + insIds.join(',') + ')', {
+                        method: 'PATCH',
+                        body: JSON.stringify({ statut_livraison: 'pret_a_envoyer', enveloppe_id: enveloppeId })
+                    });
+                });
+        });
+    });
+    chain.then(function() {
+        showToast(ids.length + ' billet' + (ids.length > 1 ? 's' : '') + ' ajouté' + (ids.length > 1 ? 's' : '') + ' aux enveloppes');
+        openCollecteDetail(currentBilletId);
+    }).catch(function(error) {
+        console.error('Erreur tout cocher enveloppes:', error);
+        showToast('Erreur lors de l\'ajout aux enveloppes', 'error');
+        openCollecteDetail(currentBilletId);
     });
 }
 
