@@ -424,8 +424,6 @@ function renderCollecteDetail(billetId, inscriptions) {
     if (inscActives.length > 0) {
         html += '<button class="btn-export-csv" onclick="exporterCSV(' + billetId + ')"><i class="fa-solid fa-file-csv"></i> Exporter CSV</button>';
     }
-    html += '</div>';
-
     // Bouton "Tout cocher enveloppes" (uniquement si FDP non demandé)
     if (billet.PayerFDP !== 'oui') {
         var aCocher = inscriptions.filter(function(i) {
@@ -433,7 +431,7 @@ function renderCollecteDetail(billetId, inscriptions) {
         });
         if (aCocher.length > 0) {
             var acocherIds = aCocher.map(function(i) { return i.id; });
-            html += '<button class="btn-marquer-envoye" onclick="toutCocherEnveloppes([' + acocherIds.join(',') + '])" title="Ajouter tous les billets aux enveloppes des membres">'
+            html += '<button class="btn-export-csv" onclick="toutCocherEnveloppes([' + acocherIds.join(',') + '])" title="Ajouter tous les billets aux enveloppes des membres">'
                 + '<i class="fa-solid fa-check-double"></i> Tout cocher (' + aCocher.length + ')'
                 + '</button>';
         }
