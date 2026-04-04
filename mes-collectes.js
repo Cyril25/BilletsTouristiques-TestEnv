@@ -2099,7 +2099,7 @@ function renderVerificationPaiement(inscriptions, billetsMap) {
             + '<strong>' + escapeHtmlMC(nom) + '</strong>'
             + '<span class="envoi-count">' + groupe.inscriptions.length + ' billet(s)</span>'
             + '<span class="paiement-groupe-total">Total : ' + totalGroupe.toFixed(2) + ' €</span>'
-            + '<button onclick="validerTousPaiementsVue([' + groupeIds.join(',') + '])" class="btn-marquer-envoye" title="Confirmer tous les paiements de ce membre"><i class="fa-solid fa-check-double"></i> Tout valider</button>'
+            + '<button onclick="validerTousPaiementsVue([' + groupeIds.join(',') + '])" class="btn-marquer-envoye" title="Confirmer tous les paiements de ce membre"><i class="fa-solid fa-check-double"></i></button>'
             + '</div>'
             + '<div class="envoi-groupe-lignes">' + lignes + '</div>'
             + '</div>';
