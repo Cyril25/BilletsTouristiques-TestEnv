@@ -193,23 +193,30 @@ function renderCollectesList() {
         return;
     }
 
-    // Tri : en cours d'abord, puis terminées — chaque groupe trié par date desc
-    mesBillets.sort(function(a, b) {
-        var aOpen = (a.Categorie === 'Collecte' || a.Categorie === 'Pré collecte') ? 0 : 1;
-        var bOpen = (b.Categorie === 'Collecte' || b.Categorie === 'Pré collecte') ? 0 : 1;
-        if (aOpen !== bOpen) return aOpen - bOpen;
-        var dA = a.Date || '', dB = b.Date || '';
-        return dB.localeCompare(dA);
-    });
+    var today = new Date().toISOString().slice(0, 10);
 
-    var html = '<div class="collectes-cards">';
-    for (var i = 0; i < mesBillets.length; i++) {
-        var b = mesBillets[i];
+    // Séparer billets principaux ouverts / fermés
+    var billetsOpen   = mesBillets.filter(function(b) { return b.Categorie === 'Collecte' || b.Categorie === 'Pré collecte'; });
+    var billetsClosed = mesBillets.filter(function(b) { return b.Categorie !== 'Collecte' && b.Categorie !== 'Pré collecte'; });
+    var dateDesc = function(a, b) { return (b.Date || '').localeCompare(a.Date || ''); };
+    billetsOpen.sort(dateDesc);
+    billetsClosed.sort(dateDesc);
+
+    // Séparer collectes supplémentaires ouvertes / fermées
+    var suppOpen   = mesCollectesSupp.filter(function(e) { return !e.collecte.date_fin || e.collecte.date_fin >= today; });
+    var suppClosed = mesCollectesSupp.filter(function(e) { return e.collecte.date_fin && e.collecte.date_fin < today; });
+    var suppDateDesc = function(a, b) {
+        var dA = a.collecte.date_fin || a.collecte.date_coll || a.collecte.date_pre || '';
+        var dB = b.collecte.date_fin || b.collecte.date_coll || b.collecte.date_pre || '';
+        return dB.localeCompare(dA);
+    };
+    suppOpen.sort(suppDateDesc);
+    suppClosed.sort(suppDateDesc);
+
+    function renderBilletCard(b) {
         var isOpen = b.Categorie === 'Collecte' || b.Categorie === 'Pré collecte';
         var statusClass = isOpen ? 'collecte-status-open' : 'collecte-status-closed';
         var statusLabel = isOpen ? 'En cours' : (b.Categorie || 'Terminé');
-
-        // Construire le préfixe "Référence - Année-Version"
         var refParts = [];
         if (b.Reference) refParts.push(b.Reference);
         var milVersion = '';
@@ -217,61 +224,54 @@ function renderCollectesList() {
         if (b.Version) milVersion += '-' + b.Version;
         if (milVersion) refParts.push(milVersion);
         var refPrefix = refParts.length > 0 ? refParts.join(' - ') : '';
-
         var attenuee = b.attenuee === true;
-        html += '<div class="collecte-card' + (attenuee ? ' collecte-card-attenuee' : '') + '" onclick="openCollecteDetail(' + b.id + ')">';
-        html += '<div class="collecte-card-header">';
-        if (refPrefix) html += '<span class="collecte-ref">' + escapeHtmlMC(refPrefix) + '</span>';
-        html += '<h3>' + escapeHtmlMC(b.NomBillet || '') + '</h3>';
-        html += '<span class="collecte-status ' + statusClass + '">' + escapeHtmlMC(statusLabel) + '</span>';
+        var h = '<div class="collecte-card' + (attenuee ? ' collecte-card-attenuee' : '') + '" onclick="openCollecteDetail(' + b.id + ')">';
+        h += '<div class="collecte-card-header">';
+        if (refPrefix) h += '<span class="collecte-ref">' + escapeHtmlMC(refPrefix) + '</span>';
+        h += '<h3>' + escapeHtmlMC(b.NomBillet || '') + '</h3>';
+        h += '<span class="collecte-status ' + statusClass + '">' + escapeHtmlMC(statusLabel) + '</span>';
         var sheetUrl = (b.LinkSheet || '').trim();
         if (!isOpen && sheetUrl && /^https?:\/\//i.test(sheetUrl)) {
-            html += '<a href="' + escapeAttrMC(sheetUrl) + '" target="_blank" onclick="event.stopPropagation()" class="collecte-sheet-link" title="Voir le fichier Google Sheet"><i class="fa-solid fa-file-csv"></i></a>';
+            h += '<a href="' + escapeAttrMC(sheetUrl) + '" target="_blank" onclick="event.stopPropagation()" class="collecte-sheet-link" title="Voir le fichier Google Sheet"><i class="fa-solid fa-file-csv"></i></a>';
         }
-        html += '</div>';
+        h += '</div>';
         var bVne = b.VersionNormaleExiste !== false;
         var bVarActive = b.HasVariante && b.HasVariante !== 'N';
         var bPrixVar = (b.PrixVariante !== null && b.PrixVariante !== undefined && b.PrixVariante !== '') ? parseFloat(b.PrixVariante) : null;
-
-        html += '<div class="collecte-card-info">';
+        h += '<div class="collecte-card-info">';
         if (bVne && b.Prix) {
-            html += '<span><i class="fa-solid fa-euro-sign"></i> ' + b.Prix + (bVarActive && bPrixVar !== null ? ' / ' + bPrixVar + ' (var.)' : '') + '</span>';
+            h += '<span><i class="fa-solid fa-euro-sign"></i> ' + b.Prix + (bVarActive && bPrixVar !== null ? ' / ' + bPrixVar + ' (var.)' : '') + '</span>';
         } else if (!bVne && bVarActive && bPrixVar !== null) {
-            html += '<span><i class="fa-solid fa-euro-sign"></i> ' + bPrixVar + ' (var.)</span>';
+            h += '<span><i class="fa-solid fa-euro-sign"></i> ' + bPrixVar + ' (var.)</span>';
         } else if (b.Prix) {
-            html += '<span><i class="fa-solid fa-euro-sign"></i> ' + b.Prix + '</span>';
+            h += '<span><i class="fa-solid fa-euro-sign"></i> ' + b.Prix + '</span>';
         }
-        if (b.DateColl) html += '<span><i class="fa-solid fa-calendar"></i> ' + b.DateColl + '</span>';
-        html += '</div>';
-
-        // Indicateurs payé / envoyé
+        if (b.DateColl) h += '<span><i class="fa-solid fa-calendar"></i> ' + b.DateColl + '</span>';
+        h += '</div>';
         var stats = mesInscriptionsParBillet[b.id] || { total: 0, confirmes: 0, envoyes: 0 };
         if (stats.total > 0) {
             var allConfirmes = stats.confirmes === stats.total;
             var allEnvoyes = stats.envoyes === stats.total;
-            html += '<div class="collecte-card-indicators">';
-            html += '<span class="indicator ' + (allConfirmes ? 'indicator-ok' : 'indicator-pending') + '"><i class="fa-solid fa-' + (allConfirmes ? 'check-circle' : 'clock') + '"></i> ' + stats.confirmes + '/' + stats.total + ' payés</span>';
-            html += '<span class="indicator ' + (allEnvoyes ? 'indicator-ok' : 'indicator-pending') + '"><i class="fa-solid fa-' + (allEnvoyes ? 'check-circle' : 'clock') + '"></i> ' + stats.envoyes + '/' + stats.total + ' envoyés</span>';
-            html += '</div>';
+            h += '<div class="collecte-card-indicators">';
+            h += '<span class="indicator ' + (allConfirmes ? 'indicator-ok' : 'indicator-pending') + '"><i class="fa-solid fa-' + (allConfirmes ? 'check-circle' : 'clock') + '"></i> ' + stats.confirmes + '/' + stats.total + ' payés</span>';
+            h += '<span class="indicator ' + (allEnvoyes ? 'indicator-ok' : 'indicator-pending') + '"><i class="fa-solid fa-' + (allEnvoyes ? 'check-circle' : 'clock') + '"></i> ' + stats.envoyes + '/' + stats.total + ' envoyés</span>';
+            h += '</div>';
         } else {
-            html += '<div class="collecte-card-indicators"><span class="indicator indicator-none">Aucun inscrit</span></div>';
+            h += '<div class="collecte-card-indicators"><span class="indicator indicator-none">Aucun inscrit</span></div>';
         }
-
-        html += '<button class="btn-attenuee' + (attenuee ? ' btn-attenuee-active' : '') + '" onclick="event.stopPropagation(); toggleAttenuee(' + b.id + ', ' + !attenuee + ')" title="' + (attenuee ? 'Rendre visible' : 'Atténuer cette collecte') + '"><i class="fa-solid fa-eye' + (attenuee ? '-slash' : '') + '"></i></button>';
-        html += '<div class="collecte-card-action"><i class="fa-solid fa-chevron-right"></i></div>';
-        html += '</div>';
+        h += '<button class="btn-attenuee' + (attenuee ? ' btn-attenuee-active' : '') + '" onclick="event.stopPropagation(); toggleAttenuee(' + b.id + ', ' + !attenuee + ')" title="' + (attenuee ? 'Rendre visible' : 'Atténuer cette collecte') + '"><i class="fa-solid fa-eye' + (attenuee ? '-slash' : '') + '"></i></button>';
+        h += '<div class="collecte-card-action"><i class="fa-solid fa-chevron-right"></i></div>';
+        h += '</div>';
+        return h;
     }
+
+    // Ordre final : billets ouverts → collectes supp ouvertes → billets fermés → collectes supp fermées
+    var html = '<div class="collectes-cards">';
+    for (var i = 0; i < billetsOpen.length; i++) html += renderBilletCard(billetsOpen[i]);
+    for (var j = 0; j < suppOpen.length; j++) html += renderCollecteSupplementaireCard(suppOpen[j].collecte, suppOpen[j].billet);
+    for (var k = 0; k < billetsClosed.length; k++) html += renderBilletCard(billetsClosed[k]);
+    for (var l = 0; l < suppClosed.length; l++) html += renderCollecteSupplementaireCard(suppClosed[l].collecte, suppClosed[l].billet);
     html += '</div>';
-
-    // Story 12.5 — Collectes supplémentaires
-    if (mesCollectesSupp.length > 0) {
-        html += '<h3 class="collectes-supp-title"><i class="fa-solid fa-layer-group"></i> Collectes supplémentaires</h3>';
-        html += '<div class="collectes-cards">';
-        for (var k = 0; k < mesCollectesSupp.length; k++) {
-            html += renderCollecteSupplementaireCard(mesCollectesSupp[k].collecte, mesCollectesSupp[k].billet);
-        }
-        html += '</div>';
-    }
 
     container.innerHTML = onboardingHtml + html;
 }
