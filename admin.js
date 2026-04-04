@@ -484,7 +484,7 @@ function loadAdminBillets() {
     if (!grid) return;
     currentPage = 1;
 
-    supabaseFetch('/rest/v1/billets?select=*&order=id.desc&limit=10000', { method: 'GET' })
+    supabaseFetch('/rest/v1/billets?select=*&order=date_effective.desc.nullslast&limit=10000', { method: 'GET' })
         .then(function(rows) {
             adminBillets = rows.map(function(row) {
                 row._id = row.id;
@@ -787,10 +787,22 @@ function renderAdminCards() {
                 var today = new Date().toISOString().slice(0, 10);
                 return collectes.map(function(c) {
                     var isOpen = !c.date_fin || c.date_fin >= today;
-                    var cData = adminCollecteInscriptionCounts[c.id] || { count: 0 };
+                    var cData = adminCollecteInscriptionCounts[c.id] || { count: 0, normaux: 0, variantes: 0 };
                     var statusIcon = isOpen ? 'fa-layer-group' : 'fa-circle-check';
+                    var detail = '';
+                    if (cData.count > 0) {
+                        var parts = [];
+                        if (cData.normaux > 0) parts.push(cData.normaux + ' billet' + (cData.normaux > 1 ? 's' : '') + ' normaux');
+                        if (cData.variantes > 0) {
+                            var varLabel = billet.HasVariante || 'variante';
+                            if (varLabel === 'anniversary') varLabel = 'anniv';
+                            else if (varLabel === 'doré') varLabel = 'dorés';
+                            parts.push(cData.variantes + ' billet' + (cData.variantes > 1 ? 's' : '') + ' ' + varLabel);
+                        }
+                        if (parts.length > 0) detail = ' (' + parts.join(', ') + ')';
+                    }
                     return '<button class="admin-card-inscriptions-badge admin-card-collecte-supp-badge" onclick="openInscriptionsModal(' + docId + ')" title="Collecte supplémentaire : ' + escapeAttr(c.nom) + '">' +
-                        '<i class="fa-solid ' + statusIcon + '"></i> ' + escapeHtml(c.nom) + ' : ' + cData.count + ' inscription' + (cData.count !== 1 ? 's' : '') +
+                        '<i class="fa-solid ' + statusIcon + '"></i> ' + escapeHtml(c.nom) + ' : ' + cData.count + ' inscription' + (cData.count !== 1 ? 's' : '') + detail +
                         (isOpen ? '' : ' <em>(clôturée)</em>') +
                         '</button>';
                 }).join('');
