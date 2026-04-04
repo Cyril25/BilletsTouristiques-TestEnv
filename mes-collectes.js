@@ -442,7 +442,7 @@ function renderCollecteDetail(billetId, inscriptions) {
         if (aCocher.length > 0) {
             var acocherIds = aCocher.map(function(i) { return i.id; });
             html += '<button class="btn-export-csv" onclick="toutCocherEnveloppes([' + acocherIds.join(',') + '])" title="Ajouter tous les billets aux enveloppes des membres">'
-                + '<i class="fa-solid fa-check-double"></i> Tout cocher (' + aCocher.length + ')'
+                + '<i class="fa-solid fa-check-double"></i> Tout cocher enveloppe (' + aCocher.length + ')'
                 + '</button>';
         }
     }
