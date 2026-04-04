@@ -678,6 +678,9 @@ function showMore() {
                 '<div class="category" style="background-color: ' + couleur + '; color: ' + (item.Categorie === 'Pré collecte' ? 'var(--color-text-light, #9e9e9e)' : '#fff') + ';">' +
                 escapeHtml(item.Categorie || '') +
                 '</div>' +
+                ((collectesByBillet[item.id] || []).length > 0
+                    ? '<div class="badge-collecte-supp-active"><i class="fa-solid fa-layer-group"></i> Collecte en cours</div>'
+                    : '') +
                 '</div>' +
                 '<div class="city-strip" style="color: ' + couleur + '; background-color: color-mix(in srgb, ' + couleur + ', #e0e0e0 70%);">' +
                 escapeHtml(item.Ville || '') +
