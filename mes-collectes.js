@@ -3365,7 +3365,13 @@ function renderCollecteSupplementaireCard(collecte, billet) {
 
     var html = '<div class="collecte-card" onclick="openCollecteDetailSupp(\'' + escapeAttrMC(collecte.id) + '\')">';
     html += '<div class="collecte-card-header">';
-    if (billet.Reference) html += '<span class="collecte-ref">' + escapeHtmlMC(billet.Reference) + '</span>';
+    var refParts = [];
+    if (billet.Reference) refParts.push(billet.Reference);
+    var milVersion = '';
+    if (billet.Millesime) milVersion += billet.Millesime;
+    if (billet.Version) milVersion += '-' + billet.Version;
+    if (milVersion) refParts.push(milVersion);
+    if (refParts.length > 0) html += '<span class="collecte-ref">' + escapeHtmlMC(refParts.join(' - ')) + '</span>';
     html += '<h3>' + escapeHtmlMC(billet.NomBillet || '') + '</h3>';
     html += '<span class="badge-nom-collecte">' + escapeHtmlMC(collecte.nom || '') + '</span>';
     html += '<span class="collecte-status ' + statusClass + '">' + escapeHtmlMC(statusLabel) + '</span>';
