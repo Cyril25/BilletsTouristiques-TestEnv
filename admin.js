@@ -544,7 +544,7 @@ function loadAdminCollectes() {
 }
 
 function loadAdminInscriptionCounts() {
-    return supabaseFetch('/rest/v1/inscriptions?select=billet_id,nb_normaux,nb_variantes&pas_interesse=eq.false')
+    return supabaseFetch('/rest/v1/inscriptions?select=billet_id,nb_normaux,nb_variantes&pas_interesse=eq.false&collecte_id=is.null')
         .then(function(data) {
             adminInscriptionCounts = {};
             (data || []).forEach(function(row) {
