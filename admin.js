@@ -1209,6 +1209,8 @@ function openBilletPanel(billetData, docId) {
             sectionCollectes.style.display = '';
             sectionCollectes.dataset.billetId = billetData.id || '';
             loadCollectesForBillet(billetData.id);
+            var elDatePre = document.getElementById('field-collecte-date-pre');
+            if (elDatePre) elDatePre.value = new Date().toISOString().slice(0, 10);
         }
         populateCollecteCollecteurSelect();
 
@@ -3666,6 +3668,8 @@ function saveCollecte(billetId) {
             var el = document.getElementById(id);
             if (el) el.value = '';
         });
+        var elDatePre = document.getElementById('field-collecte-date-pre');
+        if (elDatePre) elDatePre.value = new Date().toISOString().slice(0, 10);
         loadCollectesForBillet(billetId);
     })
     .catch(function(error) {
