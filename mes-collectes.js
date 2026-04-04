@@ -203,8 +203,8 @@ function renderCollectesList() {
     billetsClosed.sort(dateDesc);
 
     // Séparer collectes supplémentaires ouvertes / fermées
-    var suppOpen   = mesCollectesSupp.filter(function(e) { return !e.collecte.date_fin || e.collecte.date_fin >= today; });
-    var suppClosed = mesCollectesSupp.filter(function(e) { return e.collecte.date_fin && e.collecte.date_fin < today; });
+    var suppOpen   = mesCollectesSupp.filter(function(e) { return !e.collecte.date_fin || e.collecte.date_fin > today; });
+    var suppClosed = mesCollectesSupp.filter(function(e) { return e.collecte.date_fin && e.collecte.date_fin <= today; });
     var suppDateDesc = function(a, b) {
         var dA = a.collecte.date_fin || a.collecte.date_coll || a.collecte.date_pre || '';
         var dB = b.collecte.date_fin || b.collecte.date_coll || b.collecte.date_pre || '';
@@ -3382,7 +3382,7 @@ function loadMesCollectesSupplementaires() {
 function renderCollecteSupplementaireCard(collecte, billet) {
     if (!billet) return '';
     var today = new Date().toISOString().slice(0, 10);
-    var isOpen = !collecte.date_fin || collecte.date_fin >= today;
+    var isOpen = !collecte.date_fin || collecte.date_fin > today;
     var statusClass = isOpen ? 'collecte-status-open' : 'collecte-status-closed';
     var statusLabel = isOpen ? 'En cours' : 'Terminée';
     var stats = mesInscriptionsParCollecte[collecte.id] || { total: 0, confirmes: 0, envoyes: 0 };
@@ -3433,7 +3433,7 @@ function openCollecteDetailSupp(collecteId) {
     currentBilletId = found.billet ? found.billet.id : null;
 
     var today = new Date().toISOString().slice(0, 10);
-    var isOpen = !currentCollecteSupp.date_fin || currentCollecteSupp.date_fin >= today;
+    var isOpen = !currentCollecteSupp.date_fin || currentCollecteSupp.date_fin > today;
 
     // Build currentBillet with Categorie override so renderCollecteDetail shows correct open/closed state
     currentBillet = found.billet ? JSON.parse(JSON.stringify(found.billet)) : {};

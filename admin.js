@@ -786,7 +786,7 @@ function renderAdminCards() {
                 if (collectes.length === 0) return '';
                 var today = new Date().toISOString().slice(0, 10);
                 return collectes.map(function(c) {
-                    var isOpen = !c.date_fin || c.date_fin >= today;
+                    var isOpen = !c.date_fin || c.date_fin > today;
                     var cData = adminCollecteInscriptionCounts[c.id] || { count: 0, normaux: 0, variantes: 0 };
                     var statusIcon = isOpen ? 'fa-layer-group' : 'fa-circle-check';
                     var detail = '';
@@ -3671,7 +3671,7 @@ function renderCollectesList(collectes, billetId) {
     }
     var today = new Date().toISOString().slice(0, 10);
     var html = collectes.map(function(c) {
-        var isOpen = !c.date_fin || c.date_fin >= today;
+        var isOpen = !c.date_fin || c.date_fin > today;
         var statusClass = isOpen ? 'ouverte' : 'cloturee';
         var statusLabel = isOpen ? 'Ouverte' : 'Clôturée';
         return '<div class="collecte-item" data-collecte-id="' + c.id + '">' +

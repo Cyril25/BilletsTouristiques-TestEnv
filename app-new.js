@@ -1379,7 +1379,7 @@ function handleDeepLinkBillet() {
 
 function loadCollectesByBillet() {
     var today = new Date().toISOString().slice(0, 10);
-    supabaseFetch('/rest/v1/collectes?select=id,billet_id,nom,scope,collecteur,date_pre,date_coll,date_fin&or=(date_fin.is.null,date_fin.gte.' + today + ')')
+    supabaseFetch('/rest/v1/collectes?select=id,billet_id,nom,scope,collecteur,date_pre,date_coll,date_fin&or=(date_fin.is.null,date_fin.gt.' + today + ')')
         .then(function(data) {
             collectesByBillet = {};
             (data || []).forEach(function(c) {
