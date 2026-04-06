@@ -1191,7 +1191,7 @@ function renderEnveloppesListe(enveloppes, inscriptions, billetsMap) {
             + '<div class="envoi-groupe-header">'
             + '<strong>' + escapeHtmlMC(nom) + '</strong>'
             + '<span class="envoi-adresse">' + escapeHtmlMC(adresseStr || 'Adresse non renseignée') + '</span>'
-            + '<span class="envoi-count">' + item.totalBillets + ' dans l\'enveloppe, ' + item.aRepartir + ' à répartir</span>'
+            + '<span class="envoi-count">' + item.totalBillets + ' billet(s) dans l\'enveloppe, ' + item.aRepartir + ' billet(s) à répartir</span>'
             + demandeHtml
             + '</div>'
             + '</div>';
