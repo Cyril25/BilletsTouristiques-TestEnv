@@ -8376,3 +8376,87 @@ body.login-page {
     font-size: 0.78rem;
     color: var(--color-text-light, #666);
 }
+
+/* =========================================
+   FICHE BILLET (billet.html)
+   ========================================= */
+.billet-fiche {
+    max-width: 900px;
+    margin: 20px auto;
+    padding: 0 16px;
+}
+
+.billet-fiche-image-wrapper {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+    text-align: center;
+    background: #f5f5f5;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.billet-fiche-image {
+    width: 100%;
+    max-height: 600px;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;
+}
+
+.billet-fiche-qr {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    width: 90px;
+    height: 90px;
+    background: #fff;
+    padding: 4px;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+}
+
+.billet-fiche-infos {
+    margin-top: 24px;
+}
+
+.billet-fiche-infos h1 {
+    font-size: 1.5em;
+    margin: 0 0 16px 0;
+    color: var(--color-primary, #5D3A7E);
+}
+
+.billet-fiche-details p {
+    margin: 8px 0;
+    font-size: 0.95em;
+    color: var(--color-text, #333);
+}
+
+.billet-fiche-details i {
+    width: 20px;
+    text-align: center;
+    color: var(--color-primary, #5D3A7E);
+    margin-right: 6px;
+}
+
+.billet-fiche-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.85em;
+    font-weight: 500;
+    background: var(--color-primary, #5D3A7E);
+    color: #fff;
+}
+
+@media (max-width: 600px) {
+    .billet-fiche-qr {
+        width: 64px;
+        height: 64px;
+        bottom: 8px;
+        right: 8px;
+    }
+    .billet-fiche-infos h1 {
+        font-size: 1.2em;
+    }
+}
