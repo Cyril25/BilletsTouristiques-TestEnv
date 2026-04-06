@@ -997,6 +997,14 @@ function showTab(tabName) {
     }
 }
 
+function countBillets(inscs) {
+    var total = 0;
+    for (var i = 0; i < inscs.length; i++) {
+        total += (inscs[i].nb_normaux || 0) + (inscs[i].nb_variantes || 0);
+    }
+    return total;
+}
+
 function loadEnveloppes() {
     if (!monCollecteur) {
         renderEnveloppesVide();
@@ -1149,13 +1157,14 @@ function renderEnveloppesListe(enveloppes, inscriptions, billetsMap) {
             var membreInscs = inscByMembre[env.membre_email] || [];
             var dansEnveloppe = membreInscs.filter(function(i) { return i.statut_livraison === 'pret_a_envoyer' && i.enveloppe_id === env.id; });
             var aRepartir = membreInscs.filter(function(i) { return i.statut_livraison === 'non_reparti' || i.statut_livraison === null; });
-            var totalBillets = dansEnveloppe.length;
+            var totalBillets = countBillets(dansEnveloppe);
+            var totalARepartir = countBillets(aRepartir);
 
             // Masquer les enveloppes vides (0 dans l'enveloppe et 0 à répartir)
-            if (totalBillets === 0 && aRepartir.length === 0) continue;
+            if (totalBillets === 0 && totalARepartir === 0) continue;
 
-            var item = { env: env, adr: enveloppesMeta[e].adr, totalBillets: totalBillets, aRepartir: aRepartir.length };
-            if (aRepartir.length > 0) {
+            var item = { env: env, adr: enveloppesMeta[e].adr, totalBillets: totalBillets, aRepartir: totalARepartir, hasARepartir: aRepartir.length > 0 };
+            if (item.hasARepartir) {
                 groupeARepartir.push(item);
             } else {
                 groupeEnAttente.push(item);
@@ -1283,8 +1292,9 @@ function renderEnveloppePasseeDetail(env, inscriptions, billetsMap) {
     html += '</div>';
 
     // Liste des billets dans l'enveloppe
+    var nbBilletsHist = countBillets(inscriptions);
     html += '<div class="enveloppe-section">';
-    html += '<h3><i class="fa-solid fa-box"></i> Contenu de l\'enveloppe (' + inscriptions.length + ' billet(s))</h3>';
+    html += '<h3><i class="fa-solid fa-box"></i> Contenu de l\'enveloppe (' + nbBilletsHist + ' billet(s))</h3>';
     if (inscriptions.length === 0) {
         html += '<p class="enveloppe-vide">Aucun billet enregistré</p>';
     } else {
@@ -1559,8 +1569,9 @@ function renderEnveloppeDetail(inscriptions, billetsMap) {
     html += '</div>';
 
     // Section : Dans l'enveloppe (prêts à envoyer)
+    var nbBilletsDansEnv = countBillets(dansEnveloppe);
     html += '<div class="enveloppe-section">';
-    html += '<h3><i class="fa-solid fa-box"></i> Dans l\'enveloppe (' + dansEnveloppe.length + ')</h3>';
+    html += '<h3><i class="fa-solid fa-box"></i> Dans l\'enveloppe (' + nbBilletsDansEnv + ')</h3>';
     if (dansEnveloppe.length === 0) {
         html += '<p class="enveloppe-vide">Aucun billet dans l\'enveloppe</p>';
     } else {
@@ -1572,7 +1583,7 @@ function renderEnveloppeDetail(inscriptions, billetsMap) {
     }
     // Bouton Expédier (Story 5.9) — visible uniquement si billets prêts
     if (dansEnveloppe.length > 0) {
-        html += '<button onclick="ouvrirFormulaireExpedition(' + env.id + ')" class="btn-expedier"><i class="fa-solid fa-paper-plane"></i> Expédier cette enveloppe (' + dansEnveloppe.length + ' billet(s))</button>';
+        html += '<button onclick="ouvrirFormulaireExpedition(' + env.id + ')" class="btn-expedier"><i class="fa-solid fa-paper-plane"></i> Expédier cette enveloppe (' + nbBilletsDansEnv + ' billet(s))</button>';
     }
     html += '</div>';
 
@@ -1581,8 +1592,9 @@ function renderEnveloppeDetail(inscriptions, billetsMap) {
 
     // Section : À répartir (non répartis)
     if (aRepartir.length > 0) {
+        var nbBilletsARepartir = countBillets(aRepartir);
         html += '<div class="enveloppe-section">';
-        html += '<h3><i class="fa-solid fa-inbox"></i> À répartir (' + aRepartir.length + ')</h3>';
+        html += '<h3><i class="fa-solid fa-inbox"></i> À répartir (' + nbBilletsARepartir + ')</h3>';
         for (var r = 0; r < aRepartir.length; r++) {
             var inscR = aRepartir[r];
             var billetR = billetsMap[inscR.billet_id] || {};
