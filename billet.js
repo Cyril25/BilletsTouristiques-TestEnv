@@ -76,8 +76,7 @@
             // Dessiner le QR code
             ctx.drawImage(qrImg, x, y, qrSize, qrSize);
 
-            // 4 textes "Flashez-moi" autour du QR
-            var label = 'Flashez-moi';
+            // 4 textes autour du QR
             var fontSize = Math.round(qrSize * 0.18);
             ctx.font = 'bold ' + fontSize + 'px Arial, sans-serif';
             ctx.fillStyle = '#fff';
@@ -90,23 +89,23 @@
             var cy = y + qrSize / 2;
             var gap = Math.round(fontSize * 0.9);
 
-            function drawLabel(centerX, centerY, angleRad) {
+            function drawLabel(text, centerX, centerY, angleRad) {
                 ctx.save();
                 ctx.translate(centerX, centerY);
                 ctx.rotate(angleRad);
-                ctx.strokeText(label, 0, 0);
-                ctx.fillText(label, 0, 0);
+                ctx.strokeText(text, 0, 0);
+                ctx.fillText(text, 0, 0);
                 ctx.restore();
             }
 
             // Haut (lecture normale)
-            drawLabel(cx, y - gap, 0);
+            drawLabel('Association', cx, y - gap, 0);
             // Bas (lecture normale)
-            drawLabel(cx, y + qrSize + gap, 0);
+            drawLabel('Billets Touristiques', cx, y + qrSize + gap, 0);
             // Gauche (rotation -90°, suit le QR)
-            drawLabel(x - gap, cy, -Math.PI / 2);
+            drawLabel('Flashez-moi', x - gap, cy, -Math.PI / 2);
             // Droite (rotation +90°, suit le QR)
-            drawLabel(x + qrSize + gap, cy, Math.PI / 2);
+            drawLabel('cyril25.github.io', x + qrSize + gap, cy, Math.PI / 2);
 
             // Remplacer l'image par le résultat du canvas
             imgEl.src = canvas.toDataURL('image/png');
