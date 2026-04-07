@@ -1307,7 +1307,9 @@ function renderEnveloppePasseeDetail(env, inscriptions, billetsMap) {
             var insc = inscriptions[i];
             var billet = billetsMap[insc.billet_id] || {};
             var envVne = billet.VersionNormaleExiste !== false;
-            var envQty = envVne ? 'N:' + (insc.nb_normaux || 0) + (insc.nb_variantes > 0 ? ' V:' + insc.nb_variantes : '') : 'V:' + (insc.nb_variantes || 0);
+            var envHasVar = billet.HasVariante && billet.HasVariante !== 'N';
+            var envNbVar = envHasVar ? (insc.nb_variantes || 0) : 0;
+            var envQty = envVne ? 'N:' + (insc.nb_normaux || 0) + (envNbVar > 0 ? ' V:' + envNbVar : '') : 'V:' + envNbVar;
             var envRefParts = [];
             if (billet.Reference) envRefParts.push(billet.Reference);
             var envMilVersion = '';
@@ -1619,7 +1621,9 @@ function renderEnveloppeDetail(inscriptions, billetsMap) {
 
 function renderEnveloppeLigne(insc, billet, action) {
     var envVne = billet.VersionNormaleExiste !== false;
-    var envQty = envVne ? 'N:' + (insc.nb_normaux || 0) + (insc.nb_variantes > 0 ? ' V:' + insc.nb_variantes : '') : 'V:' + (insc.nb_variantes || 0);
+    var envHasVar = billet.HasVariante && billet.HasVariante !== 'N';
+    var envNbVar = envHasVar ? (insc.nb_variantes || 0) : 0;
+    var envQty = envVne ? 'N:' + (insc.nb_normaux || 0) + (envNbVar > 0 ? ' V:' + envNbVar : '') : 'V:' + envNbVar;
     var envRefParts = [];
     if (billet.Reference) envRefParts.push(billet.Reference);
     var envMilVersion = '';
@@ -2029,6 +2033,13 @@ function loadVerificationPaiement() {
                 renderPaiementsVide();
                 return;
             }
+            // Ignorer nb_variantes pour les billets sans variante
+            var bMap = {};
+            mesBillets.forEach(function(b) { bMap[b.id] = b; });
+            inscriptions.forEach(function(ins) {
+                var b = bMap[ins.billet_id];
+                if (b && (!b.HasVariante || b.HasVariante === 'N')) ins.nb_variantes = 0;
+            });
             var emails = [];
             inscriptions.forEach(function(ins) {
                 if (ins.membre_email && emails.indexOf(ins.membre_email) === -1) emails.push(ins.membre_email);
