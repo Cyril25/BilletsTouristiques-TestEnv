@@ -79,9 +79,7 @@
             // 4 textes autour du QR
             var fontSize = Math.round(qrSize * 0.18);
             ctx.font = 'bold ' + fontSize + 'px Arial, sans-serif';
-            ctx.fillStyle = '#fff';
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = Math.max(2, Math.round(fontSize * 0.12));
+            ctx.fillStyle = '#5D3A7E';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
 
@@ -93,7 +91,6 @@
                 ctx.save();
                 ctx.translate(centerX, centerY);
                 ctx.rotate(angleRad);
-                ctx.strokeText(text, 0, 0);
                 ctx.fillText(text, 0, 0);
                 ctx.restore();
             }
@@ -105,7 +102,7 @@
             // Gauche (rotation -90°, suit le QR)
             drawLabel('Flashez-moi', x - gap, cy, -Math.PI / 2);
             // Droite (rotation +90°, suit le QR)
-            drawLabel('cyril25.github.io', x + qrSize + gap, cy, Math.PI / 2);
+            drawLabel('bit.ly/4mcbIWW', x + qrSize + gap, cy, Math.PI / 2);
 
             // Remplacer l'image par le résultat du canvas
             imgEl.src = canvas.toDataURL('image/png');
