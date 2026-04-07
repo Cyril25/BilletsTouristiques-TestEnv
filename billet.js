@@ -56,8 +56,8 @@
             // Calculer la taille du QR proportionnelle à l'image
             var qrSize = Math.max(60, Math.round(canvas.width * QR_SIZE_RATIO));
             var padding = 6;
-            var x = canvas.width - qrSize - QR_MARGIN;
-            var y = canvas.height - qrSize - QR_MARGIN;
+            var x = QR_MARGIN;
+            var y = Math.round((canvas.height - qrSize) / 2);
 
             // Fond blanc avec arrondi derrière le QR
             ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
