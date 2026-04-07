@@ -110,7 +110,12 @@ function getTextColorForBg(hex) {
 
 // Resolution image — priorite ImageUrl (Cloudinary) > ImageId (Google Drive)
 // QR code overlay via Cloudinary fetch layer (bottom-right, semi-transparent)
-var QR_OVERLAY = 'l_fetch:aHR0cHM6Ly9hcGkucXJzZXJ2ZXIuY29tL3YxL2NyZWF0ZS1xci1jb2RlLz9zaXplPTE1MHgxNTAmZGF0YT1odHRwczovL2N5cmlsMjUuZ2l0aHViLmlvL0JpbGxldHNUb3VyaXN0aXF1ZXM=,w_0.1,x_0.088,fl_relative,g_west,o_70';
+var QR_TXT = 'Arial_28_bold:Flashez-moi,co_white,bo_2px_solid_rgb:000000';
+var QR_OVERLAY = 'l_fetch:aHR0cHM6Ly9hcGkucXJzZXJ2ZXIuY29tL3YxL2NyZWF0ZS1xci1jb2RlLz9zaXplPTE1MHgxNTAmZGF0YT1odHRwczovL2N5cmlsMjUuZ2l0aHViLmlvL0JpbGxldHNUb3VyaXN0aXF1ZXM=,w_0.1,x_0.088,fl_relative,g_west,o_70'
+    + '/l_text:' + QR_TXT + ',g_west,x_0.088,y_-0.07,fl_relative'
+    + '/l_text:' + QR_TXT + ',g_west,x_0.088,y_0.07,fl_relative'
+    + '/l_text:' + QR_TXT + ',a_270,g_west,x_0.018,y_0,fl_relative'
+    + '/l_text:' + QR_TXT + ',a_90,g_west,x_0.158,y_0,fl_relative';
 function resolveImageUrl(item, size) {
     if (item.ImageUrl) {
         return item.ImageUrl.replace('/upload/', '/upload/f_auto,q_auto,w_' + (size || 800) + '/' + QR_OVERLAY + '/');
