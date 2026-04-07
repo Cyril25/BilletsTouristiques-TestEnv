@@ -768,8 +768,8 @@ function renderAdminCards() {
                 if (count > 0) {
                     var parts = [];
                     if (data.normaux > 0) parts.push(data.normaux + ' billet' + (data.normaux > 1 ? 's' : '') + ' normaux');
-                    if (data.variantes > 0) {
-                        var varLabel = billet.HasVariante || 'variante';
+                    if (data.variantes > 0 && billet.HasVariante && billet.HasVariante !== 'N') {
+                        var varLabel = billet.HasVariante;
                         if (varLabel === 'anniversary') varLabel = 'anniv';
                         else if (varLabel === 'doré') varLabel = 'dorés';
                         parts.push(data.variantes + ' billet' + (data.variantes > 1 ? 's' : '') + ' ' + varLabel);
@@ -793,8 +793,8 @@ function renderAdminCards() {
                     if (cData.count > 0) {
                         var parts = [];
                         if (cData.normaux > 0) parts.push(cData.normaux + ' billet' + (cData.normaux > 1 ? 's' : '') + ' normaux');
-                        if (cData.variantes > 0) {
-                            var varLabel = billet.HasVariante || 'variante';
+                        if (cData.variantes > 0 && billet.HasVariante && billet.HasVariante !== 'N') {
+                            var varLabel = billet.HasVariante;
                             if (varLabel === 'anniversary') varLabel = 'anniv';
                             else if (varLabel === 'doré') varLabel = 'dorés';
                             parts.push(cData.variantes + ' billet' + (cData.variantes > 1 ? 's' : '') + ' ' + varLabel);
@@ -2374,8 +2374,8 @@ function updateCardInList(docId, billetData) {
         if (icount > 0) {
             var iparts = [];
             if (idata.normaux > 0) iparts.push(idata.normaux + ' billet' + (idata.normaux > 1 ? 's' : '') + ' normaux');
-            if (idata.variantes > 0) {
-                var varLabel = billetData.HasVariante || 'variante';
+            if (idata.variantes > 0 && billetData.HasVariante && billetData.HasVariante !== 'N') {
+                var varLabel = billetData.HasVariante;
                 if (varLabel === 'anniversary') varLabel = 'anniv';
                 else if (varLabel === 'doré') varLabel = 'dorés';
                 iparts.push(idata.variantes + ' billet' + (idata.variantes > 1 ? 's' : '') + ' ' + varLabel);
