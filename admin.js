@@ -819,6 +819,16 @@ function renderAdminCards() {
                     }
                     return '';
                 })() +
+                (function() {
+                    var origUrl = '';
+                    if (billet.ImageUrl) {
+                        origUrl = billet.ImageUrl;
+                    } else if (billet.ImageId) {
+                        origUrl = 'https://lh3.googleusercontent.com/d/' + billet.ImageId;
+                    }
+                    if (!origUrl) return '';
+                    return '<a href="' + escapeAttr(origUrl) + '" target="_blank" onclick="event.stopPropagation()" class="admin-card-image-btn" title="Image originale"><i class="fa-solid fa-image"></i></a>';
+                })() +
                 '<button class="admin-card-share-btn" onclick="openShareModal(' + docId + ')" title="Partager">' +
                     '<i class="fa-solid fa-share-nodes"></i>' +
                 '</button>' +
