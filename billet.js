@@ -9,7 +9,7 @@
 
     var SITE_BASE = 'https://cyril25.github.io/BilletsTouristiques';
     var QR_SIZE_RATIO = 0.12;  // QR = 12% de la largeur de l'image
-    var QR_MARGIN = 50;        // marge en pixels depuis le bord gauche
+    var QR_MARGIN = 70;        // marge en pixels depuis le bord gauche
 
     // --- Helpers ---
     function escapeHtml(str) {
