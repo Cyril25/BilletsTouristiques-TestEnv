@@ -1693,12 +1693,7 @@
     // 17. HELPERS
     // ============================================================
 
-    var QR_TXT = 'Arial_18_bold:Flashez-moi,co_white,b_rgb:00000099';
-    var QR_OVERLAY = 'l_fetch:aHR0cHM6Ly9hcGkucXJzZXJ2ZXIuY29tL3YxL2NyZWF0ZS1xci1jb2RlLz9zaXplPTE1MHgxNTAmZGF0YT1odHRwczovL2N5cmlsMjUuZ2l0aHViLmlvL0JpbGxldHNUb3VyaXN0aXF1ZXM=,w_0.1,x_0.088,fl_relative,g_west,o_70'
-        + '/l_text:' + QR_TXT + ',g_west,x_0.138,y_-0.075,fl_relative'
-        + '/l_text:' + QR_TXT + ',g_west,x_0.138,y_0.075,fl_relative'
-        + '/l_text:' + QR_TXT + ',a_90,g_west,x_0.04,y_0,fl_relative'
-        + '/l_text:' + QR_TXT + ',a_270,g_west,x_0.236,y_0,fl_relative';
+    var QR_OVERLAY = 'l_fetch:aHR0cHM6Ly9hcGkucXJzZXJ2ZXIuY29tL3YxL2NyZWF0ZS1xci1jb2RlLz9zaXplPTE1MHgxNTAmZGF0YT1odHRwczovL2N5cmlsMjUuZ2l0aHViLmlvL0JpbGxldHNUb3VyaXN0aXF1ZXM=,w_0.1,x_0.088,fl_relative,g_west,o_70';
     function resolveImageUrl(item, size) {
         if (item.ImageUrl) {
             return item.ImageUrl.replace('/upload/', '/upload/f_auto,q_auto,w_' + (size || 800) + '/' + QR_OVERLAY + '/');

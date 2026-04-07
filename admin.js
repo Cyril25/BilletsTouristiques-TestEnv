@@ -3131,12 +3131,10 @@ function openShareModal(billetId) {
 
     textTopEl.textContent = topLines.join('\n');
 
-    // Image du billet (Cloudinary uniquement pour le partage Facebook)
+    // Image du billet (aperçu modale uniquement)
     var imgUrl = billet.ImageUrl || '';
-    var imgUrlForCopy = '';
-    if (imgUrl && imgUrl.indexOf('cloudinary.com') !== -1) {
-        imgUrlForCopy = imgUrl;
-    }
+    // Lien partagé : page billet protégée (avec QR code burné)
+    var imgUrlForCopy = 'https://cyril25.github.io/BilletsTouristiques/billet.html?id=' + billetId;
     if (!imgUrl && billet.ImageId) {
         imgUrl = 'https://lh3.googleusercontent.com/d/' + billet.ImageId;
     }
@@ -3152,7 +3150,7 @@ function openShareModal(billetId) {
     var bottomLines = [];
     var baseUrl = 'https://cyril25.github.io/BilletsTouristiques/billets.html';
     bottomLines.push('👉 S\'inscrire : ' + baseUrl + '?billet=' + billetId);
-    if (imgUrlForCopy) bottomLines.push(imgUrlForCopy);
+    if (imgUrlForCopy) bottomLines.push('🖼️ Voir le billet : ' + imgUrlForCopy);
     textBottomEl.textContent = bottomLines.join('\n\n');
 
     shareOverlay.style.display = '';
