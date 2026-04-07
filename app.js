@@ -23,7 +23,7 @@ function sanitizeUrl(url) {
 
 // Resolution image — priorite ImageUrl (Cloudinary) > ImageId (Google Drive)
 // QR code overlay via Cloudinary fetch layer (bottom-right, semi-transparent)
-var QR_OVERLAY = 'l_fetch:aHR0cHM6Ly9hcGkucXJzZXJ2ZXIuY29tL3YxL2NyZWF0ZS1xci1jb2RlLz9zaXplPTE1MHgxNTAmZGF0YT1odHRwczovL2N5cmlsMjUuZ2l0aHViLmlvL0JpbGxldHNUb3VyaXN0aXF1ZXM=,w_80,g_west,x_10,o_70';
+var QR_OVERLAY = 'l_fetch:aHR0cHM6Ly9hcGkucXJzZXJ2ZXIuY29tL3YxL2NyZWF0ZS1xci1jb2RlLz9zaXplPTE1MHgxNTAmZGF0YT1odHRwczovL2N5cmlsMjUuZ2l0aHViLmlvL0JpbGxldHNUb3VyaXN0aXF1ZXM=,w_80,g_west,x_20,o_70';
 function resolveImageUrl(item, size) {
     if (item.ImageUrl) {
         return item.ImageUrl.replace('/upload/', '/upload/f_auto,q_auto,w_' + (size || 800) + '/' + QR_OVERLAY + '/');
