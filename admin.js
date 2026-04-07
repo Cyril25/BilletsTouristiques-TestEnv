@@ -3142,11 +3142,8 @@ function openShareModal(billetId) {
         var driveUrl = 'https://lh3.googleusercontent.com/d/' + billet.ImageId;
         imgUrlForCopy = 'https://res.cloudinary.com/dxoyqxben/image/fetch/f_auto,q_auto,w_1200/' + QR_OVERLAY_SHARE + '/' + encodeURIComponent(driveUrl);
     }
-    if (!imgUrl && billet.ImageId) {
-        imgUrl = 'https://lh3.googleusercontent.com/d/' + billet.ImageId;
-    }
-    if (imgUrl) {
-        imgEl.src = imgUrl;
+    if (imgUrlForCopy) {
+        imgEl.src = imgUrlForCopy;
         imgEl.style.display = '';
     } else {
         imgEl.style.display = 'none';
