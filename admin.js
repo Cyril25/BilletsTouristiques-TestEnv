@@ -3131,10 +3131,17 @@ function openShareModal(billetId) {
 
     textTopEl.textContent = topLines.join('\n');
 
-    // Image du billet (aperçu modale uniquement)
+    // Image du billet — pour l'aperçu Facebook on partage l'URL Cloudinary
+    // avec l'overlay QR appliqué (image protégée + scrapable par FB)
     var imgUrl = billet.ImageUrl || '';
-    // Lien partagé : page billet protégée (avec QR code burné)
-    var imgUrlForCopy = 'https://cyril25.github.io/BilletsTouristiques/billet.html?id=' + billetId;
+    var imgUrlForCopy = '';
+    var QR_OVERLAY_SHARE = 'l_fetch:aHR0cHM6Ly9hcGkucXJzZXJ2ZXIuY29tL3YxL2NyZWF0ZS1xci1jb2RlLz9zaXplPTE1MHgxNTAmZGF0YT1odHRwczovL2N5cmlsMjUuZ2l0aHViLmlvL0JpbGxldHNUb3VyaXN0aXF1ZXM=,w_0.1,x_0.088,fl_relative,g_west,o_70';
+    if (imgUrl && imgUrl.indexOf('cloudinary.com') !== -1) {
+        imgUrlForCopy = imgUrl.replace('/upload/', '/upload/f_auto,q_auto,w_1200/' + QR_OVERLAY_SHARE + '/');
+    } else if (billet.ImageId) {
+        var driveUrl = 'https://lh3.googleusercontent.com/d/' + billet.ImageId;
+        imgUrlForCopy = 'https://res.cloudinary.com/dxoyqxben/image/fetch/f_auto,q_auto,w_1200/' + QR_OVERLAY_SHARE + '/' + encodeURIComponent(driveUrl);
+    }
     if (!imgUrl && billet.ImageId) {
         imgUrl = 'https://lh3.googleusercontent.com/d/' + billet.ImageId;
     }
@@ -3150,7 +3157,7 @@ function openShareModal(billetId) {
     var bottomLines = [];
     var baseUrl = 'https://cyril25.github.io/BilletsTouristiques/billets.html';
     bottomLines.push('👉 S\'inscrire : ' + baseUrl + '?billet=' + billetId);
-    if (imgUrlForCopy) bottomLines.push('🖼️ Voir le billet : ' + imgUrlForCopy);
+    if (imgUrlForCopy) bottomLines.push(imgUrlForCopy);
     textBottomEl.textContent = bottomLines.join('\n\n');
 
     shareOverlay.style.display = '';
