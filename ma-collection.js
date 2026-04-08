@@ -1129,7 +1129,7 @@
 
         // Variante info
         if (hasVariante) {
-            html += '<div class="coll-billet-variante"><i class="fa-solid fa-star"></i> ' + escapeHtml(b.HasVariante) + '</div>';
+            html += '<div class="coll-billet-variante"><i class="fa-solid fa-star"></i> ' + escapeHtml(varianteLabel(b.HasVariante)) + '</div>';
         }
 
         html += '</div>'; // fin .coll-billet-clickzone
@@ -1155,7 +1155,7 @@
         if (hasVariante) {
             html += '<label class="coll-own-cb">';
             html += '<input type="checkbox"' + (ownedVariante ? ' checked' : '') + ' onchange="collToggleOwned(' + b.id + ', \'owned_variante\', this.checked)">';
-            html += ' ' + escapeHtml(b.HasVariante);
+            html += ' ' + escapeHtml(varianteLabel(b.HasVariante));
             html += '</label>';
         }
 
@@ -1619,7 +1619,7 @@
         html += '<span><i class="fa-solid fa-earth-europe"></i> ' + escapeHtml(billet.Pays || '') + '</span>';
         html += '<span><i class="fa-solid fa-calendar"></i> ' + escapeHtml((billet.Millesime || '') + (billet.Version ? '-' + billet.Version : '')) + '</span>';
         if (hasVariante) {
-            html += '<span><i class="fa-solid fa-star"></i> ' + escapeHtml(billet.HasVariante) + '</span>';
+            html += '<span><i class="fa-solid fa-star"></i> ' + escapeHtml(varianteLabel(billet.HasVariante)) + '</span>';
         }
         html += '</div>';
 
@@ -1636,7 +1636,7 @@
         html += '</div>';
         if (hasVariante) {
             html += '<div class="coll-modal-possession-row">';
-            html += '<label class="coll-own-cb"><input type="checkbox"' + (ownedVariante ? ' checked' : '') + ' onchange="collToggleOwned(' + billetId + ', \'owned_variante\', this.checked); collRefreshModal(' + billetId + ')"> ' + escapeHtml(billet.HasVariante) + '</label>';
+            html += '<label class="coll-own-cb"><input type="checkbox"' + (ownedVariante ? ' checked' : '') + ' onchange="collToggleOwned(' + billetId + ', \'owned_variante\', this.checked); collRefreshModal(' + billetId + ')"> ' + escapeHtml(varianteLabel(billet.HasVariante)) + '</label>';
             if (trackSerial) {
                 html += '<input type="text" class="coll-serial-input" placeholder="N° série" value="' + escapeAttr(serialVariante) + '" onchange="collUpdateSerial(' + billetId + ', \'serial_variante\', this.value)">';
             }
@@ -1753,8 +1753,8 @@
             if (trackSerial) {
                 row['N° série'] = (c && c.serial_normal) ? c.serial_normal : '';
             }
-            if (b.HasVariante && b.HasVariante !== 'N') {
-                row['Variante'] = b.HasVariante;
+            if (hasVarianteActive(b.HasVariante)) {
+                row['Variante'] = varianteLabel(b.HasVariante);
                 row['Possédé variante'] = (c && c.owned_variante) ? 'oui' : 'non';
                 if (trackSerial) {
                     row['N° série variante'] = (c && c.serial_variante) ? c.serial_variante : '';

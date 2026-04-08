@@ -229,13 +229,59 @@ function logout() {
 }
 
 // ============================================================
+// 3b. DICTIONNAIRE DES VARIANTES
+// ============================================================
+// Codes BDD : NULL = Non renseigné (à vérifier), 'N' = Pas de variante (confirmé),
+//             'A' = Anniversaire, 'D' = Doré
+// Dictionnaire COMPLET (inclut NULL et N pour les contextes qui veulent expliciter l'état)
+window.VARIANTE_LABELS_ALL = {
+    '_null': 'Non renseigné',
+    'N':     'Pas de variante',
+    'A':     'Anniversaire',
+    'D':     'Doré'
+};
+window.VARIANTE_LABELS_ALL_SHORT = {
+    '_null': '?',
+    'N':     'aucune',
+    'A':     'anniv',
+    'D':     'dorés'
+};
+
+// Vrai si le billet possède effectivement une variante (A/D uniquement)
+function hasVarianteActive(code) {
+    return !!(code && code !== 'N');
+}
+// Libellé long pour variante ACTIVE uniquement ('Anniversaire', 'Doré') ou '' sinon.
+// → À utiliser pour les badges ⭐ qui ne doivent apparaître que s'il y a une variante.
+function varianteLabel(code) {
+    if (!hasVarianteActive(code)) return '';
+    return window.VARIANTE_LABELS_ALL[code] || code;
+}
+// Idem, version courte ('anniv', 'dorés').
+function varianteLabelShort(code) {
+    if (!hasVarianteActive(code)) return '';
+    return window.VARIANTE_LABELS_ALL_SHORT[code] || code;
+}
+// Libellé pour TOUS les états (y compris NULL et N).
+// → À utiliser dans les filtres admin, fiche détail, exports, où on veut expliciter
+//   la différence entre « Non renseigné » et « Pas de variante ».
+function varianteLabelAny(code) {
+    if (code == null) return window.VARIANTE_LABELS_ALL._null;
+    return window.VARIANTE_LABELS_ALL[code] || code;
+}
+function varianteLabelAnyShort(code) {
+    if (code == null) return window.VARIANTE_LABELS_ALL_SHORT._null;
+    return window.VARIANTE_LABELS_ALL_SHORT[code] || code;
+}
+
+// ============================================================
 // 4. MENU (Mise à jour)
 // ============================================================
 function loadMenu() {
     var placeholder = document.getElementById("menu-placeholder");
     if (!placeholder) return;
 
-    fetch("menu.html?v=102")
+    fetch("menu.html?v=103")
         .then(function(response) { return response.text(); })
         .then(function(html) {
             // 1. On injecte le HTML

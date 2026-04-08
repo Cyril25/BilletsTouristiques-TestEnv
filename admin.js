@@ -749,10 +749,7 @@ function renderAdminCards() {
                         '<i class="fa-solid fa-triangle-exclamation"></i> Pas de version normale' +
                         '</span>';
                 }
-                var v = billet.HasVariante || '';
-                var label = '';
-                if (v === 'anniversary') label = 'Anniversaire';
-                else if (v === 'doré') label = 'Doré';
+                var label = varianteLabel(billet.HasVariante);
                 if (label) {
                     html += '<span class="admin-card-variante-badge">' +
                         '<i class="fa-solid fa-star"></i> ' + escapeHtml(label) +
@@ -768,10 +765,8 @@ function renderAdminCards() {
                 if (count > 0) {
                     var parts = [];
                     if (data.normaux > 0) parts.push(data.normaux + ' billet' + (data.normaux > 1 ? 's' : '') + ' normaux');
-                    if (data.variantes > 0 && billet.HasVariante && billet.HasVariante !== 'N') {
-                        var varLabel = billet.HasVariante;
-                        if (varLabel === 'anniversary') varLabel = 'anniv';
-                        else if (varLabel === 'doré') varLabel = 'dorés';
+                    if (data.variantes > 0 && hasVarianteActive(billet.HasVariante)) {
+                        var varLabel = varianteLabelShort(billet.HasVariante);
                         parts.push(data.variantes + ' billet' + (data.variantes > 1 ? 's' : '') + ' ' + varLabel);
                     }
                     if (parts.length > 0) detail = ' (' + parts.join(', ') + ')';
@@ -793,10 +788,8 @@ function renderAdminCards() {
                     if (cData.count > 0) {
                         var parts = [];
                         if (cData.normaux > 0) parts.push(cData.normaux + ' billet' + (cData.normaux > 1 ? 's' : '') + ' normaux');
-                        if (cData.variantes > 0 && billet.HasVariante && billet.HasVariante !== 'N') {
-                            var varLabel = billet.HasVariante;
-                            if (varLabel === 'anniversary') varLabel = 'anniv';
-                            else if (varLabel === 'doré') varLabel = 'dorés';
+                        if (cData.variantes > 0 && hasVarianteActive(billet.HasVariante)) {
+                            var varLabel = varianteLabelShort(billet.HasVariante);
                             parts.push(cData.variantes + ' billet' + (cData.variantes > 1 ? 's' : '') + ' ' + varLabel);
                         }
                         if (parts.length > 0) detail = ' (' + parts.join(', ') + ')';
@@ -1580,14 +1573,7 @@ function prefillForm(data) {
     // Checkbox "Normale" — Story 9.9
     var cbNormale = document.getElementById('field-version-normale');
     if (cbNormale) {
-        if (data.HasVariante === 'only') {
-            // Billets legacy avec valeur 'only' : décocher Normale, remettre variante à vide
-            var hasVarEl = document.getElementById('field-has-variante');
-            if (hasVarEl) hasVarEl.value = '';
-            cbNormale.checked = false;
-        } else {
-            cbNormale.checked = data.VersionNormaleExiste !== false;
-        }
+        cbNormale.checked = data.VersionNormaleExiste !== false;
     }
 
     // Story 9.2 — Affichage conditionnel du champ PrixVariante
@@ -2377,10 +2363,8 @@ function updateCardInList(docId, billetData) {
         if (icount > 0) {
             var iparts = [];
             if (idata.normaux > 0) iparts.push(idata.normaux + ' billet' + (idata.normaux > 1 ? 's' : '') + ' normaux');
-            if (idata.variantes > 0 && billetData.HasVariante && billetData.HasVariante !== 'N') {
-                var varLabel = billetData.HasVariante;
-                if (varLabel === 'anniversary') varLabel = 'anniv';
-                else if (varLabel === 'doré') varLabel = 'dorés';
+            if (idata.variantes > 0 && hasVarianteActive(billetData.HasVariante)) {
+                var varLabel = varianteLabelShort(billetData.HasVariante);
                 iparts.push(idata.variantes + ' billet' + (idata.variantes > 1 ? 's' : '') + ' ' + varLabel);
             }
             if (iparts.length > 0) idetail = ' (' + iparts.join(', ') + ')';
@@ -3312,9 +3296,7 @@ function renderInscriptionsModalContent(billet) {
         var detailParts = [];
         if (totalNormaux > 0) detailParts.push(totalNormaux + ' billet' + (totalNormaux > 1 ? 's' : '') + ' normaux');
         if (totalVariantes > 0) {
-            var vLabel = varianteVal;
-            if (vLabel === 'anniversary') vLabel = 'anniv';
-            else if (vLabel === 'doré') vLabel = 'dorés';
+            var vLabel = varianteLabelShort(varianteVal) || varianteVal;
             detailParts.push(totalVariantes + ' billet' + (totalVariantes > 1 ? 's' : '') + ' ' + vLabel);
         }
         if (detailParts.length > 0) summaryParts.push('(' + detailParts.join(', ') + ')');

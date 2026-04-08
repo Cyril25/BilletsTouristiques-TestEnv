@@ -961,9 +961,8 @@ function getCompteurBT(item) {
         if (c.normaux > 0) {
             parts.push(c.normaux + ' billet' + (c.normaux > 1 ? 's' : ''));
         }
-        if (c.variantes > 0 && item.HasVariante && item.HasVariante !== 'N') {
-            var nomVariante = item.HasVariante;
-            parts.push(c.variantes + ' billet' + (c.variantes > 1 ? 's' : '') + ' ' + nomVariante);
+        if (c.variantes > 0 && hasVarianteActive(item.HasVariante)) {
+            parts.push(c.variantes + ' billet' + (c.variantes > 1 ? 's' : '') + ' ' + varianteLabelShort(item.HasVariante));
         }
         return parts.join(' + ') || '';
     }
