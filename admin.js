@@ -2171,7 +2171,16 @@ function reconcilierTypeChangement(billetId, billet, typeChange) {
     // Supprimer / zéro-iser les inscriptions normales
     if (typeChange.supprimeNormale) {
         promesses.push(
-            supabaseFetch('/rest/v1/inscriptions?billet_id=eq.' + billetId + '&nb_normaux=gt.0&select=id,nb_variantes')
+            supabaseFetch('/rest/v1/inscriptions?billet_id=eq.' + billetId +
+                '&nb_normaux=gt.0&select=id,nb_variantes' +
+                '&changed_by=eq.' + encodeURIComponent('pré-inscription') +
+                '&collecte_id=is.null' +
+                '&statut_paiement=eq.non_paye' +
+                '&statut_livraison=eq.non_reparti' +
+                '&envoye=eq.false' +
+                '&fdp_regles=eq.false' +
+                '&enveloppe_id=is.null' +
+                '&pas_interesse=eq.false')
                 .then(function(inscs) {
                     if (!inscs || inscs.length === 0) return;
                     var toDelete = inscs.filter(function(i) { return i.nb_variantes === 0; });
@@ -2196,7 +2205,16 @@ function reconcilierTypeChangement(billetId, billet, typeChange) {
     // Supprimer / zéro-iser les inscriptions variante
     if (typeChange.supprimeVariante) {
         promesses.push(
-            supabaseFetch('/rest/v1/inscriptions?billet_id=eq.' + billetId + '&nb_variantes=gt.0&select=id,nb_normaux')
+            supabaseFetch('/rest/v1/inscriptions?billet_id=eq.' + billetId +
+                '&nb_variantes=gt.0&select=id,nb_normaux' +
+                '&changed_by=eq.' + encodeURIComponent('pré-inscription') +
+                '&collecte_id=is.null' +
+                '&statut_paiement=eq.non_paye' +
+                '&statut_livraison=eq.non_reparti' +
+                '&envoye=eq.false' +
+                '&fdp_regles=eq.false' +
+                '&enveloppe_id=is.null' +
+                '&pas_interesse=eq.false')
                 .then(function(inscs) {
                     if (!inscs || inscs.length === 0) return;
                     var toDelete = inscs.filter(function(i) { return i.nb_normaux === 0; });
