@@ -370,7 +370,7 @@ function renderInscriptions() {
         return '<div class="insc-collecteur-recap">'
             + '<div class="insc-collecteur-recap-total"><i class="fa-solid fa-coins"></i> Total dû : <strong>' + totalGlobal.toFixed(2) + ' \u20AC</strong> (' + inscList.length + ' inscriptions)</div>'
             + paypalNoteHtml
-            + '<div class="insc-collecteur-recap-actions">' + paypalBtnHtml + btnPaye + '</div>'
+            + '<div class="insc-collecteur-recap-actions">' + btnPaye + paypalBtnHtml + '</div>'
             + '</div>';
     }
 
