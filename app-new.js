@@ -992,21 +992,29 @@ var pendingDeclarationCatalogueId = null;
 function declarerPaiementCatalogue(inscriptionId) {
     var insc = null;
     var billet = null;
-    for (var billetId in mesInscriptions) {
-        if (mesInscriptions[billetId].id === inscriptionId) {
-            insc = mesInscriptions[billetId];
-            billet = allData.find(function(b) { return b.id === parseInt(billetId); });
+    for (var key in mesInscriptions) {
+        if (mesInscriptions[key].id === inscriptionId) {
+            insc = mesInscriptions[key];
+            billet = allData.find(function(b) { return b.id === insc.billet_id; });
             break;
         }
     }
     var collecteur = billet ? (billet.Collecteur || '') : '';
-    var prix = parseFloat((billet && billet.Prix) || 0);
-    var prixVar = (billet && billet.PrixVariante !== null && billet.PrixVariante !== undefined && billet.PrixVariante !== '') ? parseFloat(billet.PrixVariante) : prix;
+    // Epic 13 : prix lus depuis la collecte liée à l'inscription (plus depuis le billet)
+    var inscCollecte = null;
+    if (insc && billet) {
+        var bCollectes = collectesByBillet[billet.id] || [];
+        for (var ci = 0; ci < bCollectes.length; ci++) {
+            if (String(bCollectes[ci].id) === String(insc.collecte_id)) { inscCollecte = bCollectes[ci]; break; }
+        }
+    }
+    var prix = inscCollecte ? parseFloat(inscCollecte.prix || 0) : 0;
+    var prixVar = (inscCollecte && inscCollecte.prix_variante !== null && inscCollecte.prix_variante !== undefined && inscCollecte.prix_variante !== '') ? parseFloat(inscCollecte.prix_variante) : prix;
     var nbNormaux = insc ? (insc.nb_normaux || 0) : 0;
     var nbVariantes = insc ? (insc.nb_variantes || 0) : 0;
     var montant = (prix * nbNormaux) + (prixVar * nbVariantes);
     var fdpMontant = 0;
-    if (billet && billet.PayerFDP === 'oui' && billet.Categorie !== 'Pré collecte' && membrePaysCatalogue && insc) {
+    if (inscCollecte && inscCollecte.payer_fdp === 'oui' && billet && billet.Categorie !== 'Pré collecte' && membrePaysCatalogue && insc) {
         var destCat = (membrePaysCatalogue === 'France') ? 'france' : 'international';
         var typeEnvoi = (insc.mode_envoi || 'Normal').toLowerCase();
         fdpMontant = findFdpPriceCatalogue(nbNormaux + nbVariantes, destCat, typeEnvoi);
@@ -1383,7 +1391,7 @@ function handleDeepLinkBillet() {
 
 function loadCollectesByBillet() {
     var today = new Date().toISOString().slice(0, 10);
-    supabaseFetch('/rest/v1/collectes?select=id,billet_id,nom,scope,collecteur,date_pre,date_coll,date_fin&or=(date_fin.is.null,date_fin.gt.' + today + ')')
+    supabaseFetch('/rest/v1/collectes?select=id,billet_id,nom,scope,collecteur,date_pre,date_coll,date_fin,prix,prix_variante,payer_fdp,fdp_com&or=(date_fin.is.null,date_fin.gt.' + today + ')')
         .then(function(data) {
             collectesByBillet = {};
             (data || []).forEach(function(c) {

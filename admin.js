@@ -510,7 +510,7 @@ function loadAdminBillets() {
 // 4a-bis. CHARGEMENT DES COMPTEURS D'INSCRIPTIONS
 // ============================================================
 function loadAdminCollectes() {
-    return supabaseFetch('/rest/v1/collectes?select=id,billet_id,nom,date_fin')
+    return supabaseFetch('/rest/v1/collectes?select=id,billet_id,nom,date_fin,prix,prix_variante,payer_fdp,fdp_com,scope')
         .then(function(data) {
             adminCollectesByBillet = {};
             adminCollecteInscriptionCounts = {};
@@ -1920,10 +1920,8 @@ function collectFormData() {
         Pays: getValue('field-pays'),
         Theme: getValue('field-theme'),
         Collecteur: getValue('field-collecteur'),
-        Prix: getValue('field-prix') ? parseFloat(getValue('field-prix')) : null,
-        PrixVariante: getValue('field-prix-variante') ? parseFloat(getValue('field-prix-variante')) : null,
-        PayerFDP: payerFdpEl && payerFdpEl.checked ? 'oui' : '',
-        FDP_Com: getValue('field-fdp-com'),
+        // Epic 13 (B4) — Prix/PrixVariante/PayerFDP/FDP_Com retirés du formulaire billet
+        // Ces champs sont désormais gérés dans le formulaire collecte (saveCollecte)
         DatePre: getValue('field-date-pre') || null,
         DateColl: getValue('field-date-coll') || null,
         DateFin: getValue('field-date-fin') || null,
@@ -1975,9 +1973,8 @@ function saveBillet(billetData) {
             showToast('Billet ajoute avec succes', 'success');
             closeBilletPanel();
             loadAdminBillets();
-            if (newBillet && newBillet.id) {
-                creerAutoInscriptions(newBillet);
-            }
+            // Epic 13 — hook auto-inscription retiré de saveBillet, relocalisé dans saveCollecte (B1)
+            // if (newBillet && newBillet.id) { creerAutoInscriptions(newBillet); }
         })
         .catch(function(error) {
             showToast('Erreur lors de l\'ajout : ' + error.message, 'error');
@@ -1993,139 +1990,138 @@ function saveBillet(billetData) {
 // 11b. AUTO-INSCRIPTIONS À LA CRÉATION D'UN BILLET
 // ============================================================
 
-function creerAutoInscriptions(billet) {
-    var isFrance = !billet.Pays || billet.Pays === 'France';
-    var annee = parseInt(billet.Millesime) || new Date().getFullYear();
-    var hasNormale = billet.VersionNormaleExiste !== false && billet.VersionNormaleExiste !== 'false';
-    var hasVariante = !!billet.HasVariante;
+// Epic 13 (B1) — Signature adaptée : reçoit une collecte (avec billet chargé)
+function creerAutoInscriptions(collecte) {
+    // Charger le billet associé pour déterminer pays/année
+    supabaseFetch('/rest/v1/billets?id=eq.' + collecte.billet_id + '&select=*')
+        .then(function(billets) {
+            var billet = (Array.isArray(billets) ? billets[0] : billets);
+            if (!billet) { console.warn('creerAutoInscriptions: billet introuvable pour collecte', collecte.id); return; }
 
-    // Charger les paramétrages pour cette année
-    supabaseFetch('/rest/v1/inscriptions_auto?annee=eq.' + annee + '&select=*')
-        .then(function(autoData) {
-            if (!autoData || autoData.length === 0) return;
+            var isFrance = !billet.Pays || billet.Pays === 'France';
+            var annee = parseInt(billet.Millesime) || new Date().getFullYear();
 
-            // Filtrer selon type de billet
-            var qualifies;
-            if (isFrance) {
-                qualifies = autoData.filter(function(a) { return a.france; });
-            } else {
-                qualifies = autoData.filter(function(a) { return a.etranger; });
-            }
+            supabaseFetch('/rest/v1/inscriptions_auto?annee=eq.' + annee + '&select=*')
+                .then(function(autoData) {
+                    if (!autoData || autoData.length === 0) return;
+                    var qualifies = autoData.filter(function(a) { return isFrance ? a.france : a.etranger; });
+                    if (qualifies.length === 0) return;
 
-            if (qualifies.length === 0) return;
-
-            if (isFrance) {
-                // Billet FR : on a toutes les infos, créer les inscriptions
-                creerAutoInscriptionsBatch(billet, qualifies, [], isFrance, hasNormale, hasVariante);
-            } else {
-                // Billet étranger : charger les sélections pays pour vérifier la sélection fine
-                supabaseFetch('/rest/v1/inscriptions_auto_pays?annee=eq.' + annee + '&select=*')
-                    .then(function(paysData) {
-                        creerAutoInscriptionsBatch(billet, qualifies, paysData || [], isFrance, hasNormale, hasVariante);
-                    })
-                    .catch(function(err) {
-                        console.warn('Erreur chargement pays auto-inscriptions:', err);
-                    });
-            }
+                    if (isFrance) {
+                        creerAutoInscriptionsBatch(collecte, qualifies, [], isFrance);
+                    } else {
+                        supabaseFetch('/rest/v1/inscriptions_auto_pays?annee=eq.' + annee + '&select=*')
+                            .then(function(paysData) {
+                                creerAutoInscriptionsBatch(collecte, qualifies, paysData || [], isFrance);
+                            })
+                            .catch(function(err) { console.warn('Erreur chargement pays auto-inscriptions:', err); });
+                    }
+                })
+                .catch(function(err) { console.warn('Erreur auto-inscriptions:', err); });
         })
-        .catch(function(err) {
-            console.warn('Erreur auto-inscriptions:', err);
-        });
+        .catch(function(err) { console.warn('Erreur chargement billet pour auto-inscriptions:', err); });
 }
 
-function creerAutoInscriptionsBatch(billet, qualifies, paysData, isFrance, hasNormale, hasVariante) {
+// Epic 13 (B2) — Signature adaptée : reçoit collecte au lieu de billet
+// Le masque périmètre applique collecte.scope sur nb_normaux/nb_variantes
+function creerAutoInscriptionsBatch(collecte, qualifies, paysData, isFrance) {
     var inscriptions = [];
+    // Le billet est chargé par l'appelant, on le récupère pour le pays
+    supabaseFetch('/rest/v1/billets?id=eq.' + collecte.billet_id + '&select=Pays,HasVariante,VersionNormaleExiste')
+        .then(function(billets) {
+            var billet = (Array.isArray(billets) ? billets[0] : billets) || {};
+            var hasNormale = billet.VersionNormaleExiste !== false && billet.VersionNormaleExiste !== 'false';
+            var hasVariante = !!(billet.HasVariante && billet.HasVariante !== 'N');
 
-    for (var i = 0; i < qualifies.length; i++) {
-        var auto = qualifies[i];
-        var nbNormaux = 0;
-        var nbVariantes = 0;
+            for (var i = 0; i < qualifies.length; i++) {
+                var auto = qualifies[i];
+                var nbNormaux = 0;
+                var nbVariantes = 0;
 
-        if (isFrance) {
-            nbNormaux = hasNormale ? auto.nb_normaux_fr : 0;
-            nbVariantes = hasVariante ? auto.nb_variantes_fr : 0;
-        } else {
-            // Vérifier si le membre a des lignes pays spécifiques
-            var membrePays = paysData.filter(function(p) {
-                return p.membre_email === auto.membre_email && p.annee === auto.annee;
-            });
-
-            if (membrePays.length > 0) {
-                // Mode sélection fine : chercher le pays spécifique
-                var paysMatch = null;
-                for (var mp = 0; mp < membrePays.length; mp++) {
-                    if (membrePays[mp].pays_nom === billet.Pays) {
-                        paysMatch = membrePays[mp];
-                        break;
+                if (isFrance) {
+                    nbNormaux = hasNormale ? auto.nb_normaux_fr : 0;
+                    nbVariantes = hasVariante ? auto.nb_variantes_fr : 0;
+                } else {
+                    var membrePays = paysData.filter(function(p) {
+                        return p.membre_email === auto.membre_email && p.annee === auto.annee;
+                    });
+                    if (membrePays.length > 0) {
+                        var paysMatch = null;
+                        for (var mp = 0; mp < membrePays.length; mp++) {
+                            if (membrePays[mp].pays_nom === billet.Pays) { paysMatch = membrePays[mp]; break; }
+                        }
+                        if (!paysMatch) continue;
+                        nbNormaux = hasNormale ? paysMatch.nb_normaux : 0;
+                        nbVariantes = hasVariante ? paysMatch.nb_variantes : 0;
+                    } else {
+                        nbNormaux = hasNormale ? auto.nb_normaux_etr_defaut : 0;
+                        nbVariantes = hasVariante ? auto.nb_variantes_etr_defaut : 0;
                     }
                 }
-                if (!paysMatch) continue; // pas de match pour ce pays → pas d'inscription
-                nbNormaux = hasNormale ? paysMatch.nb_normaux : 0;
-                nbVariantes = hasVariante ? paysMatch.nb_variantes : 0;
-            } else {
-                // Mode global : tous les pays étrangers
-                nbNormaux = hasNormale ? auto.nb_normaux_etr_defaut : 0;
-                nbVariantes = hasVariante ? auto.nb_variantes_etr_defaut : 0;
-            }
-        }
 
-        if (nbNormaux + nbVariantes === 0) continue;
+                // Epic 13 — Masque périmètre (D4 friendly)
+                nbNormaux  = (collecte.scope === 'variante') ? 0 : nbNormaux;
+                nbVariantes = (collecte.scope === 'normal')   ? 0 : nbVariantes;
+                if (nbNormaux === 0 && nbVariantes === 0) continue;
 
-        // Construire adresse_snapshot depuis adminMembresCache
-        var adresseSnapshot = {};
-        var membreTrouve = false;
-        if (adminMembresCache) {
-            for (var m = 0; m < adminMembresCache.length; m++) {
-                if (adminMembresCache[m].email === auto.membre_email) {
-                    var membre = adminMembresCache[m];
-                    adresseSnapshot = {
-                        nom: membre.nom || '',
-                        prenom: membre.prenom || '',
-                        rue: membre.rue || '',
-                        code_postal: membre.code_postal || '',
-                        ville: membre.ville || '',
-                        pays: membre.pays || ''
-                    };
-                    membreTrouve = true;
-                    break;
+                // Construire adresse_snapshot depuis adminMembresCache
+                var adresseSnapshot = {};
+                var membreTrouve = false;
+                if (adminMembresCache) {
+                    for (var m = 0; m < adminMembresCache.length; m++) {
+                        if (adminMembresCache[m].email === auto.membre_email) {
+                            var membre = adminMembresCache[m];
+                            adresseSnapshot = {
+                                nom: membre.nom || '',
+                                prenom: membre.prenom || '',
+                                rue: membre.rue || '',
+                                code_postal: membre.code_postal || '',
+                                ville: membre.ville || '',
+                                pays: membre.pays || ''
+                            };
+                            membreTrouve = true;
+                            break;
+                        }
+                    }
                 }
+                if (!membreTrouve) {
+                    console.warn('Auto-inscription: membre non trouvé dans le cache pour ' + auto.membre_email + ', adresse_snapshot vide');
+                }
+
+                inscriptions.push({
+                    billet_id: collecte.billet_id,
+                    collecte_id: collecte.id,
+                    membre_email: auto.membre_email,
+                    nb_normaux: nbNormaux,
+                    nb_variantes: nbVariantes,
+                    mode_paiement: auto.mode_paiement,
+                    mode_envoi: auto.mode_envoi,
+                    commentaire: '',
+                    adresse_snapshot: adresseSnapshot,
+                    statut_paiement: 'non_paye',
+                    envoye: false,
+                    fdp_regles: false,
+                    pas_interesse: false,
+                    changed_by: 'pré-inscription'
+                });
             }
-        }
-        if (!membreTrouve) {
-            console.warn('Auto-inscription: membre non trouvé dans le cache pour ' + auto.membre_email + ', adresse_snapshot vide');
-        }
 
-        inscriptions.push({
-            billet_id: billet.id,
-            membre_email: auto.membre_email,
-            nb_normaux: nbNormaux,
-            nb_variantes: nbVariantes,
-            mode_paiement: auto.mode_paiement,
-            mode_envoi: auto.mode_envoi,
-            commentaire: '',
-            adresse_snapshot: adresseSnapshot,
-            statut_paiement: 'non_paye',
-            envoye: false,
-            fdp_regles: false,
-            pas_interesse: false,
-            changed_by: 'pré-inscription'
-        });
-    }
+            if (inscriptions.length === 0) return;
 
-    if (inscriptions.length === 0) return;
-
-    // POST batch (Supabase accepte un array)
-    supabaseFetch('/rest/v1/inscriptions?on_conflict=billet_id,membre_email', {
-        method: 'POST',
-        body: JSON.stringify(inscriptions),
-        headers: { 'Prefer': 'return=minimal, resolution=ignore-duplicates' }
-    })
-    .then(function() {
-        showToast(inscriptions.length + ' membre(s) pré-inscrit(s) automatiquement', 'info');
-    })
-    .catch(function(err) {
-        console.warn('Erreur batch auto-inscriptions:', err);
-    });
+            // Epic 13 — on_conflict basculé sur collecte_id,membre_email (nouvelle UK)
+            supabaseFetch('/rest/v1/inscriptions?on_conflict=collecte_id,membre_email', {
+                method: 'POST',
+                body: JSON.stringify(inscriptions),
+                headers: { 'Prefer': 'return=minimal, resolution=ignore-duplicates' }
+            })
+            .then(function() {
+                showToast(inscriptions.length + ' membre(s) pré-inscrit(s) automatiquement', 'info');
+            })
+            .catch(function(err) {
+                console.warn('Erreur batch auto-inscriptions:', err);
+            });
+        })
+        .catch(function(err) { console.warn('Erreur chargement billet pour batch:', err); });
 }
 
 // ============================================================
@@ -2152,7 +2148,13 @@ function updateBillet(docId, billetData, forcedTypeChange) {
             closeBilletPanel();
         })
         .catch(function(error) {
-            showToast('Erreur lors de la modification : ' + error.message, 'error');
+            // Epic 13 (B5) — Gestion erreur D12 (trigger billet_immutability)
+            var msg = error.message || String(error);
+            if (msg.indexOf('Principe directeur') !== -1 || msg.indexOf('D12') !== -1) {
+                showToast('Modification bloquée : des inscriptions à valeur métier existent. Créez/fermez une collecte dédiée à la place.', 'error');
+            } else {
+                showToast('Erreur lors de la modification : ' + msg, 'error');
+            }
             console.error('Erreur modification billet:', error);
             if (saveBtn) {
                 saveBtn.disabled = false;
@@ -2165,81 +2167,89 @@ function updateBillet(docId, billetData, forcedTypeChange) {
 // 12b. RÉCONCILIATION DU TYPE APRÈS CHANGEMENT FORCÉ
 // ============================================================
 
+// Epic 13 (B5) — Réconciliation adaptée : itère par collecte du billet
+// Le trigger D12 protège déjà les inscriptions à valeur métier.
+// Cette fonction ne s'exécute que quand D12 laisse passer (= que des pré-inscriptions).
 function reconcilierTypeChangement(billetId, billet, typeChange) {
-    var promesses = [];
+    // Charger les collectes du billet pour filtrer par collecte_id (plus de collecte_id=is.null)
+    supabaseFetch('/rest/v1/collectes?billet_id=eq.' + billetId + '&select=id,scope')
+        .then(function(collectes) {
+            if (!collectes || collectes.length === 0) return;
 
-    // Supprimer / zéro-iser les inscriptions normales
-    if (typeChange.supprimeNormale) {
-        promesses.push(
-            supabaseFetch('/rest/v1/inscriptions?billet_id=eq.' + billetId +
-                '&nb_normaux=gt.0&select=id,nb_variantes' +
-                '&changed_by=eq.' + encodeURIComponent('pré-inscription') +
-                '&collecte_id=is.null' +
-                '&statut_paiement=eq.non_paye' +
-                '&statut_livraison=eq.non_reparti' +
-                '&envoye=eq.false' +
-                '&fdp_regles=eq.false' +
-                '&enveloppe_id=is.null' +
-                '&pas_interesse=eq.false')
-                .then(function(inscs) {
-                    if (!inscs || inscs.length === 0) return;
-                    var toDelete = inscs.filter(function(i) { return i.nb_variantes === 0; });
-                    var toUpdate = inscs.filter(function(i) { return i.nb_variantes > 0; });
-                    var p = [];
-                    if (toDelete.length > 0) {
-                        var ids = toDelete.map(function(i) { return i.id; }).join(',');
-                        p.push(supabaseFetch('/rest/v1/inscriptions?id=in.(' + ids + ')', { method: 'DELETE' }));
-                    }
-                    if (toUpdate.length > 0) {
-                        var ids2 = toUpdate.map(function(i) { return i.id; }).join(',');
-                        p.push(supabaseFetch('/rest/v1/inscriptions?id=in.(' + ids2 + ')', {
-                            method: 'PATCH',
-                            body: JSON.stringify({ nb_normaux: 0 })
-                        }));
-                    }
-                    return Promise.all(p);
-                })
-        );
-    }
+            var promesses = [];
 
-    // Supprimer / zéro-iser les inscriptions variante
-    if (typeChange.supprimeVariante) {
-        promesses.push(
-            supabaseFetch('/rest/v1/inscriptions?billet_id=eq.' + billetId +
-                '&nb_variantes=gt.0&select=id,nb_normaux' +
-                '&changed_by=eq.' + encodeURIComponent('pré-inscription') +
-                '&collecte_id=is.null' +
-                '&statut_paiement=eq.non_paye' +
-                '&statut_livraison=eq.non_reparti' +
-                '&envoye=eq.false' +
-                '&fdp_regles=eq.false' +
-                '&enveloppe_id=is.null' +
-                '&pas_interesse=eq.false')
-                .then(function(inscs) {
-                    if (!inscs || inscs.length === 0) return;
-                    var toDelete = inscs.filter(function(i) { return i.nb_normaux === 0; });
-                    var toUpdate = inscs.filter(function(i) { return i.nb_normaux > 0; });
-                    var p = [];
-                    if (toDelete.length > 0) {
-                        var ids = toDelete.map(function(i) { return i.id; }).join(',');
-                        p.push(supabaseFetch('/rest/v1/inscriptions?id=in.(' + ids + ')', { method: 'DELETE' }));
-                    }
-                    if (toUpdate.length > 0) {
-                        var ids2 = toUpdate.map(function(i) { return i.id; }).join(',');
-                        p.push(supabaseFetch('/rest/v1/inscriptions?id=in.(' + ids2 + ')', {
-                            method: 'PATCH',
-                            body: JSON.stringify({ nb_variantes: 0 })
-                        }));
-                    }
-                    return Promise.all(p);
-                })
-        );
-    }
+            collectes.forEach(function(col) {
+                // Supprimer / zéro-iser les inscriptions normales de cette collecte
+                if (typeChange.supprimeNormale) {
+                    promesses.push(
+                        supabaseFetch('/rest/v1/inscriptions?collecte_id=eq.' + col.id +
+                            '&nb_normaux=gt.0&select=id,nb_variantes' +
+                            '&changed_by=eq.' + encodeURIComponent('pré-inscription') +
+                            '&statut_paiement=eq.non_paye' +
+                            '&statut_livraison=eq.non_reparti' +
+                            '&envoye=eq.false' +
+                            '&fdp_regles=eq.false' +
+                            '&enveloppe_id=is.null' +
+                            '&pas_interesse=eq.false')
+                            .then(function(inscs) {
+                                if (!inscs || inscs.length === 0) return;
+                                var toDelete = inscs.filter(function(i) { return i.nb_variantes === 0; });
+                                var toUpdate = inscs.filter(function(i) { return i.nb_variantes > 0; });
+                                var p = [];
+                                if (toDelete.length > 0) {
+                                    var ids = toDelete.map(function(i) { return i.id; }).join(',');
+                                    p.push(supabaseFetch('/rest/v1/inscriptions?id=in.(' + ids + ')', { method: 'DELETE' }));
+                                }
+                                if (toUpdate.length > 0) {
+                                    var ids2 = toUpdate.map(function(i) { return i.id; }).join(',');
+                                    p.push(supabaseFetch('/rest/v1/inscriptions?id=in.(' + ids2 + ')', {
+                                        method: 'PATCH',
+                                        body: JSON.stringify({ nb_normaux: 0 })
+                                    }));
+                                }
+                                return Promise.all(p);
+                            })
+                    );
+                }
 
-    Promise.all(promesses)
+                // Supprimer / zéro-iser les inscriptions variante de cette collecte
+                if (typeChange.supprimeVariante) {
+                    promesses.push(
+                        supabaseFetch('/rest/v1/inscriptions?collecte_id=eq.' + col.id +
+                            '&nb_variantes=gt.0&select=id,nb_normaux' +
+                            '&changed_by=eq.' + encodeURIComponent('pré-inscription') +
+                            '&statut_paiement=eq.non_paye' +
+                            '&statut_livraison=eq.non_reparti' +
+                            '&envoye=eq.false' +
+                            '&fdp_regles=eq.false' +
+                            '&enveloppe_id=is.null' +
+                            '&pas_interesse=eq.false')
+                            .then(function(inscs) {
+                                if (!inscs || inscs.length === 0) return;
+                                var toDelete = inscs.filter(function(i) { return i.nb_normaux === 0; });
+                                var toUpdate = inscs.filter(function(i) { return i.nb_normaux > 0; });
+                                var p = [];
+                                if (toDelete.length > 0) {
+                                    var ids = toDelete.map(function(i) { return i.id; }).join(',');
+                                    p.push(supabaseFetch('/rest/v1/inscriptions?id=in.(' + ids + ')', { method: 'DELETE' }));
+                                }
+                                if (toUpdate.length > 0) {
+                                    var ids2 = toUpdate.map(function(i) { return i.id; }).join(',');
+                                    p.push(supabaseFetch('/rest/v1/inscriptions?id=in.(' + ids2 + ')', {
+                                        method: 'PATCH',
+                                        body: JSON.stringify({ nb_variantes: 0 })
+                                    }));
+                                }
+                                return Promise.all(p);
+                            })
+                    );
+                }
+            });
+
+            return Promise.all(promesses);
+        })
         .then(function() {
             if (typeChange.ajouteNormale || typeChange.ajouteVariante) {
-                // Recalculer les pré-inscriptions avec le nouveau type (merge sur l'existant)
                 billet.id = billet.id || billetId;
                 recalculerAutoInscriptions(billet);
             } else if (typeChange.supprimeNormale || typeChange.supprimeVariante) {
@@ -2255,35 +2265,57 @@ function reconcilierTypeChangement(billetId, billet, typeChange) {
         });
 }
 
-// Recalcule les quantités des inscriptions existantes d'après les pré-inscriptions auto
-// Utilise merge-duplicates pour mettre à jour nb_normaux/nb_variantes sans toucher les autres champs
+// Epic 13 (B3) — Recalcul adapté pour itérer par collecte
+// Signature : reçoit un billet, charge ses collectes, itère par collecte
 function recalculerAutoInscriptions(billet) {
     adminRecalculEnCoursBilletId = String(billet.id);
     var isFrance = !billet.Pays || billet.Pays === 'France';
     var annee = parseInt(billet.Millesime) || new Date().getFullYear();
-    var hasNormale = billet.VersionNormaleExiste !== false && billet.VersionNormaleExiste !== 'false';
-    var hasVariante = !!(billet.HasVariante && billet.HasVariante !== 'N');
 
-    supabaseFetch('/rest/v1/inscriptions_auto?annee=eq.' + annee + '&select=*')
-        .then(function(autoData) {
-            if (!autoData || autoData.length === 0) return;
-            var qualifies = autoData.filter(function(a) { return isFrance ? a.france : a.etranger; });
-            if (qualifies.length === 0) return;
+    // Charger les collectes actives du billet
+    supabaseFetch('/rest/v1/collectes?billet_id=eq.' + billet.id + '&select=id,billet_id,scope')
+        .then(function(collectes) {
+            if (!collectes || collectes.length === 0) { adminRecalculEnCoursBilletId = null; return; }
 
-            if (isFrance) {
-                recalculerAutoInscriptionsBatch(billet, qualifies, [], isFrance, hasNormale, hasVariante);
-            } else {
-                supabaseFetch('/rest/v1/inscriptions_auto_pays?annee=eq.' + annee + '&select=*')
-                    .then(function(paysData) {
-                        recalculerAutoInscriptionsBatch(billet, qualifies, paysData || [], isFrance, hasNormale, hasVariante);
+            supabaseFetch('/rest/v1/inscriptions_auto?annee=eq.' + annee + '&select=*')
+                .then(function(autoData) {
+                    if (!autoData || autoData.length === 0) { adminRecalculEnCoursBilletId = null; return; }
+                    var qualifies = autoData.filter(function(a) { return isFrance ? a.france : a.etranger; });
+                    if (qualifies.length === 0) { adminRecalculEnCoursBilletId = null; return; }
+
+                    var paysPromise = isFrance
+                        ? Promise.resolve([])
+                        : supabaseFetch('/rest/v1/inscriptions_auto_pays?annee=eq.' + annee + '&select=*');
+
+                    paysPromise.then(function(paysData) {
+                        // Itérer par collecte
+                        var promesses = collectes.map(function(collecte) {
+                            return recalculerAutoInscriptionsBatch(collecte, billet, qualifies, paysData || [], isFrance);
+                        });
+                        return Promise.all(promesses);
                     })
-                    .catch(function(err) { console.warn('Erreur paysData recalcul:', err); });
-            }
+                    .then(function() {
+                        adminRecalculEnCoursBilletId = null;
+                        showToast('Quantités recalculées d\'après les pré-inscriptions', 'info');
+                        loadAdminInscriptionCounts().then(function() {
+                            if (String(adminCurrentBilletId) === String(billet.id)) openInscriptionsModal(adminCurrentBilletId);
+                        });
+                    })
+                    .catch(function(err) {
+                        adminRecalculEnCoursBilletId = null;
+                        console.warn('Erreur recalculerAutoInscriptions:', err);
+                    });
+                })
+                .catch(function(err) { adminRecalculEnCoursBilletId = null; console.warn('Erreur recalculerAutoInscriptions:', err); });
         })
-        .catch(function(err) { console.warn('Erreur recalculerAutoInscriptions:', err); });
+        .catch(function(err) { adminRecalculEnCoursBilletId = null; console.warn('Erreur chargement collectes recalcul:', err); });
 }
 
-function recalculerAutoInscriptionsBatch(billet, qualifies, paysData, isFrance, hasNormale, hasVariante) {
+// Epic 13 (B3) — Signature : collecte + billet (pour pays/hasVariante)
+// Fix FR31 : on_conflict basculé sur collecte_id,membre_email + masque périmètre
+function recalculerAutoInscriptionsBatch(collecte, billet, qualifies, paysData, isFrance) {
+    var hasNormale = billet.VersionNormaleExiste !== false && billet.VersionNormaleExiste !== 'false';
+    var hasVariante = !!(billet.HasVariante && billet.HasVariante !== 'N');
     var updates = [];
 
     for (var i = 0; i < qualifies.length; i++) {
@@ -2312,31 +2344,26 @@ function recalculerAutoInscriptionsBatch(billet, qualifies, paysData, isFrance, 
             }
         }
 
+        // Epic 13 — Masque périmètre (D4 friendly)
+        nbNormaux  = (collecte.scope === 'variante') ? 0 : nbNormaux;
+        nbVariantes = (collecte.scope === 'normal')   ? 0 : nbVariantes;
+
         updates.push({
-            billet_id: billet.id,
+            billet_id: collecte.billet_id,
+            collecte_id: collecte.id,
             membre_email: auto.membre_email,
             nb_normaux: nbNormaux,
             nb_variantes: nbVariantes
         });
     }
 
-    if (updates.length === 0) return;
+    if (updates.length === 0) return Promise.resolve();
 
-    supabaseFetch('/rest/v1/inscriptions?on_conflict=billet_id,membre_email', {
+    // Epic 13 — on_conflict basculé sur collecte_id,membre_email (fix FR31)
+    return supabaseFetch('/rest/v1/inscriptions?on_conflict=collecte_id,membre_email', {
         method: 'POST',
         body: JSON.stringify(updates),
         headers: { 'Prefer': 'return=minimal, resolution=merge-duplicates' }
-    })
-    .then(function() {
-        adminRecalculEnCoursBilletId = null;
-        showToast('Quantités recalculées d\'après les pré-inscriptions', 'info');
-        loadAdminInscriptionCounts().then(function() {
-            if (String(adminCurrentBilletId) === String(billet.id)) openInscriptionsModal(adminCurrentBilletId);
-        });
-    })
-    .catch(function(err) {
-        adminRecalculEnCoursBilletId = null;
-        console.warn('Erreur recalculerAutoInscriptionsBatch:', err);
     });
 }
 
@@ -3133,8 +3160,11 @@ function openShareModal(billetId) {
     var vne = billet.VersionNormaleExiste !== false;
     var varianteVal = billet.HasVariante || '';
     var varianteActive = varianteVal && varianteVal !== 'N';
-    var prixNormal = billet.Prix ? parseFloat(billet.Prix) : 0;
-    var prixVar = (billet.PrixVariante !== null && billet.PrixVariante !== undefined && billet.PrixVariante !== '') ? parseFloat(billet.PrixVariante) : prixNormal;
+    // Epic 13 : prix lus depuis la première collecte du billet (plus depuis le billet)
+    var shareCollectes = adminCollectesByBillet[billet._id] || adminCollectesByBillet[billetId] || [];
+    var shareCollecte = shareCollectes.length > 0 ? shareCollectes[0] : null;
+    var prixNormal = (shareCollecte && shareCollecte.prix !== null && shareCollecte.prix !== undefined && shareCollecte.prix !== '') ? parseFloat(shareCollecte.prix) : 0;
+    var prixVar = (shareCollecte && shareCollecte.prix_variante !== null && shareCollecte.prix_variante !== undefined && shareCollecte.prix_variante !== '') ? parseFloat(shareCollecte.prix_variante) : prixNormal;
 
     if (!vne && varianteActive && prixVar) {
         topLines.push('💰 Prix : ' + prixVar.toFixed(2) + '€ ' + varianteVal);
@@ -3729,6 +3759,8 @@ function saveCollecte(billetId) {
         var el = document.getElementById(id);
         return el ? el.value.trim() : '';
     };
+    // Epic 13 (B4) — Champs prix/FDP ajoutés au formulaire collecte
+    var payerFdpCollecteEl = document.getElementById('field-collecte-payer-fdp');
     var body = {
         billet_id: parseInt(billetId, 10),
         nom: getValue('field-collecte-nom'),
@@ -3736,22 +3768,35 @@ function saveCollecte(billetId) {
         collecteur: getValue('field-collecte-collecteur') || null,
         date_pre: getValue('field-collecte-date-pre') || null,
         date_coll: getValue('field-collecte-date-coll') || null,
-        date_fin: getValue('field-collecte-date-fin') || null
+        date_fin: getValue('field-collecte-date-fin') || null,
+        prix: getValue('field-collecte-prix') ? parseFloat(getValue('field-collecte-prix')) : null,
+        prix_variante: getValue('field-collecte-prix-variante') ? parseFloat(getValue('field-collecte-prix-variante')) : null,
+        payer_fdp: payerFdpCollecteEl && payerFdpCollecteEl.checked ? 'oui' : '',
+        fdp_com: getValue('field-collecte-fdp-com')
     };
     supabaseFetch('/rest/v1/collectes', {
         method: 'POST',
+        headers: { 'Prefer': 'return=representation' },
         body: JSON.stringify(body)
     })
-    .then(function() {
+    .then(function(data) {
+        var newCollecte = Array.isArray(data) ? data[0] : data;
         showToast('Collecte ajoutée', 'success');
+        // Epic 13 (B1) — Déclencher les auto-inscriptions sur la nouvelle collecte
+        if (newCollecte && newCollecte.id) {
+            creerAutoInscriptions(newCollecte);
+        }
         var ids = ['field-collecte-nom', 'field-collecte-scope', 'field-collecte-collecteur',
-                   'field-collecte-date-pre', 'field-collecte-date-coll', 'field-collecte-date-fin'];
+                   'field-collecte-date-pre', 'field-collecte-date-coll', 'field-collecte-date-fin',
+                   'field-collecte-prix', 'field-collecte-prix-variante', 'field-collecte-fdp-com'];
         ids.forEach(function(id) {
             var el = document.getElementById(id);
             if (el) el.value = '';
         });
         var elDatePre = document.getElementById('field-collecte-date-pre');
         if (elDatePre) elDatePre.value = new Date().toISOString().slice(0, 10);
+        var elPayerFdp = document.getElementById('field-collecte-payer-fdp');
+        if (elPayerFdp) elPayerFdp.checked = false;
         var section = document.getElementById('admin-collectes-supplementaires');
         var defaultColl = section ? section.dataset.billetCollecteur : '';
         var selColl = document.getElementById('field-collecte-collecteur');

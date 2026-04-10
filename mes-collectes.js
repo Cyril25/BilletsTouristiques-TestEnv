@@ -24,6 +24,44 @@ var currentCollecteSupp = null;       // Story 12.5 — collecte supplémentaire
 var mesCollectesSupp = [];            // Story 12.5 — [{collecte, billet}, ...]
 var mesInscriptionsParCollecte = {};  // Story 12.5 — {collecte_id: {total, confirmes, envoyes}}
 
+// Epic 13 (C3) — Cache collectes pour lookup prix/FDP/scope
+var collectesMap = {};       // {collecte_id: {id, billet_id, nom, prix, prix_variante, payer_fdp, fdp_com, scope}}
+var collectesParBillet = {}; // {billet_id: [collecte1, collecte2, ...]}
+
+// Epic 13 (C2) — Libellés scope centralisés
+var SCOPE_LABELS_MC = {
+    'normal': 'Normal',
+    'variante': 'Variante',
+    'les_deux': 'Normal + Variante'
+};
+function getScopeLabelMC(scope) { return SCOPE_LABELS_MC[scope] || ''; }
+
+// Epic 13 (C3) — Helper prix depuis la collecte de l'inscription (AC14 fallback)
+function getPrixFromCollecteMC(insc) {
+    var col = insc && insc.collecte_id ? collectesMap[insc.collecte_id] : null;
+    if (!col) {
+        if (insc) console.warn('[Epic 13] Collecte introuvable pour inscription ' + insc.id + ' (collecte_id=' + insc.collecte_id + ')');
+        return { prix: 0, prixVariante: 0, payerFdp: false, found: false };
+    }
+    var prix = parseFloat(col.prix || 0);
+    var prixVariante = (col.prix_variante !== null && col.prix_variante !== undefined && col.prix_variante !== '') ? parseFloat(col.prix_variante) : prix;
+    return {
+        prix: prix,
+        prixVariante: prixVariante,
+        payerFdp: col.payer_fdp === 'oui',
+        found: true
+    };
+}
+
+// Epic 13 (C3) — Retourne la collecte utilisée comme contexte "billet-level" (headers, boutons)
+// Story 12.5 : currentCollecteSupp prime. Sinon : première collecte du billet.
+function getCollecteContexte() {
+    if (currentCollecteSupp) return currentCollecteSupp;
+    if (!currentBilletId) return null;
+    var list = collectesParBillet[currentBilletId];
+    return (list && list.length > 0) ? list[0] : null;
+}
+
 function findFdpPriceCollecte(nbBillets, destination, typeEnvoi) {
     for (var i = 0; i < fraisPortCollecte.length; i++) {
         var r = fraisPortCollecte[i];
@@ -90,7 +128,8 @@ function checkCollecteur() {
 var mesInscriptionsParBillet = {};
 
 function loadMesCollectes() {
-    supabaseFetch('/rest/v1/billets?select=id,"NomBillet","Ville","Categorie","Collecteur","Prix","PrixVariante","DateColl","DateFin","HasVariante","VersionNormaleExiste","Date","Reference","Millesime","Version",attenuee,"PayerFDP","LinkSheet"&"Collecteur"=eq.' + encodeURIComponent(monCollecteur.alias) + '&order="Date".desc.nullslast')
+    // Epic 13 (C3 Zone A) — Prix/PrixVariante/PayerFDP/FDP_Com retirés du select billet
+    supabaseFetch('/rest/v1/billets?select=id,"NomBillet","Ville","Categorie","Collecteur","DateColl","DateFin","HasVariante","VersionNormaleExiste","Date","Reference","Millesime","Version",attenuee,"LinkSheet"&"Collecteur"=eq.' + encodeURIComponent(monCollecteur.alias) + '&order="Date".desc.nullslast')
         .then(function(billets) {
             mesBillets = billets || [];
             if (mesBillets.length === 0) {
@@ -102,20 +141,35 @@ function loadMesCollectes() {
             for (var i = 0; i < mesBillets.length; i++) {
                 billetIds.push(mesBillets[i].id);
             }
-            return supabaseFetch('/rest/v1/inscriptions?billet_id=in.(' + billetIds.join(',') + ')&collecte_id=is.null&pas_interesse=eq.false&select=billet_id,statut_paiement,envoye');
+            // Epic 13 (C3) — Charger les collectes des billets en parallèle
+            return Promise.all([
+                supabaseFetch('/rest/v1/inscriptions?billet_id=in.(' + billetIds.join(',') + ')&pas_interesse=eq.false&select=billet_id,collecte_id,statut_paiement,envoye'),
+                supabaseFetch('/rest/v1/collectes?billet_id=in.(' + billetIds.join(',') + ')&select=id,billet_id,nom,prix,prix_variante,payer_fdp,fdp_com,scope,date_pre,date_coll,date_fin,collecteur')
+            ]);
         })
-        .then(function(inscriptions) {
+        .then(function(results) {
+            if (!results) return;
+            var inscriptions = results[0] || [];
+            var collectes = results[1] || [];
+
+            // Alimenter collectesMap + collectesParBillet
+            collectesMap = {};
+            collectesParBillet = {};
+            collectes.forEach(function(c) {
+                collectesMap[c.id] = c;
+                if (!collectesParBillet[c.billet_id]) collectesParBillet[c.billet_id] = [];
+                collectesParBillet[c.billet_id].push(c);
+            });
+
             mesInscriptionsParBillet = {};
-            if (inscriptions) {
-                for (var i = 0; i < inscriptions.length; i++) {
-                    var ins = inscriptions[i];
-                    if (!mesInscriptionsParBillet[ins.billet_id]) {
-                        mesInscriptionsParBillet[ins.billet_id] = { total: 0, confirmes: 0, envoyes: 0 };
-                    }
-                    mesInscriptionsParBillet[ins.billet_id].total++;
-                    if (ins.statut_paiement === 'confirme') mesInscriptionsParBillet[ins.billet_id].confirmes++;
-                    if (ins.envoye) mesInscriptionsParBillet[ins.billet_id].envoyes++;
+            for (var i = 0; i < inscriptions.length; i++) {
+                var ins = inscriptions[i];
+                if (!mesInscriptionsParBillet[ins.billet_id]) {
+                    mesInscriptionsParBillet[ins.billet_id] = { total: 0, confirmes: 0, envoyes: 0 };
                 }
+                mesInscriptionsParBillet[ins.billet_id].total++;
+                if (ins.statut_paiement === 'confirme') mesInscriptionsParBillet[ins.billet_id].confirmes++;
+                if (ins.envoye) mesInscriptionsParBillet[ins.billet_id].envoyes++;
             }
             loadMesCollectesSupplementaires();
         })
@@ -237,14 +291,21 @@ function renderCollectesList() {
         h += '</div>';
         var bVne = b.VersionNormaleExiste !== false;
         var bVarActive = b.HasVariante && b.HasVariante !== 'N';
-        var bPrixVar = (b.PrixVariante !== null && b.PrixVariante !== undefined && b.PrixVariante !== '') ? parseFloat(b.PrixVariante) : null;
+        // Epic 13 (C3 Zone B) — prix depuis la/les collecte(s) du billet
+        var bCollectes = collectesParBillet[b.id] || [];
+        var bPrimary = bCollectes[0] || null;
+        var bPrix = bPrimary && bPrimary.prix !== null && bPrimary.prix !== undefined && bPrimary.prix !== '' ? parseFloat(bPrimary.prix) : null;
+        var bPrixVar = bPrimary && bPrimary.prix_variante !== null && bPrimary.prix_variante !== undefined && bPrimary.prix_variante !== '' ? parseFloat(bPrimary.prix_variante) : null;
+        var bMultiple = bCollectes.length > 1;
         h += '<div class="collecte-card-info">';
-        if (bVne && b.Prix) {
-            h += '<span><i class="fa-solid fa-euro-sign"></i> ' + b.Prix + (bVarActive && bPrixVar !== null ? ' / ' + bPrixVar + ' (var.)' : '') + '</span>';
+        if (bMultiple) {
+            h += '<span><i class="fa-solid fa-euro-sign"></i> voir collectes (' + bCollectes.length + ')</span>';
+        } else if (bVne && bPrix !== null) {
+            h += '<span><i class="fa-solid fa-euro-sign"></i> ' + bPrix.toFixed(2) + (bVarActive && bPrixVar !== null ? ' / ' + bPrixVar.toFixed(2) + ' (var.)' : '') + '</span>';
         } else if (!bVne && bVarActive && bPrixVar !== null) {
-            h += '<span><i class="fa-solid fa-euro-sign"></i> ' + bPrixVar + ' (var.)</span>';
-        } else if (b.Prix) {
-            h += '<span><i class="fa-solid fa-euro-sign"></i> ' + b.Prix + '</span>';
+            h += '<span><i class="fa-solid fa-euro-sign"></i> ' + bPrixVar.toFixed(2) + ' (var.)</span>';
+        } else if (bPrix !== null) {
+            h += '<span><i class="fa-solid fa-euro-sign"></i> ' + bPrix.toFixed(2) + '</span>';
         }
         if (b.DateColl) h += '<span><i class="fa-solid fa-calendar"></i> ' + b.DateColl + '</span>';
         h += '</div>';
@@ -352,8 +413,11 @@ function renderCollecteDetail(billetId, inscriptions) {
 
     var billet = currentBillet;
     var isOpen = billet && (billet.Categorie === 'Collecte' || billet.Categorie === 'Pré collecte');
-    var prix = parseFloat((billet && billet.Prix) || 0);
-    var prixVariante = (billet && billet.PrixVariante !== null && billet.PrixVariante !== undefined && billet.PrixVariante !== '') ? parseFloat(billet.PrixVariante) : prix;
+    // Epic 13 (C3 Zone C) — prix/FDP depuis la collecte contexte (vue billet ou vue Story 12.5)
+    var collecteCtx = getCollecteContexte();
+    var ctxPayerFdp = collecteCtx && collecteCtx.payer_fdp === 'oui';
+    var prix = collecteCtx && collecteCtx.prix !== null && collecteCtx.prix !== undefined && collecteCtx.prix !== '' ? parseFloat(collecteCtx.prix) : 0;
+    var prixVariante = (collecteCtx && collecteCtx.prix_variante !== null && collecteCtx.prix_variante !== undefined && collecteCtx.prix_variante !== '') ? parseFloat(collecteCtx.prix_variante) : prix;
 
     // Compute counters
     var totalInscrits = inscriptions.length;
@@ -440,7 +504,7 @@ function renderCollecteDetail(billetId, inscriptions) {
             + '</button>';
     }
     // Bouton "Tout cocher enveloppes" (uniquement si FDP non demandé)
-    if (billet.PayerFDP !== 'oui') {
+    if (!ctxPayerFdp) {
         var aCocher = inscriptions.filter(function(i) {
             return !i.pas_interesse && i.statut_livraison !== 'pret_a_envoyer' && i.statut_livraison !== 'expedie';
         });
@@ -453,7 +517,7 @@ function renderCollecteDetail(billetId, inscriptions) {
     }
 
     // Message si FDP non demandé — entre la barre d'actions et le tableau
-    if (billet.PayerFDP !== 'oui') {
+    if (!ctxPayerFdp) {
         html += '<div class="message-gerer-envoi">'
             + '<i class="fa-solid fa-info-circle"></i> '
             + 'Cochez la colonne <strong>Enveloppe</strong> pour ajouter le billet à la préparation des envois, '
@@ -486,7 +550,7 @@ function renderCollecteDetail(billetId, inscriptions) {
         html += '<th>Envoi</th>';
         html += '<th>Montant</th>';
         html += '<th>Payé</th>';
-        if (billet.PayerFDP === 'oui') {
+        if (ctxPayerFdp) {
             html += '<th>FDP</th>';
             html += '<th>Envoyé</th>';
         } else {
@@ -507,7 +571,7 @@ function renderCollecteDetail(billetId, inscriptions) {
 
             // Calcul FDP si demandé
             var fdpMontantIns = 0;
-            if (billet.PayerFDP === 'oui') {
+            if (ctxPayerFdp) {
                 var nbTotalIns = (ins.nb_normaux || 0) + (ins.nb_variantes || 0);
                 var destIns = (snap.pays === 'France') ? 'france' : 'international';
                 var typeEnvoiIns = (ins.mode_envoi || 'Normal').toLowerCase();
@@ -528,7 +592,7 @@ function renderCollecteDetail(billetId, inscriptions) {
             html += '<td data-label="Envoi">' + escapeHtmlMC(ins.mode_envoi || '') + '</td>';
             html += '<td data-label="Montant">' + montantAffiche + '</td>';
             html += '<td data-label="Payé">' + badgePaiementCollecteur(ins) + '</td>';
-            if (billet.PayerFDP === 'oui') {
+            if (ctxPayerFdp) {
                 html += '<td data-label="FDP"><input type="checkbox" id="chk-fdp_regles-' + ins.id + '" ' + (ins.fdp_regles ? 'checked' : '') + ' onchange="toggleInscriptionField(' + ins.id + ', \'fdp_regles\', this.checked)"></td>';
                 html += '<td data-label="Envoyé"><input type="checkbox" id="chk-envoye-' + ins.id + '" ' + (ins.envoye ? 'checked' : '') + ' onchange="demanderExpeditionDirecte(' + ins.id + ', this)"></td>';
             } else {
@@ -543,7 +607,7 @@ function renderCollecteDetail(billetId, inscriptions) {
             html += '</tr>';
 
             if (commentaire) {
-                var colCount = 7 + (vne ? 1 : 0) + (hasVar ? 1 : 0) + (billet.PayerFDP === 'oui' ? 2 : 1);
+                var colCount = 7 + (vne ? 1 : 0) + (hasVar ? 1 : 0) + (ctxPayerFdp ? 2 : 1);
                 html += '<tr class="tr-commentaire"><td colspan="' + colCount + '"><i class="fa-solid fa-comment"></i> ' + escapeHtmlMC(commentaire) + '</td></tr>';
             }
         }
@@ -2120,10 +2184,9 @@ function renderVerificationPaiement(inscriptions, billetsMap) {
 
     var totalEnAttente = 0;
     inscriptions.forEach(function(insc) {
-        var billet = billetsMap[insc.billet_id] || {};
-        var prix = parseFloat(billet.Prix || 0);
-        var prixVariante = (billet.PrixVariante !== null && billet.PrixVariante !== undefined && billet.PrixVariante !== '') ? parseFloat(billet.PrixVariante) : prix;
-        totalEnAttente += (prix * (insc.nb_normaux || 0)) + (prixVariante * (insc.nb_variantes || 0));
+        // Epic 13 (C3 Zone C) — prix depuis la collecte
+        var tarif = getPrixFromCollecteMC(insc);
+        totalEnAttente += (tarif.prix * (insc.nb_normaux || 0)) + (tarif.prixVariante * (insc.nb_variantes || 0));
     });
 
     var html = '<div class="paiement-total-attente">'
@@ -2153,9 +2216,9 @@ function renderVerificationPaiement(inscriptions, billetsMap) {
         for (var l = 0; l < groupe.inscriptions.length; l++) {
             var insc = groupe.inscriptions[l];
             var billet = billetsMap[insc.billet_id] || {};
-            var prix = parseFloat(billet.Prix || 0);
-            var prixVariante = (billet.PrixVariante !== null && billet.PrixVariante !== undefined && billet.PrixVariante !== '') ? parseFloat(billet.PrixVariante) : prix;
-            var montantNum = (prix * (insc.nb_normaux || 0)) + (prixVariante * (insc.nb_variantes || 0));
+            // Epic 13 (C3 Zone C) — prix depuis la collecte
+            var tarif = getPrixFromCollecteMC(insc);
+            var montantNum = (tarif.prix * (insc.nb_normaux || 0)) + (tarif.prixVariante * (insc.nb_variantes || 0));
             totalGroupe += montantNum;
             var montant = montantNum.toFixed(2);
             var payRefParts = [];
@@ -2289,8 +2352,7 @@ function ouvrirRelance(billetId) {
 }
 
 function renderRelanceModal(billet, impayes) {
-    var prix = parseFloat(billet.Prix || 0);
-    var prixVar = (billet.PrixVariante !== null && billet.PrixVariante !== undefined && billet.PrixVariante !== '') ? parseFloat(billet.PrixVariante) : prix;
+    // Epic 13 (C3 Zone C) — prix calculés par inscription depuis la collecte
     var paypalInfo = '';
     if (monCollecteur.paypal_me) {
         paypalInfo = 'https://paypal.me/' + monCollecteur.paypal_me;
@@ -2301,7 +2363,8 @@ function renderRelanceModal(billet, impayes) {
     var messagesHtml = impayes.map(function(insc, idx) {
         var adr = insc.adresse_snapshot || {};
         var prenom = adr.prenom || insc.membre_email;
-        var montant = (prix * (insc.nb_normaux || 0)) + (prixVar * (insc.nb_variantes || 0));
+        var tarif = getPrixFromCollecteMC(insc);
+        var montant = (tarif.prix * (insc.nb_normaux || 0)) + (tarif.prixVariante * (insc.nb_variantes || 0));
         var objet = 'Relance paiement — ' + (billet.NomBillet || 'Collecte');
 
         var relVne = billet.VersionNormaleExiste !== false;
@@ -2438,9 +2501,9 @@ function ouvrirRelanceGlobale() {
         for (var j = 0; j < groupe.inscriptions.length; j++) {
             var insc = groupe.inscriptions[j];
             var billet = billetsMap[insc.billet_id] || {};
-            var prix = parseFloat(billet.Prix || 0);
-            var prixVar = (billet.PrixVariante !== null && billet.PrixVariante !== undefined && billet.PrixVariante !== '') ? parseFloat(billet.PrixVariante) : prix;
-            var montant = (prix * (insc.nb_normaux || 0)) + (prixVar * (insc.nb_variantes || 0));
+            // Epic 13 (C3 Zone C) — prix depuis la collecte
+            var tarif = getPrixFromCollecteMC(insc);
+            var montant = (tarif.prix * (insc.nb_normaux || 0)) + (tarif.prixVariante * (insc.nb_variantes || 0));
             totalMembre += montant;
 
             var relVne = billet.VersionNormaleExiste !== false;
@@ -2545,9 +2608,9 @@ function ouvrirRecapPaiementGlobal() {
         for (var j = 0; j < groupe.inscriptions.length; j++) {
             var insc = groupe.inscriptions[j];
             var billet = billetsMap[insc.billet_id] || {};
-            var prix = parseFloat(billet.Prix || 0);
-            var prixVar = (billet.PrixVariante !== null && billet.PrixVariante !== undefined && billet.PrixVariante !== '') ? parseFloat(billet.PrixVariante) : prix;
-            totalMembre += (prix * (insc.nb_normaux || 0)) + (prixVar * (insc.nb_variantes || 0));
+            // Epic 13 (C3 Zone C) — prix depuis la collecte
+            var tarif = getPrixFromCollecteMC(insc);
+            totalMembre += (tarif.prix * (insc.nb_normaux || 0)) + (tarif.prixVariante * (insc.nb_variantes || 0));
             var libParts = [];
             if (billet.Reference) libParts.push(billet.Reference);
             var milVer = '';
@@ -3529,11 +3592,20 @@ function loadMesCollectesSupplementaires() {
                 renderCollectesList();
                 return;
             }
+            // Epic 13 (C3 Zone F) — Les collectes du collecteur sont aussi dans collectesMap
+            collectes.forEach(function(c) {
+                collectesMap[c.id] = c;
+                if (!collectesParBillet[c.billet_id]) collectesParBillet[c.billet_id] = [];
+                // Eviter les doublons avec loadMesCollectes
+                var exists = collectesParBillet[c.billet_id].some(function(x) { return x.id === c.id; });
+                if (!exists) collectesParBillet[c.billet_id].push(c);
+            });
             var ids = [];
             collectes.forEach(function(c) {
                 if (ids.indexOf(c.billet_id) === -1) ids.push(c.billet_id);
             });
-            return supabaseFetch('/rest/v1/billets?select=id,"NomBillet","Ville","Categorie","Prix","PrixVariante","DateColl","DateFin","HasVariante","VersionNormaleExiste","Date","Reference","Millesime","Version","PayerFDP"&id=in.(' + ids.join(',') + ')')
+            // Epic 13 (C3 Zone A) — Prix/PrixVariante/PayerFDP retirés du select billet
+            return supabaseFetch('/rest/v1/billets?select=id,"NomBillet","Ville","Categorie","DateColl","DateFin","HasVariante","VersionNormaleExiste","Date","Reference","Millesime","Version"&id=in.(' + ids.join(',') + ')')
                 .then(function(billets) {
                     var billetsMap = {};
                     (billets || []).forEach(function(b) { billetsMap[b.id] = b; });
@@ -3582,11 +3654,14 @@ function renderCollecteSupplementaireCard(collecte, billet) {
     if (milVersion) refParts.push(milVersion);
     if (refParts.length > 0) html += '<span class="collecte-ref">' + escapeHtmlMC(refParts.join(' - ')) + '</span>';
     html += '<h3>' + escapeHtmlMC(billet.NomBillet || '') + '</h3>';
-    html += '<span class="badge-nom-collecte">' + escapeHtmlMC(collecte.nom || '') + '</span>';
+    html += '<span class="badge-nom-collecte">' + escapeHtmlMC(collecte.nom || '') + (collecte.scope ? ' <span class="badge-scope-collecte">' + escapeHtmlMC(getScopeLabelMC(collecte.scope)) + '</span>' : '') + '</span>';
     html += '<span class="collecte-status ' + statusClass + '">' + escapeHtmlMC(statusLabel) + '</span>';
     html += '</div>';
     html += '<div class="collecte-card-info">';
-    if (billet.Prix) html += '<span><i class="fa-solid fa-euro-sign"></i> ' + billet.Prix + '</span>';
+    // Epic 13 (C3 Zone F) — prix depuis la collecte
+    if (collecte.prix !== null && collecte.prix !== undefined && collecte.prix !== '') {
+        html += '<span><i class="fa-solid fa-euro-sign"></i> ' + parseFloat(collecte.prix).toFixed(2) + '</span>';
+    }
     if (collecte.date_coll) html += '<span><i class="fa-solid fa-calendar"></i> ' + collecte.date_coll + '</span>';
     html += '</div>';
     if (stats.total > 0) {

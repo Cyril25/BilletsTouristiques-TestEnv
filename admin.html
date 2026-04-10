@@ -336,6 +336,23 @@
                             <label for="field-collecte-date-fin">Date fin</label>
                             <input type="date" id="field-collecte-date-fin">
                         </div>
+                        <div class="admin-form-group">
+                            <label for="field-collecte-prix">Prix (€)</label>
+                            <input type="number" id="field-collecte-prix" step="0.01" min="0" placeholder="15.00">
+                        </div>
+                        <div class="admin-form-group">
+                            <label for="field-collecte-prix-variante">Prix variante (€)</label>
+                            <input type="number" id="field-collecte-prix-variante" step="0.01" min="0" placeholder="20.00">
+                        </div>
+                        <div class="admin-form-group admin-form-group-inline">
+                            <label for="field-collecte-payer-fdp">
+                                <input type="checkbox" id="field-collecte-payer-fdp"> Payer les FDP
+                            </label>
+                        </div>
+                        <div class="admin-form-group">
+                            <label for="field-collecte-fdp-com">Commentaire FDP</label>
+                            <textarea id="field-collecte-fdp-com" rows="2" placeholder="Note libre (non utilisé dans les calculs)"></textarea>
+                        </div>
                         <button type="button" id="btn-add-collecte" class="btn-admin-secondary">
                             <i class="fa-solid fa-plus"></i> Ajouter cette collecte
                         </button>

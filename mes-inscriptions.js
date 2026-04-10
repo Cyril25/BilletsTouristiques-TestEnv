@@ -6,7 +6,35 @@
 var mesInscriptions = [];
 var billetsMap = {};
 var collecteursMap = {};
-var collectesMap = {}; // Story 12.6 — {collecte_id: nom} pour affichage badge
+var collectesMap = {}; // Epic 13 — {collecte_id: {nom, prix, prix_variante, payer_fdp, fdp_com, scope}}
+
+// Epic 13 (C2) — Libellés centralisés du scope d'une collecte
+var SCOPE_LABELS = {
+    'normal': 'Normal',
+    'variante': 'Variante',
+    'les_deux': 'Normal + Variante'
+};
+function getScopeLabel(scope) {
+    return SCOPE_LABELS[scope] || '';
+}
+
+// Epic 13 (C1) — Helper : récupère les prix depuis la collecte (fallback AC14)
+// Retourne {prix, prixVariante, payerFdp, found} ou placeholder si collecte absente
+function getPrixFromCollecte(insc) {
+    var col = collectesMap[insc.collecte_id];
+    if (!col) {
+        console.warn('[Epic 13] Collecte introuvable pour inscription ' + insc.id + ' (collecte_id=' + insc.collecte_id + ')');
+        return { prix: 0, prixVariante: 0, payerFdp: false, found: false };
+    }
+    var prix = parseFloat(col.prix || 0);
+    var prixVariante = (col.prix_variante !== null && col.prix_variante !== undefined && col.prix_variante !== '') ? parseFloat(col.prix_variante) : prix;
+    return {
+        prix: prix,
+        prixVariante: prixVariante,
+        payerFdp: col.payer_fdp === 'oui',
+        found: true
+    };
+}
 var membrePays = '';
 var fraisPortData = [];
 var currentInscFilter = 'tous'; // #9 — filtre actif
@@ -125,7 +153,8 @@ function loadMesInscriptions() {
                 .filter(function(i) { return i.collecte_id; })
                 .map(function(i) { return i.collecte_id; });
             if (collecteIds.length > 0) {
-                promises.push(supabaseFetch('/rest/v1/collectes?id=in.(' + collecteIds.join(',') + ')&select=id,nom'));
+                // Epic 13 (C1) — charger prix/FDP/scope depuis la collecte
+                promises.push(supabaseFetch('/rest/v1/collectes?id=in.(' + collecteIds.join(',') + ')&select=id,nom,prix,prix_variante,payer_fdp,fdp_com,scope'));
             }
             return Promise.all(promises);
         })
@@ -141,10 +170,19 @@ function loadMesInscriptions() {
             }
             membrePays = (membres && membres[0]) ? (membres[0].pays || '') : '';
             fraisPortData = fraisPort || [];
-            // Story 12.6 — peupler collectesMap si la requête a été émise
+            // Epic 13 (C1) — peupler collectesMap avec prix/FDP/scope
             collectesMap = {};
             if (results[3]) {
-                results[3].forEach(function(c) { collectesMap[c.id] = c.nom; });
+                results[3].forEach(function(c) {
+                    collectesMap[c.id] = {
+                        nom: c.nom,
+                        prix: c.prix,
+                        prix_variante: c.prix_variante,
+                        payer_fdp: c.payer_fdp,
+                        fdp_com: c.fdp_com,
+                        scope: c.scope
+                    };
+                });
             }
 
             renderInscriptions();
@@ -236,8 +274,10 @@ function renderInscriptions() {
 
     function renderInscriptionCard(insc) {
         var billet = billetsMap[insc.billet_id] || {};
-        var prix = parseFloat(billet.Prix || 0);
-        var prixVar = (billet.PrixVariante !== null && billet.PrixVariante !== undefined && billet.PrixVariante !== '') ? parseFloat(billet.PrixVariante) : prix;
+        // Epic 13 (C1) — prix depuis la collecte
+        var tarif = getPrixFromCollecte(insc);
+        var prix = tarif.prix;
+        var prixVar = tarif.prixVariante;
         var nbNormaux = insc.nb_normaux || 0;
         var nbVariantes = insc.nb_variantes || 0;
         var montant = (prix * nbNormaux) + (prixVar * nbVariantes);
@@ -245,7 +285,7 @@ function renderInscriptions() {
         var isBenef = estBeneficiaire(insc, activeEmail);
 
         var fdpMontant = 0;
-        if (billet.PayerFDP === 'oui' && billet.Categorie !== 'Pré collecte') {
+        if (tarif.payerFdp && billet.Categorie !== 'Pré collecte') {
             var nbTotal = nbNormaux + nbVariantes;
             var dest = (membrePays === 'France') ? 'france' : 'international';
             var typeEnvoi = (insc.mode_envoi || 'Normal').toLowerCase();
@@ -253,7 +293,10 @@ function renderInscriptions() {
         }
         var montantAvecFdp = montant + fdpMontant;
 
-        if (billet.Categorie !== 'Pré collecte') {
+        // Epic 13 (C1, AC14) — fallback si collecte introuvable
+        var prixIndispo = !tarif.found && billet.Categorie !== 'Pré collecte';
+
+        if (billet.Categorie !== 'Pré collecte' && !prixIndispo) {
             if (statut === 'non_paye' && !isBenef) totalDu += montantAvecFdp;
             else if (statut === 'declare' && !isBenef) totalEnAttente += montantAvecFdp;
         }
@@ -289,16 +332,18 @@ function renderInscriptions() {
         return '<div class="inscription-card">'
             + '<div class="inscription-card-header">'
             + '<strong>' + escapeHtml(((billet.Reference ? billet.Reference + ' ' : '') + (billet.Millesime || '') + (billet.Version ? '-' + billet.Version : '') + (billet.NomBillet ? ' - ' + billet.NomBillet : '')).trim() || 'Billet inconnu') + '</strong>'
-            + (insc.collecte_id && collectesMap[insc.collecte_id] ? '<span class="badge-nom-collecte-insc">' + escapeHtml(collectesMap[insc.collecte_id]) + '</span>' : '')
+            + (insc.collecte_id && collectesMap[insc.collecte_id] ? '<span class="badge-nom-collecte-insc">' + escapeHtml(collectesMap[insc.collecte_id].nom) + (collectesMap[insc.collecte_id].scope ? ' <span class="badge-scope-collecte">' + escapeHtml(getScopeLabel(collectesMap[insc.collecte_id].scope)) + '</span>' : '') + '</span>' : '')
             + (billet.Collecteur ? '<span class="inscription-collecteur"><i class="fa-solid fa-user"></i> ' + escapeHtml(billet.Collecteur) + '</span>' : '')
             + '</div>'
             + '<div class="inscription-card-details">'
             + '<span><i class="fa-solid fa-ticket"></i> ' + (billet.VersionNormaleExiste === false ? (nbVariantes + ' var.') : (nbNormaux + (nbVariantes > 0 ? ' + ' + nbVariantes + ' var.' : ''))) + '</span>'
             + (billet.Categorie === 'Pré collecte'
                 ? '<span class="montant-indefini"><i class="fa-solid fa-euro-sign"></i> Prix non défini</span>'
-                : (fdpMontant > 0
-                    ? '<span class="' + montantClass + '"><i class="fa-solid fa-euro-sign"></i> ' + montant.toFixed(2) + ' \u20AC + fdp ' + fdpMontant.toFixed(2) + ' \u20AC, soit ' + montantAvecFdp.toFixed(2) + ' \u20AC</span>'
-                    : '<span class="' + montantClass + '"><i class="fa-solid fa-euro-sign"></i> ' + montant.toFixed(2) + ' \u20AC</span>'))
+                : (prixIndispo
+                    ? '<span class="montant-indefini"><i class="fa-solid fa-euro-sign"></i> Prix indisponible</span>'
+                    : (fdpMontant > 0
+                        ? '<span class="' + montantClass + '"><i class="fa-solid fa-euro-sign"></i> ' + montant.toFixed(2) + ' \u20AC + fdp ' + fdpMontant.toFixed(2) + ' \u20AC, soit ' + montantAvecFdp.toFixed(2) + ' \u20AC</span>'
+                        : '<span class="' + montantClass + '"><i class="fa-solid fa-euro-sign"></i> ' + montant.toFixed(2) + ' \u20AC</span>')))
             + '</div>'
             + '<div class="inscription-card-statuts">'
             + badgeCollecte(billet.Categorie)
@@ -329,13 +374,16 @@ function renderInscriptions() {
 
         inscList.forEach(function(insc) {
             var billet = billetsMap[insc.billet_id] || {};
-            var prix = parseFloat(billet.Prix || 0);
-            var prixVar = (billet.PrixVariante !== null && billet.PrixVariante !== undefined && billet.PrixVariante !== '') ? parseFloat(billet.PrixVariante) : prix;
+            // Epic 13 (C1) — prix depuis la collecte
+            var tarif = getPrixFromCollecte(insc);
+            if (!tarif.found && billet.Categorie !== 'Pré collecte') return; // skip prix indisponible dans le récap
+            var prix = tarif.prix;
+            var prixVar = tarif.prixVariante;
             var nbN = insc.nb_normaux || 0;
             var nbV = insc.nb_variantes || 0;
             var montant = (prix * nbN) + (prixVar * nbV);
             var fdp = 0;
-            if (billet.PayerFDP === 'oui' && billet.Categorie !== 'Pré collecte') {
+            if (tarif.payerFdp && billet.Categorie !== 'Pré collecte') {
                 var dest = (membrePays === 'France') ? 'france' : 'international';
                 fdp = findFdpPrice(nbN + nbV, dest, (insc.mode_envoi || 'Normal').toLowerCase());
             }
@@ -529,11 +577,11 @@ function declarerPaiementGroupe(idsCsv) {
             var insc = mesInscriptions[i];
             var billet = billetsMap[insc.billet_id] || {};
             if (!collecteur) collecteur = billet.Collecteur || '';
-            var prix = parseFloat(billet.Prix || 0);
-            var prixVar = (billet.PrixVariante !== null && billet.PrixVariante !== undefined && billet.PrixVariante !== '') ? parseFloat(billet.PrixVariante) : prix;
-            var m = (prix * (insc.nb_normaux || 0)) + (prixVar * (insc.nb_variantes || 0));
+            // Epic 13 (C1) — prix depuis la collecte
+            var tarif = getPrixFromCollecte(insc);
+            var m = (tarif.prix * (insc.nb_normaux || 0)) + (tarif.prixVariante * (insc.nb_variantes || 0));
             var fdp = 0;
-            if (billet.PayerFDP === 'oui' && billet.Categorie !== 'Pré collecte') {
+            if (tarif.payerFdp && billet.Categorie !== 'Pré collecte') {
                 var dest = (membrePays === 'France') ? 'france' : 'international';
                 fdp = findFdpPrice((insc.nb_normaux || 0) + (insc.nb_variantes || 0), dest, (insc.mode_envoi || 'Normal').toLowerCase());
             }
@@ -561,9 +609,9 @@ function declarerPaiement(inscriptionId) {
     }
     var billet = insc ? billetsMap[insc.billet_id] : null;
     var collecteur = billet ? (billet.Collecteur || '') : '';
-    var prix = parseFloat((billet && billet.Prix) || 0);
-    var prixVar = (billet && billet.PrixVariante !== null && billet.PrixVariante !== undefined && billet.PrixVariante !== '') ? parseFloat(billet.PrixVariante) : prix;
-    var montant = insc ? (prix * (insc.nb_normaux || 0)) + (prixVar * (insc.nb_variantes || 0)) : 0;
+    // Epic 13 (C1) — prix depuis la collecte
+    var tarif = insc ? getPrixFromCollecte(insc) : { prix: 0, prixVariante: 0 };
+    var montant = insc ? (tarif.prix * (insc.nb_normaux || 0)) + (tarif.prixVariante * (insc.nb_variantes || 0)) : 0;
 
     pendingDeclarationId = inscriptionId;
     var modal = document.getElementById('confirm-paiement-modal');
