@@ -696,9 +696,9 @@ function showMore() {
                 escapeHtml(item.NomBillet || '') +
                 '</div>' +
                 buildVersionBadgesHtml(item) +
-                '<div style="margin-top:15px;">' +
-                'Commentaire : ' + escapeHtml(item.Commentaire || '') +
-                '</div>' +
+                (item.Commentaire
+                    ? '<div style="margin-top:15px;">Commentaire : ' + escapeHtml(item.Commentaire) + '</div>'
+                    : '') +
                 '</div>' +
                 '<div class="more action-icons">' +
                 (function() {
@@ -1519,7 +1519,8 @@ function annulerInscriptionCollecte(collecteId) {
 }
 
 function confirmerInscriptionCollecte(billetId, collecteId) {
-    if (getInscription(billetId, collecteId)) {
+    var existante = getInscription(billetId, collecteId);
+    if (existante && !existante.pas_interesse) {
         showToast('Vous êtes déjà inscrit à cette collecte', 'error');
         return;
     }
