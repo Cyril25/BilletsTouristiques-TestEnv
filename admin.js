@@ -722,12 +722,7 @@ function renderAdminCards() {
                         'style="background-color: ' + statusColor + '; color: ' + getTextColorForBg(statusColor) + ';">' +
                         escapeHtml(statusLabel) +
                     '</span>' +
-                    // Story 2.5 — popup de statut rapide (cache par defaut)
-                    '<div class="quick-status-popup" id="quick-status-popup-' + docId + '" style="display: none;">' +
-                        '<div class="quick-status-chips">' +
-                            buildStatusChipsHtml(docId, statut) +
-                        '</div>' +
-                    '</div>' +
+                    // Epic 13 : chips retirées — statut dérivé des collectes
                 '</div>' +
             '</div>' +
             '<div class="admin-card-meta">' +
@@ -1008,17 +1003,7 @@ function initPanel() {
         });
     }
 
-    // Story 9.3 — Mise à jour état des champs date quand catégorie change
-    // Story 9.6 — Toggle prix fields quand catégorie change
-    var categorieSelect = document.getElementById('field-categorie');
-    if (categorieSelect) {
-        categorieSelect.addEventListener('change', function() {
-            var newCat = categorieSelect.value;
-            updateDateFieldsState(newCat);
-            autoFillDateForStatus(newCat);
-            togglePrixFields();
-        });
-    }
+    // Epic 13 : champ Categorie retiré du formulaire billet.
 
     // Auto-remplir le département avec le code ISO du pays sélectionné
     var paysSelect = document.getElementById('field-pays');
@@ -1047,24 +1032,9 @@ function initPanel() {
             var panel = document.getElementById('admin-panel');
             var billetData = collectFormData();
 
-            // Story 9.3 — Auto-remplissage/nettoyage dates si statut changé (mode édition)
+            // Epic 13 : gestion dates/catégorie désormais sur les collectes.
             if (panel && panel.dataset.editId) {
                 var editId = panel.dataset.editId;
-                var oldBillet = null;
-                for (var bi = 0; bi < adminBillets.length; bi++) {
-                    if (String(adminBillets[bi]._id) === String(editId)) { oldBillet = adminBillets[bi]; break; }
-                }
-                if (oldBillet && oldBillet.Categorie !== billetData.Categorie) {
-                    var existingDates = {
-                        DatePre: billetData.DatePre || oldBillet.DatePre,
-                        DateColl: billetData.DateColl || oldBillet.DateColl,
-                        DateFin: billetData.DateFin || oldBillet.DateFin
-                    };
-                    var dateUpdates = getDateUpdatesForStatusChange(oldBillet.Categorie, billetData.Categorie, existingDates);
-                    for (var dk in dateUpdates) {
-                        billetData[dk] = dateUpdates[dk];
-                    }
-                }
                 // Détecter un changement forcé de type (champs déverrouillés par l'admin)
                 var forcedTypeChange = null;
                 var cbNormaleEl = document.getElementById('field-version-normale');
@@ -1100,21 +1070,7 @@ function initPanel() {
     var cardsGrid = document.getElementById('admin-cards-grid');
     if (cardsGrid) {
         cardsGrid.addEventListener('click', function(event) {
-            // Story 2.5 — Clic sur un chip de statut rapide
-            var chip = event.target.closest('.status-chip');
-            if (chip) {
-                event.stopPropagation();
-                handleQuickStatusChange(chip);
-                return;
-            }
-
-            // Story 2.5 — Clic sur le badge de statut
-            var badge = event.target.closest('.admin-badge-status.clickable');
-            if (badge) {
-                event.stopPropagation();
-                handleBadgeClick(badge);
-                return;
-            }
+            // Epic 13 : chips + badge clickable retirés (statut dérivé des collectes)
 
             // Story 2.4 — Clic sur le bouton supprimer
             var deleteBtn = event.target.closest('.admin-card-delete-btn');
@@ -1400,14 +1356,7 @@ function openBilletPanel(billetData, docId) {
         // Story 4.4 — Millesime en mode creation (N-3 a N+1, defaut N)
         populateMillesimeSelect('create');
 
-        // Statut par defaut
-        var categorieField = document.getElementById('field-categorie');
-        if (categorieField) categorieField.value = CATEGORIE_DEFAULT;
-
-        // Auto-remplir la date de pré-collecte pour un nouveau billet
-        autoFillDateForStatus(CATEGORIE_DEFAULT);
-
-        // Story 9.6 — Bloquer les champs prix selon le statut par défaut
+        // Epic 13 : statut + dates gérés sur la collecte
         togglePrixFields();
 
         // Story 5.2 — Masquer les champs Google en mode ajout
@@ -1454,20 +1403,13 @@ function copyBillet(billetData) {
     delete copy.ImageUrl;
     delete copy.ImageId;
     copy.NomBillet = (copy.NomBillet || '') + ' (copie)';
-    copy.Categorie = CATEGORIE_DEFAULT;
 
     // Ouvrir le panel en mode ajout (pas de docId)
     openBilletPanel(null, null);
 
     // Pré-remplir avec les données copiées
     prefillForm(copy);
-
-    // Remettre le statut par défaut après prefill
-    var categorieField = document.getElementById('field-categorie');
-    if (categorieField) categorieField.value = CATEGORIE_DEFAULT;
     togglePrixFields();
-    updateDateFieldsState(CATEGORIE_DEFAULT);
-    autoFillDateForStatus(CATEGORIE_DEFAULT);
 
     showToast('Billet dupliqué — modifiez puis sauvegardez', 'info');
 }
@@ -1484,13 +1426,9 @@ function prefillForm(data) {
         'field-dep': 'Dep',
         'field-cp': 'Cp',
         'field-pays': 'Pays',
-        'field-categorie': 'Categorie',
         'field-theme': 'Theme',
         'field-collecteur': 'Collecteur',
-        // Epic 13 : Prix/FDP gérés dans le formulaire collecte
-        'field-date-pre': 'DatePre',
-        'field-date-coll': 'DateColl',
-        'field-date-fin': 'DateFin',
+        // Epic 13 : Catégorie, dates, prix gérés dans le formulaire collecte
         'field-image-url': 'ImageUrl',
         'field-image-id': 'ImageId',
         'field-sondage': 'Sondage',
@@ -1560,10 +1498,7 @@ function prefillForm(data) {
     var payerFdpEl = document.getElementById('field-payer-fdp');
     if (payerFdpEl) payerFdpEl.checked = (data.PayerFDP === 'oui');
 
-    // Statut
-    var categorie = data.Categorie || CATEGORIE_DEFAULT;
-    var categorieField = document.getElementById('field-categorie');
-    if (categorieField) categorieField.value = categorie;
+    // Epic 13 : statut + dates gérés sur la collecte
 
     // Checkbox "Normale" — Story 9.9
     var cbNormale = document.getElementById('field-version-normale');
@@ -1573,9 +1508,6 @@ function prefillForm(data) {
 
     // Story 9.2 — Affichage conditionnel du champ PrixVariante
     togglePrixVarianteField();
-
-    // Story 9.3 — Activer/désactiver les champs date selon le statut
-    updateDateFieldsState(categorie);
 
     // Story 9.6 — Bloquer les champs prix en Pré-collecte
     togglePrixFields();
@@ -1656,25 +1588,7 @@ function togglePrixVarianteField() {
 
 // --- Story 9.6 — Bloquer les champs prix en Pré-collecte ---
 function togglePrixFields() {
-    var categorieEl = document.getElementById('field-categorie');
-    var prixEl = document.getElementById('field-prix');
-    var prixVarEl = document.getElementById('field-prix-variante');
-    var msgEl = document.getElementById('prix-precollecte-msg');
-    if (!categorieEl || !prixEl) return;
-
-    var isPreCollecte = (categorieEl.value === 'Pré collecte');
-
-    prixEl.disabled = isPreCollecte;
-    if (prixVarEl) prixVarEl.disabled = isPreCollecte;
-
-    if (isPreCollecte) {
-        prixEl.value = '';
-        if (prixVarEl) prixVarEl.value = '';
-    }
-
-    if (msgEl) {
-        msgEl.style.display = isPreCollecte ? '' : 'none';
-    }
+    // Epic 13 : catégorie retirée du billet, prix plus gérés ici
 }
 
 // --- Fermeture du panel ---
@@ -1808,56 +1722,7 @@ function validateBilletForm() {
         if (!firstErrorField) firstErrorField = version;
     }
 
-    var prix = document.getElementById('field-prix');
-    var categorie = document.getElementById('field-categorie');
-    var isCollecte = categorie && categorie.value === 'Collecte';
-
-    // Date obligatoire si catégorie ≠ "Masqué"
-    if (categorie && categorie.value !== 'Masqué') {
-        var datePre = document.getElementById('field-date-pre');
-        var dateColl = document.getElementById('field-date-coll');
-        var dateFin = document.getElementById('field-date-fin');
-        var hasDate = (datePre && datePre.value) || (dateColl && dateColl.value) || (dateFin && dateFin.value);
-        if (!hasDate) {
-            setFieldError('field-date-pre', 'error-date-pre', 'Au moins une date est requise (sauf pour les billets "Masqué")');
-            valid = false;
-            if (!firstErrorField) firstErrorField = datePre;
-        }
-    }
-
-    if (prix && prix.value !== '' && (isNaN(parseFloat(prix.value)) || parseFloat(prix.value) < 0)) {
-        setFieldError('field-prix', 'error-prix', 'Le prix doit etre un nombre positif');
-        valid = false;
-        if (!firstErrorField) firstErrorField = prix;
-    }
-
-    // Prix obligatoire en statut Collecte (seulement si version normale existe)
-    var cbNormaleForPrix = document.getElementById('field-version-normale');
-    var normaleExistePourPrix = cbNormaleForPrix ? cbNormaleForPrix.checked : true;
-    if (isCollecte && normaleExistePourPrix && prix && (prix.value.trim() === '' || parseFloat(prix.value) <= 0)) {
-        setFieldError('field-prix', 'error-prix', 'Le prix est obligatoire pour passer en Collecte');
-        valid = false;
-        if (!firstErrorField) firstErrorField = prix;
-    }
-
-    // Prix variante obligatoire en statut Collecte si variante active et pas de version normale
-    var hasVarianteForPrix = document.getElementById('field-has-variante');
-    var varianteActivePourPrix = hasVarianteForPrix && hasVarianteForPrix.value && hasVarianteForPrix.value !== 'N';
-    var prixVarianteForValidation = document.getElementById('field-prix-variante');
-    if (isCollecte && varianteActivePourPrix && !normaleExistePourPrix && prixVarianteForValidation && (prixVarianteForValidation.value.trim() === '' || parseFloat(prixVarianteForValidation.value) <= 0)) {
-        setFieldError('field-prix-variante', 'error-prix-variante', 'Le prix variante est obligatoire pour passer en Collecte');
-        valid = false;
-        if (!firstErrorField) firstErrorField = prixVarianteForValidation;
-    }
-
-    // Collecteur obligatoire en statut Collecte
-    var collecteur = document.getElementById('field-collecteur');
-    if (isCollecte && collecteur && collecteur.value === '') {
-        setFieldError('field-collecteur', 'error-collecteur', 'Le collecteur est obligatoire pour passer en Collecte');
-        valid = false;
-        if (!firstErrorField) firstErrorField = collecteur;
-    }
-
+    // Epic 13 : Catégorie et dates déplacées sur la collecte — validation supprimée côté billet.
     // Story 9.9 — Validation croisee : au moins un type (normale ou variante)
     var cbNormale = document.getElementById('field-version-normale');
     var hasVariante = document.getElementById('field-has-variante');
@@ -1915,11 +1780,8 @@ function collectFormData() {
         Pays: getValue('field-pays'),
         Theme: getValue('field-theme'),
         Collecteur: getValue('field-collecteur'),
-        // Epic 13 (B4) — Prix/PrixVariante/PayerFDP/FDP_Com retirés du formulaire billet
-        // Ces champs sont désormais gérés dans le formulaire collecte (saveCollecte)
-        DatePre: getValue('field-date-pre') || null,
-        DateColl: getValue('field-date-coll') || null,
-        DateFin: getValue('field-date-fin') || null,
+        // Epic 13 (B4) — Prix/PrixVariante/PayerFDP/FDP_Com + Categorie + dates
+        // gérés dans le formulaire collecte (plus sur le billet)
         ImageUrl: getValue('field-image-url'),
         ImageId: getValue('field-image-id'),
         // Story 5.2 — Ne collecter les champs Google que si le panel est en mode edition
@@ -1927,8 +1789,7 @@ function collectFormData() {
         LinkSondage: panel && panel.dataset.editId ? getValue('field-link-sondage') : '',
         LinkSheet: panel && panel.dataset.editId ? getValue('field-link-sheet') : '',
         LinkFB: getValue('field-link-fb'),
-        Commentaire: getValue('field-commentaire'),
-        Categorie: getValue('field-categorie') || CATEGORIE_DEFAULT
+        Commentaire: getValue('field-commentaire')
     };
 
     // Champ Recherche (concatenation des champs cles en minuscules)
@@ -1939,7 +1800,6 @@ function collectFormData() {
         billetData.Millesime,
         billetData.Dep,
         billetData.Pays,
-        billetData.Categorie,
         billetData.Theme,
         billetData.Collecteur
     ].join(' ').toLowerCase();
