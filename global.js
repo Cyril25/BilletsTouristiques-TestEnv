@@ -27,9 +27,12 @@ if (typeof firebase === 'undefined') {
 // Évite qu'un sous-domaine contenant "staging" bascule accidentellement.
 var STAGING_HOSTNAMES = ['billetstouristiques.netlify.app'];
 var PROD_HOSTNAMES = ['cyril25.github.io'];
+var STAGING_PATH_PREFIXES = ['/BilletsTouristiques-TestEnv'];
 var _host = window.location.hostname;
-var IS_STAGING = STAGING_HOSTNAMES.indexOf(_host) !== -1;
-var IS_PROD = PROD_HOSTNAMES.indexOf(_host) !== -1;
+var _path = window.location.pathname;
+var _isStagingPath = STAGING_PATH_PREFIXES.some(function(p) { return _path.indexOf(p) === 0; });
+var IS_STAGING = STAGING_HOSTNAMES.indexOf(_host) !== -1 || _isStagingPath;
+var IS_PROD = PROD_HOSTNAMES.indexOf(_host) !== -1 && !_isStagingPath;
 var IS_LOCAL = (_host === 'localhost' || _host === '127.0.0.1');
 if (!IS_STAGING && !IS_PROD && !IS_LOCAL) {
     console.warn('Hostname non whitelisté : ' + _host + ' — fallback prod');
@@ -308,7 +311,7 @@ function loadMenu() {
     var placeholder = document.getElementById("menu-placeholder");
     if (!placeholder) return;
 
-    fetch("menu.html?v=124")
+    fetch("menu.html?v=125")
         .then(function(response) { return response.text(); })
         .then(function(html) {
             // 1. On injecte le HTML
