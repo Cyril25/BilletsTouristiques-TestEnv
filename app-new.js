@@ -1494,14 +1494,11 @@ function buildCollectesSupplementairesHtml(item) {
             if (cParts.length > 0) compteurHtml = '<div class="collecte-supp-compteur">' + cParts.join(' + ') + '</div>';
         }
 
-        var catHtml = '';
-        if (c.categorie) {
-            var catCouleur = getCategorieColor(c.categorie);
-            var catColorText = (c.categorie === 'Pré collecte') ? 'var(--color-text-light, #9e9e9e)' : '#fff';
-            catHtml = '<span class="badge-categorie-collecte" style="background-color:' + catCouleur + ';color:' + catColorText + ';padding:2px 8px;border-radius:4px;font-size:0.85em;margin-left:6px;">' + escapeHtml(c.categorie) + '</span>';
-        }
+        var catCouleur = getCategorieColor(c.categorie);
+        var catColorText = (c.categorie === 'Pré collecte') ? 'var(--color-text-light, #9e9e9e)' : '#fff';
+        var catHtml = '<span class="badge-categorie-collecte" style="background-color:' + catCouleur + ';color:' + catColorText + ';padding:2px 8px;border-radius:4px;font-size:0.85em;margin-left:6px;">' + escapeHtml(c.categorie) + '</span>';
         var headerHtml = idx === 0
-            ? (catHtml ? '<div class="collecte-supp-header">' + catHtml + '</div>' : '')
+            ? '<div class="collecte-supp-header">' + catHtml + '</div>'
             : '<div class="collecte-supp-header"><span class="badge-nom-collecte">' + escapeHtml(c.nom || '') + '</span>' + catHtml + '</div>';
         html += '<div class="collecte-supplementaire-section" data-collecte-id="' + escapeAttr(c.id) + '">'
             + headerHtml
