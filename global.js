@@ -311,7 +311,7 @@ function loadMenu() {
     var placeholder = document.getElementById("menu-placeholder");
     if (!placeholder) return;
 
-    fetch("menu.html?v=129")
+    fetch("menu.html?v=130")
         .then(function(response) { return response.text(); })
         .then(function(html) {
             // 1. On injecte le HTML
