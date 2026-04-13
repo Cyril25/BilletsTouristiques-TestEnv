@@ -62,6 +62,7 @@ var membrePaysCatalogue = '';
 
 // Story 5.12 : Compteurs BT automatiques
 var compteurInscriptionsMap = {};
+var compteurInscriptionsParCollecteMap = {};
 
 // Filtre par catégorie actif
 var billetsActiveStatusFilter = 'tous';
@@ -895,6 +896,19 @@ function loadCompteursInscriptions() {
         .catch(function(error) {
             console.warn('Compteurs inscriptions non disponibles:', error);
         });
+    supabaseFetch('/rest/v1/rpc/compteurs_inscriptions_par_collecte')
+        .then(function(compteurs) {
+            compteurInscriptionsParCollecteMap = {};
+            (compteurs || []).forEach(function(c) {
+                compteurInscriptionsParCollecteMap[c.collecte_id] = {
+                    normaux: c.total_normaux || 0,
+                    variantes: c.total_variantes || 0
+                };
+            });
+        })
+        .catch(function(error) {
+            console.warn('Compteurs par collecte non disponibles:', error);
+        });
 }
 
 // --- Chargement frais de port et pays du membre pour le catalogue ---
@@ -1462,9 +1476,9 @@ function buildCollectesSupplementairesHtml(item) {
             + '<tr><td>Terminé :</td><td><b>' + escapeHtml(fmtDate(c.date_fin)) + '</b></td></tr>'
             + '</table>';
 
-        // --- Compteur billets ---
+        // --- Compteur billets (par collecte) ---
         var compteurHtml = '';
-        var compteur = compteurInscriptionsMap[item.id];
+        var compteur = compteurInscriptionsParCollecteMap[c.id];
         if (compteur) {
             var cParts = [];
             if (compteur.normaux > 0) cParts.push(compteur.normaux + ' billet' + (compteur.normaux > 1 ? 's' : ''));
