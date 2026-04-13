@@ -33,7 +33,7 @@ GRANT EXECUTE ON FUNCTION compteurs_inscriptions() TO anon;
 
 CREATE OR REPLACE FUNCTION compteurs_inscriptions_par_collecte()
 RETURNS TABLE(
-    collecte_id INTEGER,
+    collecte_id UUID,
     total_count BIGINT,
     total_normaux BIGINT,
     total_variantes BIGINT
