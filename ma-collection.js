@@ -81,7 +81,7 @@
         if (counter) counter.innerHTML = '<span class="collection-loading">Chargement...</span>';
 
         Promise.all([
-            supabaseFetch('/rest/v1/billets?select=id,Millesime,Pays,HasVariante,NomBillet,Reference,Version,ImageUrl,ImageId,Dep&order=Millesime.asc.nullslast,Pays.asc'),
+            supabaseFetch('/rest/v1/billets?select=id,Millesime,Pays,HasVariante,NomBillet,Reference,Version,ImageUrl,ImageId,Dep&order=Millesime.asc.nullslast,Pays.asc&limit=10000'),
             supabaseFetch('/rest/v1/pays?select=nom&order=nom.asc'),
             supabaseFetch('/rest/v1/membres?email=eq.' + encodeURIComponent(getCollEmail()) + '&select=collection_rules,collection_overrides,track_serial_numbers'),
             supabaseFetch('/rest/v1/collection?membre_email=eq.' + encodeURIComponent(getCollEmail()) + '&select=*')

@@ -181,7 +181,7 @@ function fetchData() {
         return;
     }
 
-    supabaseFetch('/rest/v1/billets?select=*&order=date_effective.desc.nullslast,Categorie.asc')
+    supabaseFetch('/rest/v1/billets?select=*&order=date_effective.desc.nullslast,Categorie.asc&limit=10000')
         .then(function(data) {
             console.log("Données Supabase reçues :", data.length);
             allData = data || [];
