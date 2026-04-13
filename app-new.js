@@ -1515,9 +1515,11 @@ function buildInscriptionHtmlForCollecte(item, collecte) {
     if (inscription) {
         return '<div class="inscription-badges">'
             + '<span class="badge-inscrit">Inscrit à cette collecte</span>'
-            + badgePaiementCatalogue(inscription.statut_paiement, 0, inscription.id, item.Categorie)
+            + badgePaiementCatalogue(inscription.statut_paiement, 0, inscription.id, collecte.categorie)
             + '</div>';
     }
+    var collecteOuverte = collecte.categorie === 'Pré collecte' || collecte.categorie === 'Collecte';
+    if (!collecteOuverte) return '';
     var isBlackliste = item.Collecteur && blacklistCollecteurs[item.Collecteur];
     if (isBlackliste) {
         return '<div class="inscription-badges">'
