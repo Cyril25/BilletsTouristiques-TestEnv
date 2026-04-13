@@ -42,6 +42,17 @@ var SUPABASE_ANON_KEY = IS_STAGING
     ? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqeGFqdHhuaGJjemdpYXJrZWZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNjY0MTMsImV4cCI6MjA5MTY0MjQxM30.5t-P56E4QfJpDooveaYp6zEW1vqMsmnD3ejQ9ZhU8rg'
     : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxod2NveWJ1Z2RzZ2djY2xodGdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5ODY5MzQsImV4cCI6MjA4ODU2MjkzNH0.I1CvqdFT4XPCCfIzJRlYNwKay2MVQ9YBB1_8qfJmQqQ';
 
+// --- Bandeau staging ---
+if (IS_STAGING) {
+    document.addEventListener('DOMContentLoaded', function() {
+        var banner = document.createElement('div');
+        banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#ff6600;color:#fff;text-align:center;padding:6px;font-weight:bold;font-size:14px;';
+        banner.textContent = 'ENVIRONNEMENT STAGING — base de test';
+        document.body.prepend(banner);
+        document.body.style.marginTop = '32px';
+    });
+}
+
 // --- Impersonation globale (superadmin uniquement) ---
 window.impersonatedEmail = sessionStorage.getItem('impersonatedEmail') || '';
 window.getActiveEmail = function() {
