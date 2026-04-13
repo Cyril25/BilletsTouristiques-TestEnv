@@ -1229,12 +1229,21 @@ function confirmerInscription(billetId) {
         return;
     }
 
+    // Epic 13 : récupérer la collecte_id (première collecte du billet)
+    var billetCollectes = collectesByBillet[billetId] || [];
+    if (billetCollectes.length === 0) {
+        showToast('Aucune collecte trouvée pour ce billet', 'error');
+        return;
+    }
+    var collecteId = billetCollectes[0].id;
+
     // Charger l'adresse du profil pour le snapshot
     supabaseFetch('/rest/v1/membres?email=eq.' + encodeURIComponent(email) + '&select=nom,prenom,rue,code_postal,ville,pays')
         .then(function(membreData) {
             var adresse = membreData && membreData[0] ? membreData[0] : {};
             var body = {
                 billet_id: billetId,
+                collecte_id: collecteId,
                 membre_email: email,
                 nb_normaux: nbNormaux,
                 nb_variantes: nbVariantes,
