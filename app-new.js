@@ -1379,8 +1379,10 @@ function handleDeepLinkBillet() {
 // ============================================================
 
 function loadCollectesByBillet() {
-    var today = new Date().toISOString().slice(0, 10);
-    supabaseFetch('/rest/v1/collectes?select=id,billet_id,nom,scope,collecteur,date_pre,date_coll,date_fin,prix,prix_variante,payer_fdp,fdp_com&or=(date_fin.is.null,date_fin.gt.' + today + ')')
+    // Charge TOUTES les collectes (y compris terminées) car le bloc mauve
+    // porte désormais les infos prix/dates/collecteur/compteur, nécessaires
+    // aussi pour les billets dont la collecte est terminée.
+    supabaseFetch('/rest/v1/collectes?select=id,billet_id,nom,scope,collecteur,date_pre,date_coll,date_fin,prix,prix_variante,payer_fdp,fdp_com&limit=10000')
         .then(function(data) {
             collectesByBillet = {};
             (data || []).forEach(function(c) {
