@@ -26,8 +26,17 @@ if (typeof firebase === 'undefined') {
 // Base de production. La clé anon est publique (l'accès est fermé par les
 // policies RLS, pas par le secret de la clé) : elle est safe en clair.
 var SUPABASE_URL_PROD = 'https://lhwcoybugdsggcclhtgb.supabase.co';
-var SUPABASE_URL = SUPABASE_URL_PROD;
-var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxod2NveWJ1Z2RzZ2djY2xodGdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5ODY5MzQsImV4cCI6MjA4ODU2MjkzNH0.I1CvqdFT4XPCCfIzJRlYNwKay2MVQ9YBB1_8qfJmQqQ';
+// ⚠ BRANCHE testenv-44 UNIQUEMENT — ne jamais fusionner dans main.
+// Aiguillage rouvert le temps de valider #44 sur la copie de test : sous
+// /BilletsTouristiques-TestEnv/, toutes les requêtes tapent la copie jetable.
+// Ailleurs — donc en production — rien ne change.
+var BT_IS_TESTENV = window.location.pathname.indexOf('/BilletsTouristiques-TestEnv/') === 0;
+var SUPABASE_URL = BT_IS_TESTENV
+    ? 'https://ijxajtxnhbczgiarkefo.supabase.co'
+    : SUPABASE_URL_PROD;
+var SUPABASE_ANON_KEY = BT_IS_TESTENV
+    ? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqeGFqdHhuaGJjemdpYXJrZWZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNjY0MTMsImV4cCI6MjA5MTY0MjQxM30.5t-P56E4QfJpDooveaYp6zEW1vqMsmnD3ejQ9ZhU8rg'
+    : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxod2NveWJ1Z2RzZ2djY2xodGdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5ODY5MzQsImV4cCI6MjA4ODU2MjkzNH0.I1CvqdFT4XPCCfIzJRlYNwKay2MVQ9YBB1_8qfJmQqQ';
 
 // L'environnement est déterminé par la base RÉELLEMENT utilisée (pas par le seul
 // chemin) : « pas la prod » ⇔ SUPABASE_URL ≠ URL de prod. Le bandeau ne peut donc
@@ -647,7 +656,7 @@ function loadMenu() {
     var placeholder = document.getElementById("menu-placeholder");
     if (!placeholder) return;
 
-    fetch("menu.html?v=193")
+    fetch("menu.html?v=194")
         .then(function(response) { return response.text(); })
         .then(function(html) {
             // 1. On injecte le HTML
